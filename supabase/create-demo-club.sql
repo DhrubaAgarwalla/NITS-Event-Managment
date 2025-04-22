@@ -1,0 +1,2 @@
+-- This file has been intentionally left empty.
+-- Club accounts should be created manually by the admin through the admin dashboard.

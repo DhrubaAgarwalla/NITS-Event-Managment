@@ -1,0 +1,239 @@
+import { useState, useEffect, useRef } from 'react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from '@studio-freight/lenis'
+import { motion, AnimatePresence } from 'framer-motion'
+import './App.css'
+
+// Connection Indicator
+import ConnectionIndicator from './components/ConnectionIndicator'
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
+
+// Auth Context
+import { useAuth } from './contexts/AuthContext';
+
+// Navigation utilities
+import { navigateAfterLogin } from './utils/navigation';
+
+// Components
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import Events from './components/Events';
+import Clubs from './components/Clubs';
+import About from './components/About';
+import Footer from './components/Footer';
+import Cursor from './components/Cursor';
+import Login from './components/Login';
+import EventDetails from './components/EventDetails';
+import ClubDashboard from './components/ClubDashboard';
+import ClubDetails from './components/ClubDetails';
+import EventsPage from './components/EventsPage';
+import ClubsPage from './components/ClubsPage';
+import AdminDashboard from './components/AdminDashboard';
+import AdminCheck from './components/AdminCheck';
+import ClubRequestForm from './components/ClubRequestForm';
+import EventCreationForm from './components/EventCreationForm';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
+
+function App() {
+  const { user, club, isAdmin, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const scrollContainerRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'event-details', 'login', 'club-dashboard', etc.
+  const [selectedEventId, setSelectedEventId] = useState(1); // Default to first event
+  const [selectedClubId, setSelectedClubId] = useState(1); // Default to first club
+  const [isClubLoggedIn, setIsClubLoggedIn] = useState(false); // Track if a club is logged in (legacy - will be replaced by auth context)
+
+  // Check for password reset in URL
+  useEffect(() => {
+    // Check if we're in a password reset flow
+    const hash = window.location.hash;
+    const query = window.location.search;
+
+    // Supabase adds the token to the URL hash or query params
+    const hasResetToken =
+      hash.includes('type=recovery') ||
+      query.includes('type=recovery') ||
+      hash.includes('access_token=') ||
+      query.includes('access_token=') ||
+      query.includes('reset-password=true');
+
+    console.log('App.jsx - Reset token check:', { hash, query, hasResetToken, currentPage });
+
+    if (hasResetToken && currentPage !== 'reset-password') {
+      console.log('Redirecting to reset-password page');
+      setCurrentPage('reset-password');
+    }
+  }, [currentPage]);
+
+  // Update isClubLoggedIn based on auth context and handle redirects
+  useEffect(() => {
+    if (user && club) {
+      setIsClubLoggedIn(true);
+
+      // If user is on login page and already logged in, redirect to appropriate dashboard
+      if (currentPage === 'login') {
+        navigateAfterLogin(setCurrentPage, user, isAdmin, true);
+      }
+    } else {
+      setIsClubLoggedIn(false);
+
+      // If user is on a protected page but not logged in, redirect to login
+      if (['club-dashboard', 'create-event'].includes(currentPage) && !authLoading) {
+        setCurrentPage('login');
+      }
+    }
+
+    // If user is admin and on admin-check page, redirect to admin dashboard
+    if (isAdmin && currentPage === 'admin-check' && !authLoading) {
+      setCurrentPage('admin-dashboard');
+    }
+  }, [user, club, isAdmin, currentPage, authLoading]);
+
+  // Initialize smooth scrolling with Lenis
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      direction: 'vertical',
+      gestureOrientation: 'vertical',
+      smooth: true,
+      smoothTouch: false,
+      touchMultiplier: 2,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    // Clean up
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
+  // Loading animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Initialize scroll animations
+  useEffect(() => {
+    if (!loading) {
+      // Animate sections on scroll
+      const sections = document.querySelectorAll('.section');
+
+      sections.forEach((section) => {
+        const heading = section.querySelector('h2');
+        const content = section.querySelector('.content');
+
+        if (heading && content) {
+          gsap.fromTo(
+            heading,
+            { opacity: 0, y: 50 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 1,
+              scrollTrigger: {
+                trigger: section,
+                start: 'top 80%',
+                end: 'top 50%',
+                scrub: 1,
+              },
+            }
+          );
+
+          gsap.fromTo(
+            content,
+            { opacity: 0, y: 30 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 1,
+              scrollTrigger: {
+                trigger: section,
+                start: 'top 70%',
+                end: 'top 40%',
+                scrub: 1,
+              },
+            }
+          );
+        }
+      });
+    }
+  }, [loading]);
+
+  return (
+    <>
+      <AnimatePresence>
+        {loading ? (
+          <motion.div
+            className="loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+            >
+              NIT Silchar
+            </motion.h1>
+            <motion.div
+              className="loader-bar"
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+            />
+          </motion.div>
+        ) : (
+          <div className="app">
+            <Cursor />
+            <Navbar setCurrentPage={setCurrentPage} isClubLoggedIn={isClubLoggedIn} currentPage={currentPage} />
+            <ConnectionIndicator />
+
+            {currentPage === 'home' && (
+              <div className="smooth-scroll" ref={scrollContainerRef}>
+                <div className="scroll-container">
+                  <Hero setCurrentPage={setCurrentPage} />
+                  <Events setCurrentPage={setCurrentPage} setSelectedEventId={setSelectedEventId} />
+                  <Clubs setCurrentPage={setCurrentPage} setSelectedClubId={setSelectedClubId} />
+                  <Footer />
+                </div>
+              </div>
+            )}
+
+            {currentPage === 'about' && <About setCurrentPage={setCurrentPage} />}
+
+            {currentPage === 'event-details' && <EventDetails setCurrentPage={setCurrentPage} eventId={selectedEventId} />}
+            {currentPage === 'club-details' && <ClubDetails setCurrentPage={setCurrentPage} clubId={selectedClubId} />}
+            {currentPage === 'events-page' && <EventsPage setCurrentPage={setCurrentPage} setSelectedEventId={setSelectedEventId} />}
+            {currentPage === 'clubs-page' && <ClubsPage setCurrentPage={setCurrentPage} setSelectedClubId={setSelectedClubId} />}
+            {currentPage === 'login' && <Login setCurrentPage={setCurrentPage} setIsClubLoggedIn={setIsClubLoggedIn} />}
+            {currentPage === 'club-dashboard' && <ClubDashboard setCurrentPage={setCurrentPage} setIsClubLoggedIn={setIsClubLoggedIn} />}
+            {currentPage === 'admin-dashboard' && <AdminDashboard setCurrentPage={setCurrentPage} />}
+            {currentPage === 'admin-check' && <AdminCheck setCurrentPage={setCurrentPage} />}
+            {currentPage === 'club-request' && <ClubRequestForm setCurrentPage={setCurrentPage} />}
+            {currentPage === 'create-event' && <EventCreationForm setCurrentPage={setCurrentPage} />}
+            {currentPage === 'forgot-password' && <ForgotPassword setCurrentPage={setCurrentPage} />}
+            {currentPage === 'reset-password' && <ResetPassword setCurrentPage={setCurrentPage} />}
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+export default App

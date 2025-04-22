@@ -1,0 +1,3 @@
+-- This file has been intentionally left empty.
+-- No sample data will be created automatically.
+-- All data should be created through the application interface.

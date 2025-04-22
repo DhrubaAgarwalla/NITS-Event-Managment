@@ -1,0 +1,598 @@
+/* About Section Styles */
+.about-section {
+  padding: 8rem 0;
+  background-color: var(--dark-bg);
+  color: white;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+.about-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.back-button-container {
+  margin-bottom: 2rem;
+}
+
+.back-button {
+  background-color: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-button:hover {
+  background-color: var(--primary);
+  color: black;
+  transform: translateX(-5px);
+}
+
+.about-title {
+  font-size: 3.5rem;
+  margin-bottom: 3rem;
+  text-align: center;
+  color: white;
+}
+
+/* Institute Info Styles */
+.about-content {
+  display: flex;
+  gap: 4rem;
+  align-items: center;
+  margin-bottom: 6rem;
+}
+
+.about-text {
+  flex: 1;
+}
+
+.about-text h3 {
+  font-size: 2.2rem;
+  margin-bottom: 1.5rem;
+  color: var(--secondary);
+}
+
+.about-text p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.about-btn {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  background-color: var(--primary);
+  color: black;
+  border-radius: 4px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+}
+
+.about-btn:hover {
+  background-color: var(--secondary);
+  transform: translateY(-3px);
+}
+
+.about-image {
+  flex: 1;
+}
+
+.about-image img {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.about-facts {
+  margin-top: 1.5rem;
+  background-color: var(--dark-surface);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+}
+
+.about-facts h4 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+.about-facts ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.about-facts li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  color: white;
+}
+
+.about-facts li span {
+  margin-right: 0.8rem;
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+/* Event Manager Section Styles */
+.event-manager-section {
+  margin-bottom: 6rem;
+  background-color: rgba(17, 17, 17, 0.5);
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+}
+
+.event-manager-section h2 {
+  font-size: 3rem;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  color: white;
+}
+
+.event-manager-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+
+.event-manager-text h3 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--secondary);
+}
+
+.event-manager-text p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.features-list {
+  margin-top: 2.5rem;
+}
+
+.features-list h4 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--accent);
+}
+
+.features-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.features-list li {
+  display: flex;
+  margin-bottom: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid rgba(110, 68, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.features-list li:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  background-color: rgba(110, 68, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.feature-text h5 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--secondary);
+}
+
+.feature-text p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.event-manager-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.showcase-card {
+  background-color: var(--dark-surface);
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.showcase-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  border-color: var(--primary);
+}
+
+.card-header {
+  background-color: rgba(110, 68, 255, 0.1);
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-header h4 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1.3rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card-body ul li {
+  margin-bottom: 0.8rem;
+  color: white;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.card-body ul li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.update-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.update-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.update-item h5 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--secondary);
+}
+
+.update-item p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.update-date {
+  font-size: 0.8rem;
+  color: var(--primary);
+}
+
+/* Team Section Styles */
+.team-section {
+  margin-bottom: 6rem;
+  background-color: rgba(17, 17, 17, 0.5);
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+}
+
+.team-section h2 {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: white;
+}
+
+/* Team Content Layout */
+.team-content {
+  display: flex;
+  gap: 4rem;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+/* Team Text Styles */
+.team-text {
+  flex: 1;
+}
+
+.team-text h3 {
+  font-size: 2.2rem;
+  margin-bottom: 1.5rem;
+  color: var(--secondary);
+}
+
+.team-text p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Profile Card Styles */
+.team-profile {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.profile-card {
+  background-color: var(--dark-surface);
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(110, 68, 255, 0.3);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+}
+
+.profile-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border-color: var(--primary);
+}
+
+.profile-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 2rem;
+  border: 4px solid var(--primary);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.profile-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+  color: white;
+}
+
+.profile-role {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.profile-id {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background-color: rgba(110, 68, 255, 0.1);
+  border-radius: 5px;
+  display: inline-block;
+}
+
+
+
+/* Contact Section Styles */
+.contact-section {
+  background-color: rgba(17, 17, 17, 0.5);
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+}
+
+.contact-section h2 {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.contact-intro {
+  max-width: 700px;
+  margin: 0 auto 3rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+}
+
+.contact-methods {
+  display: flex;
+  justify-content: center;
+  gap: 6rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contact-method {
+  text-align: center;
+}
+
+.contact-icon {
+  width: 70px;
+  height: 70px;
+  background-color: rgba(110, 68, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin: 0 auto 1.2rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(110, 68, 255, 0.2);
+}
+
+.contact-method:hover .contact-icon {
+  transform: scale(1.1);
+  background-color: rgba(110, 68, 255, 0.2);
+  border-color: var(--primary);
+}
+
+.contact-method h4 {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+  color: var(--secondary);
+}
+
+.contact-method p {
+  color: white;
+  margin: 0;
+}
+
+.contact-btn {
+  padding: 1rem 2.5rem;
+  background-color: var(--primary);
+  color: black;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.contact-btn:hover {
+  background-color: var(--secondary);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .about-content,
+  .event-manager-content {
+    gap: 2rem;
+  }
+
+  .contact-methods {
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .about-title,
+  .event-manager-section h2,
+  .team-section h2,
+  .contact-section h2 {
+    font-size: 2.5rem;
+  }
+
+  .about-text h3,
+  .event-manager-text h3 {
+    font-size: 1.8rem;
+  }
+
+  .event-manager-content {
+    grid-template-columns: 1fr;
+  }
+
+  .team-content {
+    gap: 2rem;
+  }
+
+  .team-text h3,
+  .profile-card h3 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-section {
+    padding: 6rem 0;
+  }
+
+  .about-content {
+    flex-direction: column;
+  }
+
+  .about-image {
+    margin-top: 2rem;
+  }
+
+  .event-manager-section,
+  .team-section,
+  .contact-section {
+    padding: 2rem;
+  }
+
+  .team-content {
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .contact-methods {
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .about-title,
+  .event-manager-section h2,
+  .team-section h2,
+  .contact-section h2 {
+    font-size: 2rem;
+  }
+
+  .team-content {
+    flex-direction: column;
+  }
+
+  .team-profile {
+    margin-top: 2rem;
+  }
+
+  .profile-image {
+    width: 150px;
+    height: 150px;
+  }
+
+  .contact-methods {
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+}
