@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import clubService from '../services/clubService';
 import eventService from '../services/eventService';
+import { navigateTo } from '../utils/navigation';
 
 const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
   const [club, setClub] = useState(null);
@@ -322,8 +323,8 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                         onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                         onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                         onClick={() => {
-                          setCurrentPage('event-details');
                           setSelectedEventId(event.id);
+                          navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
                         }}
                       >
                         <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
@@ -819,8 +820,8 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                         border: '1px solid transparent'
                       }}
                       onClick={() => {
-                        setCurrentPage('event-details');
                         setSelectedEventId(event.id);
+                        navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
                       }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.05)';

@@ -47,13 +47,36 @@ function App() {
   const [selectedClubId, setSelectedClubId] = useState(1); // Default to first club
   const [isClubLoggedIn, setIsClubLoggedIn] = useState(false); // Track if a club is logged in (legacy - will be replaced by auth context)
 
-  // Check for password reset in URL
+  // Check URL for direct navigation and special routes
   useEffect(() => {
-    // Check if we're in a password reset flow
+    // Parse the current URL path
+    const path = window.location.pathname;
     const hash = window.location.hash;
     const query = window.location.search;
 
-    // Supabase adds the token to the URL hash or query params
+    console.log('App.jsx - URL check:', { path, hash, query, currentPage });
+
+    // Handle direct event URLs: /event/:id
+    const eventMatch = path.match(/\/event\/([\w-]+)/);
+    if (eventMatch && eventMatch[1]) {
+      const eventId = eventMatch[1];
+      console.log('Direct event URL detected:', eventId);
+      setSelectedEventId(eventId);
+      setCurrentPage('event-details');
+      return;
+    }
+
+    // Handle direct club URLs: /club/:id
+    const clubMatch = path.match(/\/club\/([\w-]+)/);
+    if (clubMatch && clubMatch[1]) {
+      const clubId = clubMatch[1];
+      console.log('Direct club URL detected:', clubId);
+      setSelectedClubId(clubId);
+      setCurrentPage('club-details');
+      return;
+    }
+
+    // Check if we're in a password reset flow
     const hasResetToken =
       hash.includes('type=recovery') ||
       query.includes('type=recovery') ||
@@ -61,13 +84,25 @@ function App() {
       query.includes('access_token=') ||
       query.includes('reset-password=true');
 
-    console.log('App.jsx - Reset token check:', { hash, query, hasResetToken, currentPage });
-
     if (hasResetToken && currentPage !== 'reset-password') {
       console.log('Redirecting to reset-password page');
       setCurrentPage('reset-password');
+      return;
     }
-  }, [currentPage]);
+
+    // Handle other direct routes
+    if (path === '/events') {
+      setCurrentPage('events-page');
+    } else if (path === '/clubs') {
+      setCurrentPage('clubs-page');
+    } else if (path === '/about') {
+      setCurrentPage('about');
+    } else if (path === '/login') {
+      setCurrentPage('login');
+    } else if (path === '/request') {
+      setCurrentPage('club-request');
+    }
+  }, []);
 
   // Update isClubLoggedIn based on auth context and handle redirects
   useEffect(() => {

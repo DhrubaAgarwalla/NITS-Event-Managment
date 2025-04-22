@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import clubService from '../services/clubService';
+import { navigateTo } from '../utils/navigation';
 
 const Clubs = ({ setCurrentPage, setSelectedClubId }) => {
   const sectionRef = useRef(null);
@@ -132,7 +133,7 @@ const Clubs = ({ setCurrentPage, setSelectedClubId }) => {
                 <button
                   onClick={() => {
                     setSelectedClubId(club.id);
-                    setCurrentPage('club-details');
+                    navigateTo(setCurrentPage, 'club-details', { clubId: club.id });
                   }}
                   className="btn"
                 >

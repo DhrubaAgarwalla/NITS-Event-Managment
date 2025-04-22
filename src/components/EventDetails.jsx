@@ -44,10 +44,12 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
   // Set share URL when component mounts
   useEffect(() => {
-    // Get the current URL for sharing
-    const currentUrl = window.location.href;
-    setShareUrl(currentUrl);
-  }, []);
+    // Use Vercel deployment URL instead of dynamic URL
+    const baseUrl = 'https://nits-event-managment.vercel.app';
+    // Create a shareable URL with the event ID
+    const shareableUrl = `${baseUrl}/event/${eventId}`;
+    setShareUrl(shareableUrl);
+  }, [eventId]);
 
   // Format event date for display
   const formatEventDate = (startDate, endDate) => {
@@ -82,23 +84,33 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
   // Share functions
   const shareOnFacebook = () => {
+    // Include event title and image in Facebook share
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'width=600,height=400');
   };
 
   const shareOnTwitter = () => {
-    const text = event ? `Check out ${event.title} at NIT Silchar!` : 'Check out this event!';
+    // Create a more detailed tweet with event info
+    const text = event
+      ? `Check out ${event.title} at NIT Silchar! ${formatEventDate(event.start_date, event.end_date)} at ${event.location}`
+      : 'Check out this event!';
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'width=600,height=400');
   };
 
   const shareOnLinkedIn = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    // LinkedIn sharing with title and summary
+    const title = event ? encodeURIComponent(event.title) : encodeURIComponent('NIT Silchar Event');
+    const summary = event ? encodeURIComponent(`${formatEventDate(event.start_date, event.end_date)} at ${event.location}`) : '';
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${title}&summary=${summary}`;
     window.open(url, '_blank', 'width=600,height=400');
   };
 
   const shareOnWhatsApp = () => {
-    const text = event ? `Check out ${event.title} at NIT Silchar: ${shareUrl}` : `Check out this event: ${shareUrl}`;
+    // Create a more detailed WhatsApp message with event info
+    const text = event
+      ? `Check out ${event.title} at NIT Silchar!\n\n📅 ${formatEventDate(event.start_date, event.end_date)}\n⏰ ${formatEventTime(event.start_date, event.end_date)}\n📍 ${event.location}\n\n${event.description?.substring(0, 100)}${event.description?.length > 100 ? '...' : ''}\n\n${shareUrl}`
+      : `Check out this event: ${shareUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };

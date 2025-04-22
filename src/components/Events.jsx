@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
+import { navigateTo } from '../utils/navigation';
 
 const Events = ({ setCurrentPage, setSelectedEventId }) => {
   const sectionRef = useRef(null);
@@ -310,7 +311,7 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                   <button
                     onClick={() => {
                       setSelectedEventId(event.id);
-                      setCurrentPage('event-details');
+                      navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
                     }}
                     className="btn"
                     style={{ marginTop: '1rem' }}

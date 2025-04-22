@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
+import { navigateTo } from '../utils/navigation';
 
 const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
   const [filter, setFilter] = useState('all');
@@ -174,7 +175,7 @@ const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
                     <button
                       onClick={() => {
                         setSelectedClubId(club.id);
-                        setCurrentPage('club-details');
+                        navigateTo(setCurrentPage, 'club-details', { clubId: club.id });
                       }}
                       className="btn"
                     >
