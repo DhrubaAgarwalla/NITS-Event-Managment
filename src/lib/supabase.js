@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase credentials are missing. Please check your .env file.');
 }
 
-// Create the Supabase client with enhanced session persistence
+// Create the Supabase client with optimized configuration
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -22,31 +22,41 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'x-application-name': 'event-manager'
     },
-    // Increase timeout for better reliability
+    // Optimized fetch with reasonable timeout and retry logic
     fetch: (url, options) => {
-      const timeout = 30000; // 30 seconds timeout
+      const timeout = 15000; // Reduced to 15 seconds timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      return fetch(url, {
-        ...options,
-        signal: controller.signal
-      })
-        .then(response => {
+      // Basic retry function
+      const fetchWithRetry = async (retries = 1) => {
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
           clearTimeout(timeoutId);
           return response;
-        })
-        .catch(error => {
+        } catch (error) {
           clearTimeout(timeoutId);
+
+          // Only retry on network errors, not on 4xx/5xx responses
+          if (retries > 0 && error.name === 'TypeError') {
+            console.warn(`Retrying Supabase request, ${retries} attempts left`);
+            return fetchWithRetry(retries - 1);
+          }
+
           console.error('Supabase fetch error:', error);
           throw error;
-        });
+        }
+      };
+
+      return fetchWithRetry(1); // Allow 1 retry
     }
   },
+  // Disable realtime by default since it's not being used
   realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+    autoconnect: false
   }
 });
 
@@ -108,24 +118,31 @@ export const checkAndRefreshSession = async (forceRefresh = false) => {
   }
 };
 
-// Start session monitoring
-export const startSessionMonitoring = (intervalMs = 30000) => {
+// Start session monitoring with optimized intervals
+export const startSessionMonitoring = (intervalMs = 60000) => { // Increased to 60 seconds default
   if (sessionCheckInterval) {
     clearInterval(sessionCheckInterval);
   }
 
   // Initial check with force refresh to ensure we start with a fresh token
-  checkAndRefreshSession(true);
+  // Use a small delay to avoid immediate requests on page load
+  setTimeout(() => {
+    checkAndRefreshSession(true);
+  }, 1000);
 
-  // Set up periodic checks
+  // Set up periodic checks with a more reasonable interval
   sessionCheckInterval = setInterval(() => checkAndRefreshSession(), intervalMs);
   console.log(`Session monitoring started (interval: ${intervalMs}ms)`);
 
-  // Also check when the tab becomes visible again
+  // Also check when the tab becomes visible again, but only if it's been a while
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      console.log('Tab became visible, checking session...');
-      checkAndRefreshSession(true); // Force refresh when tab becomes visible
+      // Only refresh if it's been at least 2 minutes since last check
+      const now = Date.now();
+      if (now - lastSessionCheck > 120000) {
+        console.log('Tab became visible after inactivity, checking session...');
+        checkAndRefreshSession(true);
+      }
     }
   };
 

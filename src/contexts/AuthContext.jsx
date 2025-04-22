@@ -32,11 +32,14 @@ export const AuthProvider = ({ children }) => {
           setUser(session.user);
           setSessionStatus('active');
 
-          // Start session monitoring
+          // Start session monitoring with optimized interval
           if (stopSessionMonitoring.current) {
             stopSessionMonitoring.current();
           }
-          stopSessionMonitoring.current = startSessionMonitoring(20000); // Check every 20 seconds
+          // Use a small delay to avoid immediate requests
+          setTimeout(() => {
+            stopSessionMonitoring.current = startSessionMonitoring(60000); // Check every 60 seconds (increased from 20)
+          }, 1000);
 
           // Check if user is an admin
           const { data: adminData } = await supabase
@@ -81,11 +84,14 @@ export const AuthProvider = ({ children }) => {
           setUser(session.user);
           setSessionStatus('active');
 
-          // Start session monitoring when user signs in
+          // Start session monitoring when user signs in with optimized interval
           if (stopSessionMonitoring.current) {
             stopSessionMonitoring.current();
           }
-          stopSessionMonitoring.current = startSessionMonitoring(20000); // Check every 20 seconds
+          // Use a small delay to avoid immediate requests
+          setTimeout(() => {
+            stopSessionMonitoring.current = startSessionMonitoring(60000); // Check every 60 seconds (increased from 20)
+          }, 1000);
 
           // Check if user is an admin
           const { data: adminData } = await supabase

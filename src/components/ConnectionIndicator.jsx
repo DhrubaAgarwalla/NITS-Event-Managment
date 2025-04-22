@@ -8,6 +8,7 @@ const ConnectionIndicator = () => {
   const [isConnected, setIsConnected] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
   const [lastChecked, setLastChecked] = useState(null);
+  const [lastCheckedTime, setLastCheckedTime] = useState(Date.now());
   const [showDetails, setShowDetails] = useState(false);
   const [pingTime, setPingTime] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -21,11 +22,11 @@ const ConnectionIndicator = () => {
     setErrorMessage(null);
     const startTime = performance.now();
 
-    // Create a timeout promise that rejects after 10 seconds
+    // Create a timeout promise that rejects after 8 seconds (reduced from 10)
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
-        reject(new Error('Connection check timed out after 10 seconds'));
-      }, 10000);
+        reject(new Error('Connection check timed out after 8 seconds'));
+      }, 8000);
     });
 
     try {
@@ -115,25 +116,33 @@ const ConnectionIndicator = () => {
       });
     } finally {
       setIsChecking(false);
-      setLastChecked(new Date());
+      const now = new Date();
+      setLastChecked(now);
+      setLastCheckedTime(now.getTime());
     }
   };
 
-  // Check connection on component mount and periodically
+  // Check connection on component mount and periodically with optimized frequency
   useEffect(() => {
-    // Initial check
-    checkConnection();
+    // Initial check with a small delay to avoid immediate requests on page load
+    const initialCheckTimeout = setTimeout(() => {
+      checkConnection();
+    }, 2000);
 
-    // Set up periodic checks every 10 seconds
+    // Set up periodic checks every 30 seconds (reduced frequency)
     const intervalId = setInterval(() => {
       checkConnection();
-    }, 10000);
+    }, 30000);
 
-    // Also check connection when the window regains focus
+    // Also check connection when the window regains focus, but only if it's been a while
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('Window regained focus, checking connection...');
-        checkConnection();
+        // Only check if it's been at least 15 seconds since last check
+        const now = Date.now();
+        if (now - lastCheckedTime > 15000) {
+          console.log('Window regained focus after inactivity, checking connection...');
+          checkConnection();
+        }
       }
     };
 
@@ -157,6 +166,7 @@ const ConnectionIndicator = () => {
 
     // Clean up interval and event listeners on unmount
     return () => {
+      clearTimeout(initialCheckTimeout);
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
