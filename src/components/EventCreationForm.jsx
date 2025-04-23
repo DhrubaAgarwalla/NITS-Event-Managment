@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import eventService from '../services/eventService';
 import supabase from '../lib/supabase';
+import CustomSelect from './CustomSelect';
+import MultiSelect from './MultiSelect';
 
 export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
   // Redirect to login if no club is logged in
@@ -32,7 +34,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     end_date: '',
     end_time: '18:00',
     location: '',
-    max_participants: '',
+    min_participants: '1', // Default to 1 for individual events
+    max_participants: '1', // Default to 1 for individual events
+    participation_type: 'individual', // 'individual', 'team', or 'both'
     registration_deadline: '',
     category_id: '',
     status: 'upcoming',
@@ -142,10 +146,34 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
   // Handle form input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+
+    // Special handling for participation_type
+    if (name === 'participation_type') {
+      console.log('Changing participation type to:', value);
+      if (value === 'individual') {
+        // For individual events, set min and max participants to 1
+        setFormData(prev => ({
+          ...prev,
+          participation_type: value,
+          min_participants: '1',
+          max_participants: '1'
+        }));
+      } else {
+        // For team events, set default team size if not already set
+        setFormData(prev => ({
+          ...prev,
+          participation_type: value,
+          min_participants: prev.min_participants === '1' ? '2' : prev.min_participants,
+          max_participants: prev.max_participants === '1' ? '5' : prev.max_participants
+        }));
+      }
+    } else {
+      // Normal handling for other fields
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // Handle tag selection
@@ -449,7 +477,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         start_date: startDateTime.toISOString(),
         end_date: endDateTime.toISOString(),
         location: formData.location || '',
+        min_participants: formData.min_participants ? parseInt(formData.min_participants) : null,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        participation_type: formData.participation_type || 'individual',
         registration_deadline: formData.registration_deadline ? new Date(`${formData.registration_deadline}T23:59:59`).toISOString() : null,
         status: formData.status || 'upcoming',
         club_id: club.id,
@@ -462,18 +492,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       // Handle schedule data separately to avoid JSON serialization issues
       setCreationStep('processing_schedule');
       try {
-        // Create a very simple schedule structure
-        const defaultSchedule = [
-          {
-            day: 'Day 1',
-            events: [{ time: '09:00', title: 'Opening Ceremony', location: '' }]
-          }
-        ];
-
-        // Use a simplified approach to avoid complex processing
-        eventData.additional_info = { schedule: defaultSchedule };
-
-        console.log('Using default schedule:', eventData.additional_info);
+        // Use the actual schedule data from the form
+        console.log('Using schedule from form:', formData.schedule);
+        eventData.additional_info = { schedule: formData.schedule };
       } catch (err) {
         console.warn('Error processing schedule data:', err);
         // Provide a simple default schedule if there's an error
@@ -596,7 +617,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           end_date: '',
           end_time: '18:00',
           location: '',
-          max_participants: '',
+          min_participants: '1', // Default to 1 for individual events
+          max_participants: '1', // Default to 1 for individual events
+          participation_type: 'individual',
           registration_deadline: '',
           category_id: categories.length > 0 ? categories[0].id : '',
           status: 'upcoming',
@@ -799,33 +822,21 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                   >
                     Category
                   </label>
-                  <select
+                  <CustomSelect
                     id="category_id"
                     name="category_id"
                     value={formData.category_id || ''}
                     onChange={handleInputChange}
                     required
-                    style={{
-                      width: '100%',
-                      padding: '0.8rem 1rem',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '4px',
-                      color: 'var(--text-primary)',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    <option value="" disabled>Select a category</option>
-                    {categories && categories.length > 0 ? (
-                      categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="1">Technical</option>
-                    )}
-                  </select>
+                    options={categories && categories.length > 0 ?
+                      categories.map(category => ({
+                        value: category.id,
+                        label: category.name
+                      })) :
+                      [{ value: '1', label: 'Technical' }]
+                    }
+                    placeholder="Select a category"
+                  />
                 </div>
 
                 <div style={{ flex: 1 }}>
@@ -840,26 +851,18 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                   >
                     Status
                   </label>
-                  <select
+                  <CustomSelect
                     id="status"
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.8rem 1rem',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '4px',
-                      color: 'var(--text-primary)',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    <option value="upcoming">Upcoming</option>
-                    <option value="ongoing">Ongoing</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                    options={[
+                      { value: 'upcoming', label: 'Upcoming' },
+                      { value: 'ongoing', label: 'Ongoing' },
+                      { value: 'completed', label: 'Completed' },
+                      { value: 'cancelled', label: 'Cancelled' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -874,27 +877,22 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                 >
                   Event Tags
                 </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                  {tags.map(tag => (
-                    <div
-                      key={tag.id}
-                      onClick={() => handleTagSelection(tag.id)}
-                      style={{
-                        backgroundColor: formData.selectedTags.includes(tag.id) ? tag.color : 'rgba(255, 255, 255, 0.05)',
-                        color: formData.selectedTags.includes(tag.id) ? '#fff' : 'var(--text-primary)',
-                        border: `1px solid ${formData.selectedTags.includes(tag.id) ? tag.color : 'rgba(255, 255, 255, 0.1)'}`,
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        fontSize: '0.9rem',
-                        fontWeight: formData.selectedTags.includes(tag.id) ? '500' : 'normal'
-                      }}
-                    >
-                      {tag.name}
-                    </div>
-                  ))}
-                </div>
+                <MultiSelect
+                  id="selectedTags"
+                  name="selectedTags"
+                  value={formData.selectedTags}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      selectedTags: e.target.value
+                    }));
+                  }}
+                  options={tags.map(tag => ({
+                    value: tag.id,
+                    label: tag.name
+                  }))}
+                  placeholder="Select tags for your event"
+                />
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
                   Click to select multiple tags for your event. Tags help attendees find your event more easily.
                 </p>
@@ -1188,7 +1186,6 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
               <div style={{ marginBottom: '1.5rem' }}>
                 <label
-                  htmlFor="max_participants"
                   style={{
                     display: 'block',
                     marginBottom: '0.5rem',
@@ -1196,26 +1193,158 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                     color: 'var(--text-secondary)'
                   }}
                 >
-                  Maximum Participants (leave empty for unlimited)
+                  Participation Type <span style={{ color: 'var(--primary)' }}>*</span>
                 </label>
-                <input
-                  type="number"
-                  id="max_participants"
-                  name="max_participants"
-                  value={formData.max_participants}
-                  onChange={handleInputChange}
-                  min="1"
-                  style={{
-                    width: '100%',
-                    padding: '0.8rem 1rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '4px',
-                    color: 'var(--text-primary)',
-                    fontSize: '1rem'
-                  }}
-                  placeholder="Enter maximum number of participants"
-                />
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="participation_type"
+                      value="individual"
+                      checked={formData.participation_type === 'individual'}
+                      onChange={(e) => {
+                        // When switching to individual, set min/max participants to 1
+                        if (e.target.value === 'individual') {
+                          setFormData(prev => ({
+                            ...prev,
+                            participation_type: e.target.value,
+                            min_participants: '1',
+                            max_participants: '1'
+                          }));
+                        } else {
+                          handleInputChange(e);
+                        }
+                      }}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    <span>Solo Event (Individual)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="participation_type"
+                      value="team"
+                      checked={formData.participation_type === 'team'}
+                      onChange={(e) => {
+                        // When switching to team, set default team size if not already set
+                        if (formData.min_participants === '1' && formData.max_participants === '1') {
+                          setFormData(prev => ({
+                            ...prev,
+                            participation_type: e.target.value,
+                            min_participants: '2',
+                            max_participants: '5'
+                          }));
+                        } else {
+                          handleInputChange(e);
+                        }
+                      }}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    <span>Team Event</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="participation_type"
+                      value="both"
+                      checked={formData.participation_type === 'both'}
+                      onChange={(e) => {
+                        // When switching to both, set default team size if not already set
+                        if (formData.min_participants === '1' && formData.max_participants === '1') {
+                          setFormData(prev => ({
+                            ...prev,
+                            participation_type: e.target.value,
+                            min_participants: '2',
+                            max_participants: '5'
+                          }));
+                        } else {
+                          handleInputChange(e);
+                        }
+                      }}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    <span>Both (Solo & Team)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Team size options */}
+              <div style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+                <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem' }}>Team Size Requirements</h4>
+
+                {formData.participation_type === 'individual' ? (
+                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                    This is a solo event. Each participant will register individually.
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label
+                        htmlFor="min_participants"
+                        style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        id="min_participants"
+                        name="min_participants"
+                        value={formData.min_participants}
+                        onChange={handleInputChange}
+                        min="2"
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '0.8rem 1rem',
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px',
+                          color: 'var(--text-primary)',
+                          fontSize: '1rem'
+                        }}
+                        placeholder="Min team members"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="max_participants"
+                        style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        id="max_participants"
+                        name="max_participants"
+                        value={formData.max_participants}
+                        onChange={handleInputChange}
+                        min={formData.min_participants || 2}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '0.8rem 1rem',
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px',
+                          color: 'var(--text-primary)',
+                          fontSize: '1rem'
+                        }}
+                        placeholder="Max team members"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>

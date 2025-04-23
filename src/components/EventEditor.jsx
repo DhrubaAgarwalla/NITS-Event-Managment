@@ -16,7 +16,9 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     end_date: '',
     end_time: '18:00',
     location: '',
-    max_participants: '',
+    min_participants: '1',
+    max_participants: '1',
+    participation_type: 'individual', // 'individual', 'team', or 'both'
     registration_deadline: '',
     status: 'upcoming',
     category_id: '',
@@ -72,7 +74,9 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         end_date: endDate,
         end_time: endTime,
         location: event.location || '',
-        max_participants: event.max_participants?.toString() || '',
+        min_participants: event.min_participants?.toString() || '1',
+        max_participants: event.max_participants?.toString() || '1',
+        participation_type: event.participation_type || 'individual',
         registration_deadline: registrationDeadline,
         status: event.status || 'upcoming',
         category_id: event.category_id || '',
@@ -157,7 +161,9 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         start_date: startDateTime.toISOString(),
         end_date: endDateTime.toISOString(),
         location: formData.location,
-        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        min_participants: formData.participation_type === 'individual' ? 1 : parseInt(formData.min_participants) || 2,
+        max_participants: formData.participation_type === 'individual' ? 1 : parseInt(formData.max_participants) || null,
+        participation_type: formData.participation_type,
         registration_deadline: formData.registration_deadline
           ? new Date(`${formData.registration_deadline}T23:59:59`).toISOString()
           : null,
@@ -455,22 +461,111 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
-              <label htmlFor="max_participants" style={labelStyle}>
-                Max Participants
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={labelStyle}>
+              Participation Type <span style={{ color: 'var(--primary)' }}>*</span>
+            </label>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="participation_type"
+                  value="individual"
+                  checked={formData.participation_type === 'individual'}
+                  onChange={(e) => {
+                    // When switching to individual, set min/max participants to 1
+                    if (e.target.value === 'individual') {
+                      setFormData(prev => ({
+                        ...prev,
+                        participation_type: e.target.value,
+                        min_participants: '1',
+                        max_participants: '1'
+                      }));
+                    } else {
+                      handleChange(e);
+                    }
+                  }}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                <span>Solo Event (Individual)</span>
               </label>
-              <input
-                type="number"
-                id="max_participants"
-                name="max_participants"
-                value={formData.max_participants}
-                onChange={handleChange}
-                min="1"
-                style={inputStyle}
-              />
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="participation_type"
+                  value="team"
+                  checked={formData.participation_type === 'team'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                <span>Team Event</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="participation_type"
+                  value="both"
+                  checked={formData.participation_type === 'both'}
+                  onChange={handleChange}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                <span>Both (Solo & Team)</span>
+              </label>
             </div>
+          </div>
 
+          {/* Team size options */}
+          <div style={{ marginBottom: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+            <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem' }}>Team Size Requirements</h4>
+
+            {formData.participation_type === 'individual' ? (
+              <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                This is a solo event. Each participant will register individually.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label
+                    htmlFor="min_participants"
+                    style={labelStyle}
+                  >
+                    Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="min_participants"
+                    name="min_participants"
+                    value={formData.min_participants}
+                    onChange={handleChange}
+                    min="2"
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="max_participants"
+                    style={labelStyle}
+                  >
+                    Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="max_participants"
+                    name="max_participants"
+                    value={formData.max_participants}
+                    onChange={handleChange}
+                    min={formData.min_participants || 2}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label htmlFor="registration_deadline" style={labelStyle}>
                 Registration Deadline

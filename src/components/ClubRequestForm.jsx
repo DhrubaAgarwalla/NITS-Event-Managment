@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
+import supabase from '../lib/supabase';
 
 export default function ClubRequestForm({ setCurrentPage }) {
   const [formData, setFormData] = useState({
@@ -14,6 +15,10 @@ export default function ClubRequestForm({ setCurrentPage }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,11 +28,47 @@ export default function ClubRequestForm({ setCurrentPage }) {
     }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.match('image.*')) {
+      setError('Please upload an image file (PNG, JPG, JPEG).');
+      return;
+    }
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Logo file size should be less than 2MB.');
+      return;
+    }
+
+    setLogoFile(file);
+    setError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogoPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess(false);
+    setUploadProgress(0);
 
     try {
       // Validate form
@@ -35,8 +76,48 @@ export default function ClubRequestForm({ setCurrentPage }) {
         throw new Error('Please fill in all required fields');
       }
 
-      // Submit club request
-      await clubService.submitClubRequest(formData);
+      // Check if logo is provided
+      if (!logoFile) {
+        throw new Error('Please upload a club logo');
+      }
+
+      // First upload the logo file if provided
+      let logoUrl = null;
+      if (logoFile) {
+        // Create a unique file path in the storage bucket
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `club-logos/${fileName}`;
+
+        // Upload the file
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('public')
+          .upload(filePath, logoFile, {
+            cacheControl: '3600',
+            upsert: false,
+            onUploadProgress: (progress) => {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+              setUploadProgress(percent);
+            }
+          });
+
+        if (uploadError) {
+          throw new Error(`Error uploading logo: ${uploadError.message}`);
+        }
+
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('public')
+          .getPublicUrl(filePath);
+
+        logoUrl = publicUrl;
+      }
+
+      // Submit club request with logo URL
+      await clubService.submitClubRequest({
+        ...formData,
+        logo_url: logoUrl
+      });
 
       // Show success message
       setSuccess(true);
@@ -50,11 +131,17 @@ export default function ClubRequestForm({ setCurrentPage }) {
         description: '',
         additional_info: ''
       });
+      setLogoFile(null);
+      setLogoPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
       console.error('Error submitting club request:', err);
       setError(err.message || 'An error occurred while submitting your request');
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -302,6 +389,122 @@ export default function ClubRequestForm({ setCurrentPage }) {
                     }}
                     placeholder="Describe your club's activities and purpose"
                   />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label
+                    htmlFor="club_logo"
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    Club Logo <span style={{ color: 'var(--primary)' }}>*</span>
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {!logoPreview ? (
+                      <div
+                        style={{
+                          border: '2px dashed rgba(255, 255, 255, 0.2)',
+                          borderRadius: '8px',
+                          padding: '2rem',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          backgroundColor: 'rgba(255, 255, 255, 0.03)'
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📷</div>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Click to upload club logo</p>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                          PNG, JPG or JPEG (max 2MB)
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: '150px',
+                          height: '150px',
+                          margin: '0 auto',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <img
+                          src={logoPreview}
+                          alt="Club logo preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+
+                    <input
+                      type="file"
+                      id="club_logo"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/png, image/jpeg, image/jpg"
+                      style={{ display: 'none' }}
+                    />
+
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div style={{ width: '100%' }}>
+                        <div
+                          style={{
+                            height: '6px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
+                            marginTop: '0.5rem'
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${uploadProgress}%`,
+                              backgroundColor: 'var(--primary)',
+                              borderRadius: '3px',
+                              transition: 'width 0.3s ease'
+                            }}
+                          />
+                        </div>
+                        <p style={{ fontSize: '0.8rem', textAlign: 'center', margin: '0.5rem 0 0' }}>
+                          Uploading: {uploadProgress}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '2rem' }}>

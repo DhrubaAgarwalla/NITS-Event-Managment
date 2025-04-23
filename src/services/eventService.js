@@ -221,8 +221,13 @@ const eventService = {
         status: 'upcoming',
         club_id: eventData.club_id,
         category_id: eventData.category_id,
-        registration_method: 'internal'
+        registration_method: 'internal',
+        participation_type: eventData.participation_type || 'individual',
+        min_participants: eventData.min_participants || null,
+        max_participants: eventData.max_participants || null
       };
+
+      console.log('Setting participation_type to:', minimalEventData.participation_type);
 
       // Validate required fields
       if (!minimalEventData.title) {
@@ -269,14 +274,7 @@ const eventService = {
       // Now add optional fields one by one
       const updates = {};
 
-      // Add max_participants if provided
-      if (eventData.max_participants) {
-        try {
-          updates.max_participants = parseInt(eventData.max_participants) || null;
-        } catch (e) {
-          console.warn('Invalid max_participants value, skipping');
-        }
-      }
+      // max_participants is already set in minimalEventData
 
       // Add registration_deadline if provided
       if (eventData.registration_deadline) {
@@ -303,23 +301,15 @@ const eventService = {
         updates.image_url = String(eventData.image_url).trim();
       }
 
-      // Add additional_info if provided - simplify to avoid issues
+      // Add additional_info if provided
       if (eventData.additional_info) {
         try {
-          // Simplify the additional_info to a basic structure
-          const simpleAdditionalInfo = {
-            schedule: [
-              {
-                day: 'Day 1',
-                events: [
-                  { time: '09:00', title: 'Opening Ceremony', location: '' }
-                ]
-              }
-            ]
-          };
-          updates.additional_info = simpleAdditionalInfo;
+          console.log('Using additional_info from form data:', eventData.additional_info);
+          // Use the actual additional_info from the form data
+          updates.additional_info = eventData.additional_info;
         } catch (e) {
-          console.warn('Invalid additional_info, using default object');
+          console.warn('Error processing additional_info:', e);
+          console.warn('Using default schedule as fallback');
           updates.additional_info = {
             schedule: [
               {

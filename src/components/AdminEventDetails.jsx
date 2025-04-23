@@ -82,41 +82,26 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   const handleExportRegistrations = async () => {
     try {
       setExportLoading(true);
-      
+
       const result = await registrationService.exportRegistrationsAsCSV(
         event.id,
         event.title
       );
-      
+
       if (!result.success) {
         alert(result.message || 'Failed to export registrations');
         return;
       }
-      
-      // Download the registrations CSV
-      if (result.registrationsCSV) {
-        const blob = new Blob([result.registrationsCSV.content], { type: 'text/csv;charset=utf-8;' });
+
+      // Download the Excel file
+      if (result.excelFile) {
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = result.registrationsCSV.filename;
+        link.href = URL.createObjectURL(result.excelFile.blob);
+        link.download = result.excelFile.filename;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      }
-      
-      // Download the team members CSV if available
-      if (result.teamMembersCSV) {
-        setTimeout(() => {
-          const blob = new Blob([result.teamMembersCSV.content], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = result.teamMembersCSV.filename;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }, 500); // Small delay to ensure files download separately
       }
     } catch (err) {
       console.error('Error exporting registrations:', err);
@@ -172,18 +157,18 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       style={{ backgroundColor: 'var(--dark-bg)', borderRadius: '10px', overflow: 'hidden' }}
     >
       {/* Header */}
-      <div style={{ 
-        padding: '1.5rem', 
-        backgroundColor: 'var(--dark-surface)', 
-        display: 'flex', 
+      <div style={{
+        padding: '1.5rem',
+        backgroundColor: 'var(--dark-surface)',
+        display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ 
-              fontSize: '0.8rem', 
+            <span style={{
+              fontSize: '0.8rem',
               backgroundColor: event.categories ? `${event.categories.color}20` : 'rgba(var(--primary-rgb), 0.2)',
               color: event.categories ? event.categories.color : 'var(--primary)',
               padding: '0.25rem 0.5rem',
@@ -191,17 +176,17 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
             }}>
               {event.categories ? event.categories.name : 'Event'}
             </span>
-            <span style={{ 
-              fontSize: '0.8rem', 
-              backgroundColor: 
-                event.status === 'upcoming' ? 'rgba(0, 128, 255, 0.2)' : 
-                event.status === 'ongoing' ? 'rgba(0, 200, 0, 0.2)' : 
-                event.status === 'completed' ? 'rgba(128, 128, 128, 0.2)' : 
+            <span style={{
+              fontSize: '0.8rem',
+              backgroundColor:
+                event.status === 'upcoming' ? 'rgba(0, 128, 255, 0.2)' :
+                event.status === 'ongoing' ? 'rgba(0, 200, 0, 0.2)' :
+                event.status === 'completed' ? 'rgba(128, 128, 128, 0.2)' :
                 'rgba(255, 0, 0, 0.2)',
-              color: 
-                event.status === 'upcoming' ? '#0080ff' : 
-                event.status === 'ongoing' ? '#00c800' : 
-                event.status === 'completed' ? '#808080' : 
+              color:
+                event.status === 'upcoming' ? '#0080ff' :
+                event.status === 'ongoing' ? '#00c800' :
+                event.status === 'completed' ? '#808080' :
                 '#ff0000',
               padding: '0.25rem 0.5rem',
               borderRadius: '4px',
@@ -210,8 +195,8 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
               {event.status}
             </span>
             {event.is_featured && (
-              <span style={{ 
-                fontSize: '0.8rem', 
+              <span style={{
+                fontSize: '0.8rem',
                 backgroundColor: 'rgba(255, 215, 0, 0.2)',
                 color: '#ffd700',
                 padding: '0.25rem 0.5rem',
@@ -282,8 +267,8 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       </div>
 
       {/* Tabs */}
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         backgroundColor: 'var(--dark-surface)'
       }}>
@@ -323,17 +308,17 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       <div style={{ padding: '1.5rem' }}>
         {activeTab === 'details' && (
           <div className="event-details-tab">
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
               gap: '2rem',
               marginBottom: '2rem'
             }}>
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Basic Information</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--dark-surface)', 
-                  borderRadius: '8px', 
+                <div style={{
+                  backgroundColor: 'var(--dark-surface)',
+                  borderRadius: '8px',
                   padding: '1.5rem',
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -384,9 +369,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Registration Information</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--dark-surface)', 
-                  borderRadius: '8px', 
+                <div style={{
+                  backgroundColor: 'var(--dark-surface)',
+                  borderRadius: '8px',
                   padding: '1.5rem',
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -414,9 +399,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                     <div style={{ gridColumn: '1 / -1' }}>
                       <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>EXTERNAL FORM URL</p>
                       <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                        <a 
-                          href={event.external_form_url} 
-                          target="_blank" 
+                        <a
+                          href={event.external_form_url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: 'var(--primary)' }}
                         >
@@ -428,10 +413,10 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                 </div>
 
                 <h3 style={{ marginTop: '2rem', marginBottom: '1rem', fontSize: '1.2rem' }}>Organizer</h3>
-                <div 
-                  style={{ 
-                    backgroundColor: 'var(--dark-surface)', 
-                    borderRadius: '8px', 
+                <div
+                  style={{
+                    backgroundColor: 'var(--dark-surface)',
+                    borderRadius: '8px',
                     padding: '1.5rem',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease'
@@ -442,10 +427,10 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                 >
                   {event.clubs ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ 
-                        width: '50px', 
-                        height: '50px', 
-                        borderRadius: '50%', 
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
                         overflow: 'hidden',
                         backgroundColor: 'rgba(var(--primary-rgb), 0.2)',
                         display: 'flex',
@@ -454,10 +439,10 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                         fontSize: '1.5rem'
                       }}>
                         {event.clubs.logo_url ? (
-                          <img 
-                            src={event.clubs.logo_url} 
-                            alt={event.clubs.name} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          <img
+                            src={event.clubs.logo_url}
+                            alt={event.clubs.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         ) : (
                           event.clubs.name.charAt(0)
@@ -479,9 +464,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
             <div>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Description</h3>
-              <div style={{ 
-                backgroundColor: 'var(--dark-surface)', 
-                borderRadius: '8px', 
+              <div style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
                 padding: '1.5rem'
               }}>
                 {event.description ? (
@@ -515,14 +500,14 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                   gap: '0.5rem'
                 }}
               >
-                <span>📊</span> {exportLoading ? 'Exporting...' : 'Export as CSV'}
+                <span>📊</span> {exportLoading ? 'Exporting...' : 'Export as Excel'}
               </button>
             </div>
 
             {registrations.length > 0 ? (
-              <div style={{ 
-                backgroundColor: 'var(--dark-surface)', 
-                borderRadius: '8px', 
+              <div style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
                 overflow: 'hidden'
               }}>
                 <div style={{ overflowX: 'auto' }}>
@@ -541,9 +526,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                     </thead>
                     <tbody>
                       {registrations.map(registration => (
-                        <tr 
+                        <tr
                           key={registration.id}
-                          style={{ 
+                          style={{
                             borderTop: '1px solid rgba(255, 255, 255, 0.05)',
                             transition: 'background-color 0.2s ease'
                           }}
@@ -558,18 +543,18 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                             {registration.additional_info?.team_type || 'Individual'}
                           </td>
                           <td style={{ padding: '1rem' }}>
-                            <span style={{ 
+                            <span style={{
                               display: 'inline-block',
                               padding: '0.25rem 0.5rem',
                               borderRadius: '4px',
                               fontSize: '0.8rem',
-                              backgroundColor: 
-                                registration.status === 'registered' ? 'rgba(0, 128, 255, 0.2)' : 
-                                registration.status === 'attended' ? 'rgba(0, 200, 0, 0.2)' : 
+                              backgroundColor:
+                                registration.status === 'registered' ? 'rgba(0, 128, 255, 0.2)' :
+                                registration.status === 'attended' ? 'rgba(0, 200, 0, 0.2)' :
                                 'rgba(255, 0, 0, 0.2)',
-                              color: 
-                                registration.status === 'registered' ? '#0080ff' : 
-                                registration.status === 'attended' ? '#00c800' : 
+                              color:
+                                registration.status === 'registered' ? '#0080ff' :
+                                registration.status === 'attended' ? '#00c800' :
                                 '#ff0000',
                               textTransform: 'capitalize'
                             }}>
@@ -578,11 +563,11 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                           </td>
                           <td style={{ padding: '1rem' }}>{formatDate(registration.created_at)}</td>
                           <td style={{ padding: '1rem' }}>
-                            {registration.additional_info?.team_members && 
+                            {registration.additional_info?.team_members &&
                              registration.additional_info.team_members.length > 0 ? (
-                              <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: '0.5rem',
                                 cursor: 'pointer'
                               }}>
@@ -617,9 +602,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                 </div>
               </div>
             ) : (
-              <div style={{ 
-                backgroundColor: 'var(--dark-surface)', 
-                borderRadius: '8px', 
+              <div style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
                 padding: '2rem',
                 textAlign: 'center'
               }}>
@@ -632,22 +617,22 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
       {/* Edit Modal */}
       {isEditing && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-          display: 'flex', 
-          justifyContent: 'center', 
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          justifyContent: 'center',
           alignItems: 'center',
           zIndex: 1000
         }}>
-          <AdminEventEditor 
-            event={event} 
-            onClose={() => setIsEditing(false)} 
-            onUpdate={handleEventUpdate} 
+          <AdminEventEditor
+            event={event}
+            onClose={() => setIsEditing(false)}
+            onUpdate={handleEventUpdate}
           />
         </div>
       )}

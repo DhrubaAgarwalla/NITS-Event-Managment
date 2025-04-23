@@ -82,10 +82,10 @@ const RegistrationDetails = ({ registration, onClose }) => {
         </button>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: '1.5rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         paddingBottom: '1rem'
@@ -96,9 +96,9 @@ const RegistrationDetails = ({ registration, onClose }) => {
             {registration.participant_email}
           </p>
         </div>
-        <div style={{ 
-          padding: '0.4rem 0.8rem', 
-          borderRadius: '4px', 
+        <div style={{
+          padding: '0.4rem 0.8rem',
+          borderRadius: '4px',
           fontSize: '0.85rem',
           fontWeight: '500',
           ...getStatusBadgeStyle(registration.status)
@@ -109,23 +109,23 @@ const RegistrationDetails = ({ registration, onClose }) => {
 
       <div style={{ marginBottom: '1.5rem' }}>
         <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Participant Information</h4>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>ID/Roll Number</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{registration.participant_id || 'N/A'}</p>
           </div>
-          
+
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Phone</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{registration.participant_phone || 'N/A'}</p>
           </div>
-          
+
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Department</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{department}</p>
           </div>
-          
+
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Year</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{year}</p>
@@ -136,18 +136,18 @@ const RegistrationDetails = ({ registration, onClose }) => {
       {teamType === 'team' && teamMembers.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
           <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Team Members</h4>
-          
-          <div style={{ 
-            backgroundColor: 'rgba(255, 255, 255, 0.03)', 
-            borderRadius: '6px', 
+
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '6px',
             padding: '0.75rem',
             border: '1px solid rgba(255, 255, 255, 0.05)'
           }}>
             {teamMembers.map((member, index) => (
-              <div 
+              <div
                 key={index}
-                style={{ 
-                  padding: '0.6rem', 
+                style={{
+                  padding: '0.6rem',
                   borderBottom: index < teamMembers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -156,11 +156,16 @@ const RegistrationDetails = ({ registration, onClose }) => {
               >
                 <div>
                   <p style={{ margin: '0 0 0.2rem', fontSize: '0.95rem' }}>{member.name}</p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{member.email}</p>
-                </div>
-                <div>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                     ID: {member.rollNumber || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Department: {member.department || 'N/A'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Year: {member.year || 'N/A'}
                   </p>
                 </div>
               </div>
@@ -171,13 +176,13 @@ const RegistrationDetails = ({ registration, onClose }) => {
 
       <div style={{ marginBottom: '1.5rem' }}>
         <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Registration Timeline</h4>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Registered On</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatDate(registration.created_at)}</p>
           </div>
-          
+
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Last Updated</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatDate(registration.updated_at)}</p>

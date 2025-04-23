@@ -174,7 +174,8 @@ export default function AdminDashboard({ setCurrentPage }) {
           name: selectedRequest.club_name,
           description: selectedRequest.description,
           contact_email: selectedRequest.contact_email,
-          contact_phone: selectedRequest.contact_phone
+          contact_phone: selectedRequest.contact_phone,
+          logo_url: selectedRequest.logo_url || null
         }
       );
 
@@ -424,16 +425,33 @@ export default function AdminDashboard({ setCurrentPage }) {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <h4 style={{ margin: '0 0 0.5rem' }}>{request.club_name}</h4>
-                        <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)' }}>
-                          <strong>Contact:</strong> {request.contact_person} ({request.contact_email})
-                        </p>
-                        {request.contact_phone && (
-                          <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)' }}>
-                            <strong>Phone:</strong> {request.contact_phone}
-                          </p>
+                      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                        {request.logo_url && (
+                          <div style={{ marginRight: '1rem', flexShrink: 0 }}>
+                            <img
+                              src={request.logo_url}
+                              alt={request.club_name}
+                              style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '8px',
+                                objectFit: 'cover',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                              }}
+                            />
+                          </div>
                         )}
+                        <div>
+                          <h4 style={{ margin: '0 0 0.5rem' }}>{request.club_name}</h4>
+                          <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)' }}>
+                            <strong>Contact:</strong> {request.contact_person} ({request.contact_email})
+                          </p>
+                          {request.contact_phone && (
+                            <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)' }}>
+                              <strong>Phone:</strong> {request.contact_phone}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <span
                         style={{
@@ -533,12 +551,35 @@ export default function AdminDashboard({ setCurrentPage }) {
                   }}
                 >
                   <h3>Approve Club Request</h3>
-                  <p>Are you sure you want to approve the request from <strong>{selectedRequest.club_name}</strong>?</p>
-                  <p>This will create a new club account with the following details:</p>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                    {selectedRequest.logo_url && (
+                      <div style={{ marginRight: '1rem' }}>
+                        <img
+                          src={selectedRequest.logo_url}
+                          alt={selectedRequest.club_name}
+                          style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <p>Are you sure you want to approve the request from <strong>{selectedRequest.club_name}</strong>?</p>
+                      <p>This will create a new club account with the following details:</p>
+                    </div>
+                  </div>
+
                   <ul>
                     <li><strong>Email:</strong> {selectedRequest.contact_email}</li>
                     <li><strong>Password:</strong> A temporary password will be generated</li>
                     <li><strong>Club Name:</strong> {selectedRequest.club_name}</li>
+                    {selectedRequest.logo_url && (
+                      <li><strong>Logo:</strong> Included (will be transferred to club profile)</li>
+                    )}
                   </ul>
 
                   <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>

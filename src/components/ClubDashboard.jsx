@@ -7,6 +7,8 @@ import { logoutAndRedirect, navigateToHome } from '../utils/navigation';
 import ClubProfileEditor from './ClubProfileEditor';
 import EventEditor from './EventEditor';
 import RegistrationDetails from './RegistrationDetails';
+import CustomSelect from './CustomSelect';
+import MultiSelect from './MultiSelect';
 
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
@@ -1341,27 +1343,18 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         >
                           Event Category *
                         </label>
-                        <select
+                        <CustomSelect
                           id="category_id"
                           name="category_id"
                           value={newEvent.category_id}
                           onChange={handleNewEventChange}
                           required
-                          style={{
-                            width: '100%',
-                            padding: '0.8rem 1rem',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '4px',
-                            color: 'var(--text-primary)',
-                            fontSize: '1rem'
-                          }}
-                        >
-                          <option value="">Select a category</option>
-                          {categories.map(category => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
-                          ))}
-                        </select>
+                          options={categories.map(category => ({
+                            value: category.id,
+                            label: category.name
+                          }))}
+                          placeholder="Select a category"
+                        />
                       </div>
                     </div>
 
@@ -1664,7 +1657,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
               }}
             >
               <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Select Event</h3>
-              <select
+              <CustomSelect
+                id="event-select"
+                name="event-select"
                 value={selectedEvent?.id || ''}
                 onChange={(e) => {
                   if (e.target.value) {
@@ -1677,23 +1672,12 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     setRegistrations([]);
                   }
                 }}
-                style={{
-                  width: '100%',
-                  padding: '0.8rem 1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '4px',
-                  color: 'var(--text-primary)',
-                  fontSize: '1rem'
-                }}
-              >
-                <option value="">Select an event to view registrations</option>
-                {events.map(event => (
-                  <option key={event.id} value={event.id}>
-                    {event.title} ({formatDate(event.start_date, 'MMM d, yyyy')})
-                  </option>
-                ))}
-              </select>
+                options={events.map(event => ({
+                  value: event.id,
+                  label: `${event.title} (${formatDate(event.start_date, 'MMM d, yyyy')})`
+                }))}
+                placeholder="Select an event to view registrations"
+              />
             </div>
 
             {/* Registrations List */}
@@ -1714,7 +1698,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     className="btn"
                     onClick={async () => {
                       try {
-                        // Export registrations as CSV
+                        // Export registrations as Excel
                         const result = await registrationService.exportRegistrationsAsCSV(
                           selectedEvent.id,
                           selectedEvent.title
@@ -1725,30 +1709,15 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           return;
                         }
 
-                        // Download the registrations CSV
-                        if (result.registrationsCSV) {
-                          const blob = new Blob([result.registrationsCSV.content], { type: 'text/csv;charset=utf-8;' });
+                        // Download the Excel file
+                        if (result.excelFile) {
                           const link = document.createElement('a');
-                          link.href = URL.createObjectURL(blob);
-                          link.download = result.registrationsCSV.filename;
+                          link.href = URL.createObjectURL(result.excelFile.blob);
+                          link.download = result.excelFile.filename;
                           link.style.display = 'none';
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
-                        }
-
-                        // Download the team members CSV if available
-                        if (result.teamMembersCSV) {
-                          setTimeout(() => {
-                            const blob = new Blob([result.teamMembersCSV.content], { type: 'text/csv;charset=utf-8;' });
-                            const link = document.createElement('a');
-                            link.href = URL.createObjectURL(blob);
-                            link.download = result.teamMembersCSV.filename;
-                            link.style.display = 'none';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }, 500); // Small delay to ensure files download separately
                         }
                       } catch (err) {
                         console.error('Error exporting registrations:', err);
@@ -1756,7 +1725,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       }
                     }}
                   >
-                    Export as CSV
+                    Export as Excel
                   </button>
                 </div>
 

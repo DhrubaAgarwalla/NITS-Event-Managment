@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from '@studio-freight/lenis'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
+import './styles/dropdown.css'
 
 // Connection Indicator
 import ConnectionIndicator from './components/ConnectionIndicator'

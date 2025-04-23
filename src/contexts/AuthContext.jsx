@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import supabase, { startSessionMonitoring, checkAndRefreshSession } from '../lib/supabase';
+import supabase, { startSessionMonitoring, checkAndRefreshSession, recoverSession } from '../lib/supabase';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -63,7 +63,45 @@ export const AuthProvider = ({ children }) => {
             }
           }
         } else {
-          setSessionStatus('no-session');
+          // No active session, try to recover from localStorage
+          console.log('No active session found, attempting recovery...');
+          const recoveryResult = await recoverSession();
+
+          if (recoveryResult.recovered && recoveryResult.session) {
+            console.log('Session recovered successfully, setting user data');
+            setUser(recoveryResult.session.user);
+            setSessionStatus('recovered');
+
+            // Start session monitoring
+            setTimeout(() => {
+              stopSessionMonitoring.current = startSessionMonitoring(60000);
+            }, 1000);
+
+            // Check if user is an admin
+            const { data: adminData } = await supabase
+              .from('admins')
+              .select('*')
+              .eq('id', recoveryResult.session.user.id)
+              .single();
+
+            if (adminData) {
+              setIsAdmin(true);
+            } else {
+              // If not admin, check for club profile
+              const { data: clubData } = await supabase
+                .from('clubs')
+                .select('*')
+                .eq('id', recoveryResult.session.user.id)
+                .single();
+
+              if (clubData) {
+                setClub(clubData);
+              }
+            }
+          } else {
+            console.log('Session recovery failed:', recoveryResult.reason);
+            setSessionStatus('no-session');
+          }
         }
       } catch (err) {
         console.error('Error checking authentication:', err);
@@ -115,6 +153,61 @@ export const AuthProvider = ({ children }) => {
             }
           }
         } else if (event === 'SIGNED_OUT') {
+          // Check if this was an intentional sign out or an unexpected session expiration
+          const wasIntentionalSignOut = sessionStatus === 'signing-out';
+
+          if (!wasIntentionalSignOut) {
+            console.log('Unexpected sign out detected, attempting session recovery...');
+            // Try to recover the session
+            const recoveryResult = await recoverSession();
+
+            if (recoveryResult.recovered && recoveryResult.session) {
+              console.log('Session recovered after unexpected sign out');
+              setUser(recoveryResult.session.user);
+              setSessionStatus('recovered');
+
+              // Restart session monitoring
+              if (stopSessionMonitoring.current) {
+                stopSessionMonitoring.current();
+              }
+              setTimeout(() => {
+                stopSessionMonitoring.current = startSessionMonitoring(60000);
+              }, 1000);
+
+              // Check user roles
+              try {
+                // Check if user is an admin
+                const { data: adminData } = await supabase
+                  .from('admins')
+                  .select('*')
+                  .eq('id', recoveryResult.session.user.id)
+                  .single();
+
+                if (adminData) {
+                  setIsAdmin(true);
+                } else {
+                  // If not admin, check for club profile
+                  const { data: clubData } = await supabase
+                    .from('clubs')
+                    .select('*')
+                    .eq('id', recoveryResult.session.user.id)
+                    .single();
+
+                  if (clubData) {
+                    setClub(clubData);
+                  }
+                }
+              } catch (roleErr) {
+                console.error('Error checking roles after recovery:', roleErr);
+              }
+
+              return; // Exit early since we recovered the session
+            } else {
+              console.log('Session recovery failed after unexpected sign out:', recoveryResult.reason);
+            }
+          }
+
+          // If we get here, either it was an intentional sign out or recovery failed
           setUser(null);
           setClub(null);
           setIsAdmin(false);
@@ -209,6 +302,10 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      // Set a flag to indicate this is an intentional sign out
+      // This helps distinguish between user-initiated sign outs and session expirations
+      setSessionStatus('signing-out');
+
       const { error } = await supabase.auth.signOut();
 
       if (error) throw error;
@@ -216,6 +313,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setClub(null);
       setIsAdmin(false);
+      setSessionStatus('signed-out');
 
       return { success: true };
     } catch (err) {
@@ -301,17 +399,55 @@ export const AuthProvider = ({ children }) => {
 
         return { success: true, ...result };
       } else {
-        // If session is invalid, update the session status
-        setSessionStatus('invalid');
+        // If session is invalid, try to recover it
+        console.log('Session invalid, attempting recovery...');
+        const recoveryResult = await recoverSession();
 
-        // If the reason is 'no-session', clear the user data
-        if (result.reason === 'no-session') {
+        if (recoveryResult.recovered && recoveryResult.session) {
+          console.log('Session recovered successfully during refresh');
+          setUser(recoveryResult.session.user);
+          setSessionStatus('recovered');
+
+          // Check user roles after recovery
+          try {
+            // Check if user is an admin
+            const { data: adminData } = await supabase
+              .from('admins')
+              .select('*')
+              .eq('id', recoveryResult.session.user.id)
+              .single();
+
+            if (adminData) {
+              setIsAdmin(true);
+            } else {
+              // If not admin, check for club profile
+              const { data: clubData } = await supabase
+                .from('clubs')
+                .select('*')
+                .eq('id', recoveryResult.session.user.id)
+                .single();
+
+              if (clubData) {
+                setClub(clubData);
+              }
+            }
+
+            return { success: true, recovered: true };
+          } catch (roleErr) {
+            console.error('Error checking roles after recovery:', roleErr);
+          }
+        } else {
+          // If recovery failed, update the session status
+          console.log('Session recovery failed during refresh:', recoveryResult.reason);
+          setSessionStatus('invalid');
+
+          // Clear the user data
           setUser(null);
           setClub(null);
           setIsAdmin(false);
-        }
 
-        return { success: false, ...result };
+          return { success: false, ...result, recoveryAttempted: true, recoveryResult };
+        }
       }
     } catch (err) {
       console.error('Error in manual session refresh:', err);

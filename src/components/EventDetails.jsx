@@ -22,6 +22,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
         // Fetch event details
         const eventData = await eventService.getEventById(eventId);
+        console.log('Fetched event data:', eventData);
+        console.log('Participation type:', eventData?.participation_type);
+        console.log('Min participants:', eventData?.min_participants);
+        console.log('Max participants:', eventData?.max_participants);
         setEvent(eventData);
 
         // Fetch registrations count
@@ -595,6 +599,21 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 </div>
               )}
 
+              <div style={{ marginBottom: '1.2rem' }}>
+                <h4 style={{ margin: '0 0 0.6rem', color: 'var(--accent)', fontSize: '0.9rem', fontWeight: '600', letterSpacing: '0.5px', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '0.5rem' }}>👥</span> PARTICIPATION TYPE
+                </h4>
+                <p style={{ margin: 0, fontSize: '1.05rem' }}>
+                  {event.participation_type === 'individual' ? 'Solo Event (Individual)' :
+                   event.participation_type === 'team' ? 'Team Event' : 'Both (Solo & Team)'}
+                </p>
+                {event.participation_type !== 'individual' && (
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    Team size: {event.min_participants || 2} to {event.max_participants || 'unlimited'} members
+                  </p>
+                )}
+              </div>
+
               {event.registration_fee && (
                 <div style={{ marginBottom: '1.2rem' }}>
                   <h4 style={{ margin: '0 0 0.6rem', color: 'var(--accent)', fontSize: '0.9rem', fontWeight: '600', letterSpacing: '0.5px', display: 'flex', alignItems: 'center' }}>
@@ -611,31 +630,14 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 <p style={{ margin: 0, fontSize: '1.05rem' }}>{formatEventDate(event.registration_deadline, event.registration_deadline)}</p>
               </div>
 
-              {event.max_participants > 0 && (
-                <div style={{ marginBottom: '1.8rem' }}>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '10px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '20px',
-                      overflow: 'hidden',
-                      marginBottom: '0.8rem'
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${(registrations.length / event.max_participants) * 100}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, var(--primary), var(--secondary))'
-                      }}
-                    ></div>
-                  </div>
-                  <p style={{ fontSize: '1rem', color: 'white', textAlign: 'center', margin: 0, fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ marginRight: '0.5rem' }}>👥</span> {registrations.length} / {event.max_participants} spots filled
-                  </p>
-                </div>
-              )}
+              <div style={{ marginBottom: '1.8rem' }}>
+                <h4 style={{ margin: '0 0 0.6rem', color: 'var(--accent)', fontSize: '0.9rem', fontWeight: '600', letterSpacing: '0.5px', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '0.5rem' }}>📊</span> REGISTRATIONS
+                </h4>
+                <p style={{ fontSize: '1rem', color: 'white', margin: 0, fontWeight: '500', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '0.5rem' }}>👥</span> {registrations.length} {event.participation_type === 'individual' ? 'participants' : 'teams'} registered
+                </p>
+              </div>
 
               <button
                 className="btn btn-primary"

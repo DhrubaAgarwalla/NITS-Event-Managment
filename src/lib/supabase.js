@@ -16,7 +16,9 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'event-manager-auth-storage',
-    storage: window.localStorage
+    storage: window.localStorage,
+    // Increase token refresh margin to ensure token is refreshed well before expiry
+    flowType: 'pkce', // Use PKCE flow for better security
   },
   global: {
     headers: {
@@ -134,15 +136,18 @@ export const startSessionMonitoring = (intervalMs = 60000) => { // Increased to 
   sessionCheckInterval = setInterval(() => checkAndRefreshSession(), intervalMs);
   console.log(`Session monitoring started (interval: ${intervalMs}ms)`);
 
-  // Also check when the tab becomes visible again, but only if it's been a while
+  // Check when the tab becomes visible again to ensure session persistence
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      // Only refresh if it's been at least 2 minutes since last check
-      const now = Date.now();
-      if (now - lastSessionCheck > 120000) {
-        console.log('Tab became visible after inactivity, checking session...');
-        checkAndRefreshSession(true);
-      }
+      // Always check session when tab becomes visible again
+      console.log('Tab became visible, checking session...');
+      checkAndRefreshSession(true).then(result => {
+        if (!result.valid) {
+          // If session is invalid, try to recover it from localStorage
+          console.log('Session invalid after tab visibility change, attempting recovery...');
+          recoverSession();
+        }
+      });
     }
   };
 
@@ -156,6 +161,52 @@ export const startSessionMonitoring = (intervalMs = 60000) => { // Increased to 
       console.log('Session monitoring stopped');
     }
   };
+};
+
+// Function to attempt to recover a session from localStorage
+export const recoverSession = async () => {
+  try {
+    // Try to get session data from localStorage
+    const storageKey = 'event-manager-auth-storage';
+    const storedSession = localStorage.getItem(storageKey);
+
+    if (!storedSession) {
+      console.log('No stored session found in localStorage');
+      return { recovered: false, reason: 'no-stored-session' };
+    }
+
+    // Parse the stored session
+    let sessionData;
+    try {
+      sessionData = JSON.parse(storedSession);
+    } catch (e) {
+      console.error('Error parsing stored session:', e);
+      return { recovered: false, reason: 'invalid-session-format' };
+    }
+
+    // Check if we have the necessary data
+    if (!sessionData?.access_token || !sessionData?.refresh_token) {
+      console.log('Stored session is missing tokens');
+      return { recovered: false, reason: 'missing-tokens' };
+    }
+
+    // Try to set the session manually
+    const { data, error } = await supabase.auth.setSession({
+      access_token: sessionData.access_token,
+      refresh_token: sessionData.refresh_token
+    });
+
+    if (error) {
+      console.error('Error recovering session:', error);
+      return { recovered: false, reason: 'set-session-failed', error };
+    }
+
+    console.log('Session recovered successfully');
+    return { recovered: true, session: data.session };
+  } catch (error) {
+    console.error('Error in session recovery:', error);
+    return { recovered: false, reason: 'recovery-error', error };
+  }
 };
 
 export default supabase;
