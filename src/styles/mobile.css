@@ -1,0 +1,359 @@
+/* Mobile optimization for user-facing pages */
+
+/* Mobile tab navigation styles */
+.mobile-tabs {
+  display: none;
+}
+
+/* General mobile adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1.25rem;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+  }
+
+  h3 {
+    font-size: clamp(1.4rem, 5vw, 1.8rem);
+  }
+
+  .section {
+    padding: 5rem 0;
+  }
+
+  .py-section {
+    padding: 4rem 0;
+  }
+
+  /* Navbar mobile styles */
+  .navbar-links {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+  }
+
+  .mobile-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Mobile menu */
+  .mobile-menu {
+    width: 85%;
+    max-width: 320px;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobile-menu-close {
+    background: rgba(255, 255, 255, 0.05);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+  }
+
+  .mobile-menu-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-menu-link {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: block;
+    transition: color 0.3s ease, padding-left 0.3s ease;
+  }
+
+  .mobile-menu-link:hover,
+  .mobile-menu-link:active {
+    color: var(--primary);
+    padding-left: 0.5rem;
+  }
+
+  .mobile-menu .btn {
+    margin-top: 1rem;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Hero section */
+  .hero-content {
+    text-align: center;
+    padding: 0 1rem;
+  }
+
+  .hero-cta {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .hero-cta .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* About section */
+  .about-content {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* Events grid */
+  .events-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* Club items */
+  .club-item {
+    min-width: 100%;
+    padding: 1.5rem;
+  }
+
+  /* Footer */
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+/* Event details page mobile styles */
+@media (max-width: 992px) {
+  .event-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Mobile tab navigation */
+  .mobile-tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    background-color: var(--dark-surface);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-tab {
+    padding: 1rem 1.2rem;
+    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .mobile-tab.active {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .mobile-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary);
+    border-radius: 3px 3px 0 0;
+  }
+
+  .mobile-tab-content {
+    display: none;
+  }
+
+  .mobile-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hide desktop sidebar in mobile view when tabs are active */
+  .tabs-active .event-details-sidebar {
+    display: none;
+  }
+
+  /* Default sidebar behavior */
+  .event-details-sidebar {
+    position: static !important;
+    top: auto !important;
+    width: 100% !important;
+    margin-top: 2rem;
+  }
+
+  /* Event tabs */
+  .event-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 0.5rem;
+  }
+
+  .event-tab {
+    padding: 0.8rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Social sharing buttons */
+.social-share-buttons {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.social-share-button {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .social-share-buttons {
+    gap: 0.8rem;
+  }
+
+  .social-share-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Club details page */
+  .club-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .club-logo {
+    margin-bottom: 1.5rem;
+  }
+
+  .club-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .club-sidebar {
+    margin-top: 2rem;
+  }
+
+  .club-events-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-members-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
+  }
+
+  /* Contact page */
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-form {
+    order: 2;
+  }
+
+  .contact-info {
+    order: 1;
+    margin-bottom: 2rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .hero {
+    height: auto;
+    min-height: 100vh;
+    padding: 6rem 0 4rem;
+  }
+
+  .event-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .club-item:hover {
+    transform: translateY(-5px);
+  }
+
+  .btn {
+    padding: 0.7em 1.5em;
+    font-size: 0.95em;
+  }
+
+  /* Event details */
+  .event-banner {
+    height: 200px;
+  }
+
+  .event-title {
+    font-size: 1.8rem;
+  }
+
+  .event-meta {
+    flex-wrap: wrap;
+  }
+
+  .event-meta-item {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+    width: 50%;
+  }
+
+  /* Event schedule */
+  .event-schedule-item {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .event-schedule-item > div:last-child {
+    grid-column: span 2;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  /* Event highlights */
+  .event-highlights-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

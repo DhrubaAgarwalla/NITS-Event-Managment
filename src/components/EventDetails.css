@@ -1,0 +1,62 @@
+/* Event Details Styles */
+
+.event-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.event-title {
+  color: white;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Mobile Specific Styles */
+@media (max-width: 768px) {
+  .event-banner {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    border-radius: 0 !important;
+    height: auto !important;
+    min-height: 300px !important;
+  }
+
+  .event-meta-item {
+    margin-bottom: 0.5rem;
+  }
+
+  .event-meta {
+    margin-top: 0.5rem;
+  }
+}
+
+/* Animation for banner on hover */
+.event-banner:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Event meta items */
+.event-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
+}
+
+/* Category tag */
+.event-category-tag {
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-block;
+}

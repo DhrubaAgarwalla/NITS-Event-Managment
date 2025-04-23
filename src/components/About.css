@@ -514,15 +514,158 @@
   }
 }
 
+/* Mobile tab content styles */
+.tab-content-nit,
+.tab-content-website,
+.tab-content-creator,
+.tab-content-contact {
+  padding: 1rem 0;
+}
+
+.tab-content-nit h3,
+.tab-content-website h3,
+.tab-content-creator h3,
+.tab-content-contact h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  color: var(--secondary);
+}
+
 @media (max-width: 992px) {
-  .about-title,
+  .about-title {
+    font-size: 3rem;
+  }
+
+  .about-content,
+  .event-manager-content,
+  .team-content {
+    flex-direction: column;
+  }
+
+  .event-manager-content {
+    grid-template-columns: 1fr;
+  }
+
+  .about-text,
+  .about-image,
+  .team-text,
+  .team-profile {
+    width: 100%;
+  }
+
+  .about-image {
+    order: -1;
+    margin-bottom: 2rem;
+  }
+
+  .contact-section {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-section {
+    padding: 6rem 0;
+  }
+
+  .about-container {
+    padding: 0 1.5rem;
+  }
+
+  .about-title {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .about-text h3,
+  .event-manager-text h3,
+  .team-text h3 {
+    font-size: 1.8rem;
+  }
+
+  .event-manager-section,
+  .team-section,
+  .contact-section {
+    padding: 2rem 1.5rem;
+    border-radius: 15px;
+  }
+
   .event-manager-section h2,
   .team-section h2,
   .contact-section h2 {
     font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .contact-methods {
+    gap: 2rem;
+  }
+
+  .contact-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .profile-card {
+    padding: 2rem;
+  }
+
+  .profile-image {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-section {
+    padding: 5rem 0;
+  }
+
+  .about-title {
+    font-size: 2rem;
   }
 
   .about-text h3,
+  .event-manager-text h3,
+  .team-text h3 {
+    font-size: 1.5rem;
+  }
+
+  .about-text p,
+  .event-manager-text p,
+  .team-text p,
+  .contact-intro {
+    font-size: 1rem;
+  }
+
+  .event-manager-section h2,
+  .team-section h2,
+  .contact-section h2 {
+    font-size: 2rem;
+  }
+
+  .contact-methods {
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .contact-btn {
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .profile-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .profile-card h3 {
+    font-size: 1.5rem;
+  }
+}
   .event-manager-text h3 {
     font-size: 1.8rem;
   }

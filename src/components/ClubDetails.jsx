@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import clubService from '../services/clubService';
 import eventService from '../services/eventService';
 import { navigateTo } from '../utils/navigation';
+import './MobileTabs.css';
 
 const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
   const [club, setClub] = useState(null);
@@ -11,6 +12,23 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('about');
+  const [activeMobileTab, setActiveMobileTab] = useState('about');
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Set initial mobile view state after component mounts to avoid hydration issues
+  useEffect(() => {
+    setIsMobileView(window.innerWidth <= 992);
+  }, []);
+
+  // Handle window resize to detect mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 992);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch club data from Supabase
   useEffect(() => {
@@ -110,6 +128,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
 
         {/* Club Header */}
         <div
+          className="club-header"
           style={{
             position: 'relative',
             height: '300px',
@@ -124,6 +143,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
           }}
         >
           <div
+            className="club-logo"
             style={{
               marginBottom: '1.5rem'
             }}
@@ -181,12 +201,563 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
           )}
         </div>
 
-        {/* Club Content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
+        {/* Mobile Tabs - Only visible on mobile */}
+        {isMobileView && club && (
+          <div className="mobile-tabs">
+            <button
+              className={`mobile-tab ${activeMobileTab === 'about' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('about')}
+            >
+              About
+            </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'events' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('events')}
+            >
+              Events
+            </button>
+            {club.team_members && club.team_members.length > 0 && (
+              <button
+                className={`mobile-tab ${activeMobileTab === 'team' ? 'active' : ''}`}
+                onClick={() => setActiveMobileTab('team')}
+              >
+                Team
+              </button>
+            )}
+            {club.gallery && club.gallery.length > 0 && (
+              <button
+                className={`mobile-tab ${activeMobileTab === 'gallery' ? 'active' : ''}`}
+                onClick={() => setActiveMobileTab('gallery')}
+              >
+                Gallery
+              </button>
+            )}
+            <button
+              className={`mobile-tab ${activeMobileTab === 'contact' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('contact')}
+            >
+              Contact
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Tab Content - Only visible on mobile */}
+        {isMobileView && club && (
+          <div className="mobile-tab-contents">
+            {/* About Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'about' ? 'active' : ''}`}>
+              <div className="tab-content-about">
+                <h3>About the Club</h3>
+                <div style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2rem' }}>
+                  {club.description}
+                  {club.additional_info && club.additional_info.full_description && (
+                    <div style={{ marginTop: '1rem', whiteSpace: 'pre-line' }}>
+                      {club.additional_info.full_description}
+                    </div>
+                  )}
+                </div>
+
+                {club.additional_info && club.additional_info.achievements && (
+                  <>
+                    <h3 style={{ marginTop: '3rem', marginBottom: '1.5rem' }}>Achievements</h3>
+                    <ul style={{ paddingLeft: '1.5rem' }}>
+                      {club.additional_info.achievements.map((achievement, index) => (
+                        <li key={index} style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>
+                          {achievement}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Events Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'events' ? 'active' : ''}`}>
+              <div className="tab-content-events">
+                <h3>Club Events</h3>
+                <p style={{ marginBottom: '2rem' }}>
+                  Here are the events organized by {club.name}. Join us to experience exciting activities and showcase your talents!
+                </p>
+
+                {clubEvents.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--dark-surface)', borderRadius: '8px' }}>
+                    <p>No events found for this club.</p>
+                  </div>
+                ) : (
+                  <div className="club-events-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+                    {clubEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        style={{
+                          backgroundColor: 'var(--dark-surface)',
+                          borderRadius: '10px',
+                          padding: '1.5rem',
+                          transition: 'transform 0.3s ease',
+                          cursor: 'pointer'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        onClick={() => {
+                          setSelectedEventId(event.id);
+                          navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
+                        <p style={{ margin: '0 0 1rem', color: 'var(--accent)' }}>
+                          {formatEventDate(event.start_date, event.end_date)}
+                        </p>
+                        <p style={{ margin: 0 }}>{event.description}</p>
+                        {event.categories && (
+                          <div style={{
+                            marginTop: '1rem',
+                            display: 'inline-block',
+                            padding: '0.2rem 0.5rem',
+                            backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                            borderRadius: '4px',
+                            color: event.categories.color || 'var(--primary)',
+                            fontSize: '0.8rem'
+                          }}>
+                            {event.categories.name}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Team Tab Content */}
+            {club.team_members && (
+              <div className={`mobile-tab-content ${activeMobileTab === 'team' ? 'active' : ''}`}>
+                <div className="tab-content-team">
+                  <h3>Our Team</h3>
+                  <p style={{ marginBottom: '2rem' }}>
+                    Meet the dedicated team behind {club.name}. These individuals work tirelessly to organize events, workshops, and activities for the club.
+                  </p>
+
+                  <div className="team-members-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2rem' }}>
+                    {club.team_members.map((member, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '150px',
+                            height: '150px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            margin: '0 auto 1rem',
+                            border: '3px solid var(--primary)'
+                          }}
+                        >
+                          <img
+                            src={member.image || 'https://randomuser.me/api/portraits/lego/1.jpg'}
+                            alt={member.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem' }}>{member.name}</h3>
+                        <p style={{ margin: 0, color: 'var(--accent)' }}>{member.position}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Gallery Tab Content */}
+            {club.gallery && (
+              <div className={`mobile-tab-content ${activeMobileTab === 'gallery' ? 'active' : ''}`}>
+                <div className="tab-content-gallery">
+                  <h3>Gallery</h3>
+                  <p style={{ marginBottom: '2rem' }}>
+                    Take a look at some moments from our past events and activities.
+                  </p>
+
+                  <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    {club.gallery.map((image, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          height: '250px',
+                          cursor: 'pointer',
+                          transition: 'transform 0.3s ease'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        <img
+                          src={image}
+                          alt={`Gallery image ${index + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Contact Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'contact' ? 'active' : ''}`}>
+              <div className="tab-content-contact">
+                <h3>Contact Information</h3>
+                <div style={{ backgroundColor: 'var(--dark-surface)', borderRadius: '10px', padding: '1.5rem' }}>
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <h4 style={{
+                      margin: '0 0 0.5rem',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem'
+                      }}>✉️</span>
+                      EMAIL
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '1rem' }}>{club.contact_email || club.email}</p>
+                  </div>
+
+                  {club.contact_phone && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{
+                        margin: '0 0 0.5rem',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span style={{
+                          backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem'
+                        }}>📞</span>
+                        PHONE
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '1rem' }}>{club.contact_phone}</p>
+                    </div>
+                  )}
+
+                  {club.website && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{
+                        margin: '0 0 0.5rem',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span style={{
+                          backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem'
+                        }}>🌐</span>
+                        WEBSITE
+                      </h4>
+                      <a
+                        href={club.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                      >
+                        {club.website}
+                      </a>
+                    </div>
+                  )}
+
+                  {club.social_links && Object.keys(club.social_links).length > 0 && (
+                    <div>
+                      <h4 style={{
+                        margin: '0 0 0.8rem',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span style={{
+                          backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem'
+                        }}>🔗</span>
+                        SOCIAL MEDIA
+                      </h4>
+                      <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        {club.social_links.instagram && (
+                          <a
+                            href={club.social_links.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Instagram"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                            onTouchStart={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onTouchEnd={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {club.social_links.facebook && (
+                          <a
+                            href={club.social_links.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Facebook"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                            onTouchStart={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onTouchEnd={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {club.social_links.linkedin && (
+                          <a
+                            href={club.social_links.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="LinkedIn"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                            onTouchStart={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onTouchEnd={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {club.social_links.twitter && (
+                          <a
+                            href={club.social_links.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Twitter"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                            onTouchStart={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onTouchEnd={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {club.social_links.youtube && (
+                          <a
+                            href={club.social_links.youtube}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="YouTube"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              transition: 'all 0.2s ease',
+                              border: '1px solid transparent'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                            onTouchStart={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.2)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.border = '1px solid var(--primary)';
+                            }}
+                            onTouchEnd={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(var(--primary-rgb), 0.1)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.border = '1px solid transparent';
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop Club Content - Hidden on mobile when tabs are active */}
+        {club && (
+          <div className={`club-content-grid ${isMobileView ? 'tabs-active' : ''}`} style={{ display: isMobileView ? 'none' : 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>
           {/* Main Content */}
           <div>
             {/* Tabs */}
             <div
+              className="event-tabs"
               style={{
                 display: 'flex',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -194,7 +765,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
               }}
             >
               <button
-                className={`tab-button ${activeTab === 'about' ? 'active' : ''}`}
+                className={`event-tab tab-button ${activeTab === 'about' ? 'active' : ''}`}
                 onClick={() => setActiveTab('about')}
                 style={{
                   padding: '1rem 1.5rem',
@@ -209,7 +780,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                 About
               </button>
               <button
-                className={`tab-button ${activeTab === 'events' ? 'active' : ''}`}
+                className={`event-tab tab-button ${activeTab === 'events' ? 'active' : ''}`}
                 onClick={() => setActiveTab('events')}
                 style={{
                   padding: '1rem 1.5rem',
@@ -225,7 +796,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
               </button>
               {club.team_members && club.team_members.length > 0 && (
                 <button
-                  className={`tab-button ${activeTab === 'team' ? 'active' : ''}`}
+                  className={`event-tab tab-button ${activeTab === 'team' ? 'active' : ''}`}
                   onClick={() => setActiveTab('team')}
                   style={{
                     padding: '1rem 1.5rem',
@@ -242,7 +813,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
               )}
               {club.gallery && club.gallery.length > 0 && (
                 <button
-                  className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+                  className={`event-tab tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
                   onClick={() => setActiveTab('gallery')}
                   style={{
                     padding: '1rem 1.5rem',
@@ -309,7 +880,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                     <p>No events found for this club.</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gap: '1.5rem' }}>
+                  <div className="club-events-grid" style={{ display: 'grid', gap: '1.5rem' }}>
                     {clubEvents.map((event) => (
                       <div
                         key={event.id}
@@ -364,7 +935,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                   Meet the dedicated team behind {club.name}. These individuals work tirelessly to organize events, workshops, and activities for the club.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2rem' }}>
+                <div className="team-members-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '2rem' }}>
                   {club.team_members.map((member, index) => (
                     <div
                       key={index}
@@ -408,7 +979,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                   Take a look at some moments from our past events and activities.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                   {club.gallery.map((image, index) => (
                     <div
                       key={index}
@@ -435,7 +1006,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
           </div>
 
           {/* Sidebar */}
-          <div>
+          <div className="club-sidebar">
             <div
               style={{
                 backgroundColor: 'var(--dark-surface)',
@@ -853,6 +1424,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </section>
   );

@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import EventRegistration from './EventRegistration';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
+import './MobileTabs.css';
+import './EventDetails.css';
 
 const EventDetails = ({ setCurrentPage, eventId }) => {
   const [event, setEvent] = useState(null);
@@ -11,6 +13,23 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('about');
+  const [activeMobileTab, setActiveMobileTab] = useState('about');
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Set initial mobile view state after component mounts to avoid hydration issues
+  useEffect(() => {
+    setIsMobileView(window.innerWidth <= 992);
+  }, []);
+
+  // Handle window resize to detect mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 992);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [shareUrl, setShareUrl] = useState('');
   const [showShareTooltip, setShowShareTooltip] = useState(false);
 
@@ -54,6 +73,16 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     const shareableUrl = `${baseUrl}/event/${eventId}`;
     setShareUrl(shareableUrl);
   }, [eventId]);
+
+  // Format date for display
+  const formatDate = (date) => {
+    try {
+      return format(new Date(date), 'MMMM d, yyyy');
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return 'Date not available';
+    }
+  };
 
   // Format event date for display
   const formatEventDate = (startDate, endDate) => {
@@ -128,6 +157,14 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     });
   };
 
+  // Debug event data
+  useEffect(() => {
+    if (event) {
+      console.log('Event data loaded:', event);
+      console.log('Mobile view:', isMobileView);
+    }
+  }, [event, isMobileView]);
+
   // If loading, show loading state
   if (loading) {
     return (
@@ -179,12 +216,14 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
         {/* Event Header */}
         <div
+          className="event-banner"
           style={{
             position: 'relative',
-            height: '400px',
+            height: isMobileView ? '300px' : '400px',
             borderRadius: '10px',
             overflow: 'hidden',
-            marginBottom: '2rem'
+            marginBottom: '2rem',
+            width: '100%'
           }}
         >
           <div
@@ -197,7 +236,8 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
               backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3'})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'brightness(0.6)'
+              filter: 'brightness(1)',
+              boxShadow: 'none'
             }}
           ></div>
 
@@ -207,50 +247,61 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
               bottom: 0,
               left: 0,
               width: '100%',
-              padding: '2rem',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
+              padding: isMobileView ? '1.5rem' : '2rem',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 85%, transparent 100%)'
             }}
           >
             <motion.h1
+              className="event-title"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              style={{ marginBottom: '0.5rem' }}
+              style={{
+                marginBottom: '0.5rem',
+                fontSize: isMobileView ? '1.8rem' : '2.5rem',
+                textShadow: '0 2px 5px rgba(0,0,0,0.7)',
+                fontWeight: '700'
+              }}
             >
               {event.title}
             </motion.h1>
 
             <motion.div
+              className="event-meta"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}
+              style={{
+                display: 'flex',
+                gap: isMobileView ? '1rem' : '2rem',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                fontSize: isMobileView ? '0.9rem' : '1rem',
+                textShadow: '0 1px 3px rgba(0,0,0,0.7)'
+              }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="event-meta-item">
                 <span style={{ color: 'var(--accent)' }}>📅</span>
                 <span>{formatEventDate(event.start_date, event.end_date)}</span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="event-meta-item">
                 <span style={{ color: 'var(--accent)' }}>📍</span>
                 <span>{event.location}</span>
               </div>
 
               {event.clubs && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="event-meta-item">
                   <span style={{ color: 'var(--accent)' }}>👥</span>
                   <span>{event.clubs.name}</span>
                 </div>
               )}
 
               {event.categories && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{
+                <div className="event-meta-item">
+                  <span className="event-category-tag" style={{
                     color: event.categories.color || 'var(--primary)',
                     backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.9rem'
                   }}>
                     {event.categories.name}
                   </span>
@@ -260,12 +311,341 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           </div>
         </div>
 
-        {/* Event Content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem', position: 'relative', marginTop: '3rem' }}>
+        {/* Mobile Tabs - Only visible on mobile */}
+        {isMobileView && event && (
+          <div className="mobile-tabs">
+            <button
+              className={`mobile-tab ${activeMobileTab === 'about' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('about')}
+            >
+              About
+            </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'schedule' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('schedule')}
+            >
+              Schedule
+            </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'register' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('register')}
+            >
+              Register
+            </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'details' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('details')}
+            >
+              Details
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Tab Content - Only visible on mobile */}
+        {isMobileView && event && (
+          <div className="mobile-tab-contents" style={{ marginBottom: '2rem' }}>
+            {/* About Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'about' ? 'active' : ''}`}>
+              <div className="tab-content-about">
+                <h3 style={{ fontSize: '1.8rem', marginBottom: '1.2rem', color: 'var(--primary)' }}>About This Event</h3>
+                <p style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>{event.description}</p>
+                {event.long_description && (
+                  <div style={{ marginTop: '1.5rem', backgroundColor: 'rgba(var(--primary-rgb), 0.05)', padding: '1.5rem', borderRadius: '8px', border: '1px solid rgba(var(--primary-rgb), 0.1)' }}>
+                    <p style={{ whiteSpace: 'pre-line', fontSize: '1.05rem', lineHeight: '1.7' }}>{event.long_description}</p>
+                  </div>
+                )}
+
+                {/* Event Highlights Section */}
+                {event.highlights && event.highlights.length > 0 && (
+                  <div style={{ marginTop: '2rem' }}>
+                    <h3 style={{ fontSize: '1.6rem', marginBottom: '1.2rem', color: 'var(--primary)' }}>Event Highlights</h3>
+                    <ul className="event-highlights-grid" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {event.highlights.map((highlight, index) => (
+                        <li
+                          key={index}
+                          style={{
+                            backgroundColor: 'var(--dark-surface)',
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.8rem',
+                            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          <span style={{ color: 'var(--accent)', fontSize: '1.2rem' }}>✨</span>
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Club Information Section */}
+                {event.clubs && event.clubs.description && (
+                  <div style={{ marginTop: '2.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--dark-surface)', padding: '1.5rem', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)' }}>
+                    <h3 style={{ marginBottom: '1.2rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                      <span style={{ fontSize: '1.3rem' }}>👥</span> About the Organizer
+                    </h3>
+
+                    {event.clubs.logo_url && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.2rem' }}>
+                        <img
+                          src={event.clubs.logo_url}
+                          alt={event.clubs.name}
+                          style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }}
+                        />
+                      </div>
+                    )}
+
+                    <h4 style={{ textAlign: 'center', marginBottom: '1rem', fontSize: '1.3rem' }}>{event.clubs.name}</h4>
+
+                    <p style={{ fontSize: '1rem', lineHeight: '1.6' }}>
+                      {event.clubs.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Schedule Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'schedule' ? 'active' : ''}`}>
+              <div className="tab-content-schedule">
+                <h3 style={{ fontSize: '1.8rem', marginBottom: '1.2rem', color: 'var(--primary)' }}>Event Schedule</h3>
+                <p style={{ marginBottom: '1.5rem' }}>Here's the detailed schedule for this event. Please note that times may be subject to minor changes.</p>
+                {event.additional_info && event.additional_info.schedule ? (
+                  <div>
+                    {event.additional_info.schedule.map((day, dayIndex) => (
+                      <div
+                        key={dayIndex}
+                        style={{
+                          marginBottom: '2rem',
+                          backgroundColor: 'var(--dark-surface)',
+                          borderRadius: '10px',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div
+                          style={{
+                            backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                            padding: '1rem 1.5rem',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}
+                        >
+                          <h4 style={{ margin: 0, color: 'var(--primary)' }}>{day.day}</h4>
+                        </div>
+
+                        <div>
+                          {day.events.map((eventItem, eventIndex) => (
+                            <div
+                              key={eventIndex}
+                              className="event-schedule-item"
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 2fr 1fr',
+                                padding: '1rem',
+                                borderBottom: eventIndex < day.events.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none'
+                              }}
+                            >
+                              <div style={{ color: 'var(--accent)' }}>{eventItem.time}</div>
+                              <div style={{ fontWeight: '500' }}>{eventItem.title}</div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{eventItem.location}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--dark-surface)', borderRadius: '8px', marginTop: '1rem' }}>
+                    <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>No detailed schedule available for this event yet.</p>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Please check back later for updates.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Register Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'register' ? 'active' : ''}`}>
+              <div className="tab-content-register">
+                <EventRegistration eventData={event} registrations={registrations} />
+              </div>
+            </div>
+
+            {/* Details Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'details' ? 'active' : ''}`}>
+              <div className="tab-content-details">
+                <h3>Event Details</h3>
+                <div style={{ backgroundColor: 'var(--dark-surface)', borderRadius: '10px', padding: '1.5rem', marginBottom: '1.5rem' }}>
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>DATE & TIME</h4>
+                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--accent)' }}>📅</span>
+                      <span>{formatEventDate(event.start_date, event.end_date)}</span>
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>LOCATION</h4>
+                    <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: 'var(--accent)' }}>📍</span>
+                      <span>{event.location}</span>
+                    </p>
+                  </div>
+
+                  {event.participation_type && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>PARTICIPATION</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>{event.participation_type === 'team' ? '👥' : '👤'}</span>
+                        <span>{event.participation_type === 'team' ? 'Team Event' : 'Individual Event'}</span>
+                      </p>
+                      {event.participation_type === 'team' && (
+                        <p style={{ margin: '0.5rem 0 0 1.8rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                          Team size: {event.min_participants || 2} to {event.max_participants || 'unlimited'} members
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {event.registration_deadline && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>REGISTRATION DEADLINE</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>⏰</span>
+                        <span>{format(new Date(event.registration_deadline), 'MMMM d, yyyy')}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {event.fee && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>ENTRY FEE</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>💰</span>
+                        <span>{event.fee === 0 ? 'Free Entry' : `₹${event.fee}`}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {event.prizes && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>PRIZES</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>🏆</span>
+                        <span>{event.prizes}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {event.contact_info && (
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>CONTACT</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>📞</span>
+                        <span>{event.contact_info}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <h3 style={{ fontSize: '1.6rem', marginBottom: '1rem', color: 'var(--primary)', textAlign: 'center' }}>Share This Event</h3>
+                <div className="social-share-buttons" style={{ marginBottom: '2rem' }}>
+                  <button
+                    className="social-share-button"
+                    style={{
+                      backgroundColor: 'rgba(59, 89, 152, 0.2)',
+                      color: '#4267B2'
+                    }}
+                    onClick={shareOnFacebook}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+                    </svg>
+                  </button>
+
+                  <button
+                    className="social-share-button"
+                    style={{
+                      backgroundColor: 'rgba(29, 161, 242, 0.2)',
+                      color: '#1DA1F2'
+                    }}
+                    onClick={shareOnTwitter}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                    </svg>
+                  </button>
+
+                  <button
+                    className="social-share-button"
+                    style={{
+                      backgroundColor: 'rgba(0, 119, 181, 0.2)',
+                      color: '#0077B5'
+                    }}
+                    onClick={shareOnLinkedIn}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z" />
+                    </svg>
+                  </button>
+
+                  <button
+                    className="social-share-button"
+                    style={{
+                      backgroundColor: 'rgba(37, 211, 102, 0.2)',
+                      color: '#25D366'
+                    }}
+                    onClick={shareOnWhatsApp}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                    </svg>
+                  </button>
+
+                  <button
+                    className="social-share-button"
+                    style={{
+                      backgroundColor: 'rgba(110, 68, 255, 0.2)',
+                      color: 'var(--primary)'
+                    }}
+                    onClick={copyToClipboard}
+                    onMouseLeave={() => setTimeout(() => setShowShareTooltip(false), 1500)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6.188 8.719c.439-.439.926-.801 1.444-1.087 2.887-1.591 6.589-.745 8.445 2.069l-2.246 2.245c-.644-1.469-2.243-2.305-3.834-1.949-.599.134-1.168.433-1.633.898l-4.304 4.306c-1.307 1.307-1.307 3.433 0 4.74 1.307 1.307 3.433 1.307 4.74 0l1.327-1.327c1.207.479 2.501.67 3.779.575l-2.929 2.929c-2.511 2.511-6.582 2.511-9.093 0s-2.511-6.582 0-9.093l4.304-4.306zm6.836-6.836l-2.929 2.929c1.277-.096 2.572.096 3.779.574l1.326-1.326c1.307-1.307 3.433-1.307 4.74 0 1.307 1.307 1.307 3.433 0 4.74l-4.305 4.305c-1.311 1.311-3.44 1.3-4.74 0-.303-.303-.564-.68-.727-1.051l-2.246 2.245c.236.358.481.667.796.982.812.812 1.846 1.417 3.036 1.704 1.542.371 3.194.166 4.613-.617.518-.286 1.005-.648 1.444-1.087l4.304-4.305c2.512-2.511 2.512-6.582.001-9.093-2.511-2.51-6.581-2.51-9.092 0z" />
+                    </svg>
+                    {showShareTooltip && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '-40px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '4px',
+                        fontSize: '0.8rem',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Link copied to clipboard!
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop Event Content - Hidden on mobile when tabs are active */}
+        {event && (
+          <div className={`event-content-grid ${isMobileView ? 'tabs-active' : ''}`} style={{ display: isMobileView ? 'none' : 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem', position: 'relative', marginTop: '3rem' }}>
           {/* Main Content */}
           <div>
             {/* Tabs */}
             <div
+              className="event-tabs"
               style={{
                 display: 'flex',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -273,7 +653,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
               }}
             >
               <button
-                className={`tab-button ${activeTab === 'about' ? 'active' : ''}`}
+                className={`event-tab tab-button ${activeTab === 'about' ? 'active' : ''}`}
                 onClick={() => setActiveTab('about')}
                 style={{
                   padding: '1rem 1.5rem',
@@ -288,7 +668,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 About
               </button>
               <button
-                className={`tab-button ${activeTab === 'schedule' ? 'active' : ''}`}
+                className={`event-tab tab-button ${activeTab === 'schedule' ? 'active' : ''}`}
                 onClick={() => setActiveTab('schedule')}
                 style={{
                   padding: '1rem 1.5rem',
@@ -303,7 +683,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 Schedule
               </button>
               <button
-                className={`tab-button ${activeTab === 'register' ? 'active' : ''}`}
+                className={`event-tab tab-button ${activeTab === 'register' ? 'active' : ''}`}
                 onClick={() => setActiveTab('register')}
                 style={{
                   padding: '1rem 1.5rem',
@@ -327,20 +707,37 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 transition={{ duration: 0.5 }}
                 className="about-tab"
               >
-                <h2>About the Event</h2>
-                <p style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--primary)', fontWeight: '600' }}>About the Event</h2>
+                <p style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2rem', color: 'var(--text-primary)' }}>
                   {event.description}
                 </p>
 
                 {event.additional_info && event.additional_info.long_description && (
-                  <p style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2rem' }}>
-                    {event.additional_info.long_description}
-                  </p>
+                  <div style={{ marginBottom: '2rem', backgroundColor: 'rgba(var(--primary-rgb), 0.05)', padding: '1.8rem', borderRadius: '10px', border: '1px solid rgba(var(--primary-rgb), 0.1)' }}>
+                    <p style={{ fontSize: '1.1rem', lineHeight: '1.7', margin: 0, whiteSpace: 'pre-line' }}>
+                      {event.additional_info.long_description}
+                    </p>
+                  </div>
                 )}
 
                 {event.clubs && event.clubs.description && (
-                  <div style={{ marginTop: '3rem', marginBottom: '2rem' }}>
-                    <h3 style={{ marginBottom: '1rem' }}>About the Organizer</h3>
+                  <div style={{ marginTop: '3rem', marginBottom: '2rem', backgroundColor: 'var(--dark-surface)', padding: '1.8rem', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)' }}>
+                    <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                      <span style={{ fontSize: '1.5rem' }}>👥</span> About the Organizer
+                    </h3>
+
+                    {event.clubs.logo_url && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                        <img
+                          src={event.clubs.logo_url}
+                          alt={event.clubs.name}
+                          style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary)' }}
+                        />
+                      </div>
+                    )}
+
+                    <h4 style={{ textAlign: 'center', marginBottom: '1.2rem', fontSize: '1.4rem' }}>{event.clubs.name}</h4>
+
                     <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>
                       {event.clubs.description}
                     </p>
@@ -450,7 +847,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 {event.additional_info && event.additional_info.highlights && (
                   <>
                     <h3 style={{ marginTop: '3rem', marginBottom: '1.5rem' }}>Event Highlights</h3>
-                    <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <ul className="event-highlights-grid" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                       {event.additional_info.highlights.map((highlight, index) => (
                         <li
                           key={index}
@@ -483,8 +880,8 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 transition={{ duration: 0.5 }}
                 className="schedule-tab"
               >
-                <h2>Event Schedule</h2>
-                <p style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'var(--primary)', fontWeight: '600' }}>Event Schedule</h2>
+                <p style={{ fontSize: '1.1rem', lineHeight: '1.7', marginBottom: '2rem', color: 'var(--text-primary)' }}>
                   Here's the detailed schedule for the event. Please note that the schedule may be subject to minor changes.
                 </p>
 
@@ -514,6 +911,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                         {day.events.map((eventItem, eventIndex) => (
                           <div
                             key={eventIndex}
+                            className="event-schedule-item"
                             style={{
                               display: 'grid',
                               gridTemplateColumns: '1fr 2fr 1fr',
@@ -530,8 +928,9 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                     </div>
                   ))
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--dark-surface)', borderRadius: '8px' }}>
-                    <p>No detailed schedule available for this event.</p>
+                  <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'var(--dark-surface)', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)' }}>
+                    <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>No detailed schedule available for this event yet.</p>
+                    <p style={{ marginTop: '0.8rem', fontSize: '0.95rem' }}>Please check back later for updates.</p>
                   </div>
                 )}
               </motion.div>
@@ -550,7 +949,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           </div>
 
           {/* Sidebar */}
-          <div style={{ position: 'sticky', top: '2rem', marginTop: '3rem' }}>
+          <div className="event-details-sidebar" style={{ position: 'sticky', top: '2rem', marginTop: '3rem' }}>
             <div
               style={{
                 backgroundColor: 'var(--dark-surface)',
@@ -660,22 +1059,13 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 <span>🔗</span> Share Event
               </h3>
 
-              <div style={{ display: 'flex', gap: '1.2rem', justifyContent: 'center', position: 'relative' }}>
+              <div className="social-share-buttons">
                 {/* Facebook */}
                 <button
+                  className="social-share-button"
                   style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
                     backgroundColor: 'rgba(59, 89, 152, 0.2)',
-                    border: 'none',
-                    color: '#4267B2',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    color: '#4267B2'
                   }}
                   onClick={shareOnFacebook}
                   title="Share on Facebook"
@@ -695,19 +1085,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
                 {/* Twitter/X */}
                 <button
+                  className="social-share-button"
                   style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
                     backgroundColor: 'rgba(29, 161, 242, 0.2)',
-                    border: 'none',
-                    color: '#1DA1F2',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    color: '#1DA1F2'
                   }}
                   onClick={shareOnTwitter}
                   title="Share on Twitter/X"
@@ -727,19 +1108,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
                 {/* LinkedIn */}
                 <button
+                  className="social-share-button"
                   style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
                     backgroundColor: 'rgba(0, 119, 181, 0.2)',
-                    border: 'none',
-                    color: '#0077B5',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    color: '#0077B5'
                   }}
                   onClick={shareOnLinkedIn}
                   title="Share on LinkedIn"
@@ -759,19 +1131,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
                 {/* WhatsApp */}
                 <button
+                  className="social-share-button"
                   style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
                     backgroundColor: 'rgba(37, 211, 102, 0.2)',
-                    border: 'none',
-                    color: '#25D366',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    color: '#25D366'
                   }}
                   onClick={shareOnWhatsApp}
                   title="Share on WhatsApp"
@@ -791,19 +1154,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
                 {/* Copy Link */}
                 <button
+                  className="social-share-button"
                   style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
                     backgroundColor: 'rgba(110, 68, 255, 0.2)',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    color: 'var(--primary)'
                   }}
                   onClick={copyToClipboard}
                   title="Copy Link"
@@ -844,6 +1198,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </section>
   );
