@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import supabase, { startSessionMonitoring, checkAndRefreshSession, recoverSession } from '../lib/supabase';
+import { createContext, useContext, useState, useEffect } from 'react';
+import supabase, { refreshSession } from '../lib/supabase';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sessionStatus, setSessionStatus] = useState('checking');
-  const stopSessionMonitoring = useRef(null);
 
-  // Check for current session on mount
+  // Check for current session on mount and set up auth state listener
   useEffect(() => {
+    // Initial session check
     const checkUser = async () => {
       try {
         setLoading(true);
@@ -29,79 +29,15 @@ export const AuthProvider = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
+          console.log('Session found on initial load');
           setUser(session.user);
           setSessionStatus('active');
 
-          // Start session monitoring with optimized interval
-          if (stopSessionMonitoring.current) {
-            stopSessionMonitoring.current();
-          }
-          // Use a small delay to avoid immediate requests
-          setTimeout(() => {
-            stopSessionMonitoring.current = startSessionMonitoring(60000); // Check every 60 seconds (increased from 20)
-          }, 1000);
-
-          // Check if user is an admin
-          const { data: adminData } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (adminData) {
-            setIsAdmin(true);
-          } else {
-            // If not admin, check for club profile
-            const { data: clubData } = await supabase
-              .from('clubs')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (clubData) {
-              setClub(clubData);
-            }
-          }
+          // Check user roles
+          await checkUserRoles(session.user.id);
         } else {
-          // No active session, try to recover from localStorage
-          console.log('No active session found, attempting recovery...');
-          const recoveryResult = await recoverSession();
-
-          if (recoveryResult.recovered && recoveryResult.session) {
-            console.log('Session recovered successfully, setting user data');
-            setUser(recoveryResult.session.user);
-            setSessionStatus('recovered');
-
-            // Start session monitoring
-            setTimeout(() => {
-              stopSessionMonitoring.current = startSessionMonitoring(60000);
-            }, 1000);
-
-            // Check if user is an admin
-            const { data: adminData } = await supabase
-              .from('admins')
-              .select('*')
-              .eq('id', recoveryResult.session.user.id)
-              .single();
-
-            if (adminData) {
-              setIsAdmin(true);
-            } else {
-              // If not admin, check for club profile
-              const { data: clubData } = await supabase
-                .from('clubs')
-                .select('*')
-                .eq('id', recoveryResult.session.user.id)
-                .single();
-
-              if (clubData) {
-                setClub(clubData);
-              }
-            }
-          } else {
-            console.log('Session recovery failed:', recoveryResult.reason);
-            setSessionStatus('no-session');
-          }
+          console.log('No session found on initial load');
+          setSessionStatus('no-session');
         }
       } catch (err) {
         console.error('Error checking authentication:', err);
@@ -111,6 +47,37 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
+    // Helper function to check user roles
+    const checkUserRoles = async (userId) => {
+      try {
+        // Check if user is an admin
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (adminData) {
+          setIsAdmin(true);
+          return;
+        }
+
+        // If not admin, check for club profile
+        const { data: clubData } = await supabase
+          .from('clubs')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (clubData) {
+          setClub(clubData);
+        }
+      } catch (err) {
+        console.error('Error checking user roles:', err);
+      }
+    };
+
+    // Run initial check
     checkUser();
 
     // Set up auth state change listener
@@ -121,110 +88,22 @@ export const AuthProvider = ({ children }) => {
         if (event === 'SIGNED_IN' && session) {
           setUser(session.user);
           setSessionStatus('active');
-
-          // Start session monitoring when user signs in with optimized interval
-          if (stopSessionMonitoring.current) {
-            stopSessionMonitoring.current();
-          }
-          // Use a small delay to avoid immediate requests
-          setTimeout(() => {
-            stopSessionMonitoring.current = startSessionMonitoring(60000); // Check every 60 seconds (increased from 20)
-          }, 1000);
-
-          // Check if user is an admin
-          const { data: adminData } = await supabase
-            .from('admins')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (adminData) {
-            setIsAdmin(true);
-          } else {
-            // If not admin, check for club profile
-            const { data: clubData } = await supabase
-              .from('clubs')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (clubData) {
-              setClub(clubData);
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          // Check if this was an intentional sign out or an unexpected session expiration
-          const wasIntentionalSignOut = sessionStatus === 'signing-out';
-
-          if (!wasIntentionalSignOut) {
-            console.log('Unexpected sign out detected, attempting session recovery...');
-            // Try to recover the session
-            const recoveryResult = await recoverSession();
-
-            if (recoveryResult.recovered && recoveryResult.session) {
-              console.log('Session recovered after unexpected sign out');
-              setUser(recoveryResult.session.user);
-              setSessionStatus('recovered');
-
-              // Restart session monitoring
-              if (stopSessionMonitoring.current) {
-                stopSessionMonitoring.current();
-              }
-              setTimeout(() => {
-                stopSessionMonitoring.current = startSessionMonitoring(60000);
-              }, 1000);
-
-              // Check user roles
-              try {
-                // Check if user is an admin
-                const { data: adminData } = await supabase
-                  .from('admins')
-                  .select('*')
-                  .eq('id', recoveryResult.session.user.id)
-                  .single();
-
-                if (adminData) {
-                  setIsAdmin(true);
-                } else {
-                  // If not admin, check for club profile
-                  const { data: clubData } = await supabase
-                    .from('clubs')
-                    .select('*')
-                    .eq('id', recoveryResult.session.user.id)
-                    .single();
-
-                  if (clubData) {
-                    setClub(clubData);
-                  }
-                }
-              } catch (roleErr) {
-                console.error('Error checking roles after recovery:', roleErr);
-              }
-
-              return; // Exit early since we recovered the session
-            } else {
-              console.log('Session recovery failed after unexpected sign out:', recoveryResult.reason);
-            }
-          }
-
-          // If we get here, either it was an intentional sign out or recovery failed
+          await checkUserRoles(session.user.id);
+        }
+        else if (event === 'SIGNED_OUT') {
           setUser(null);
           setClub(null);
           setIsAdmin(false);
           setSessionStatus('signed-out');
-
-          // Stop session monitoring when user signs out
-          if (stopSessionMonitoring.current) {
-            stopSessionMonitoring.current();
-            stopSessionMonitoring.current = null;
-          }
-        } else if (event === 'TOKEN_REFRESHED') {
+        }
+        else if (event === 'TOKEN_REFRESHED') {
           console.log('Auth token refreshed');
           setSessionStatus('refreshed');
 
-          // Force a session check to update user data
-          const sessionCheck = await checkAndRefreshSession();
-          console.log('Session check after token refresh:', sessionCheck);
+          // Refresh user data if needed
+          if (user) {
+            await checkUserRoles(user.id);
+          }
         }
       }
     );
@@ -238,14 +117,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Sign in function
-  const signIn = async (email, password) => {
+  const signIn = async (email, password, rememberMe = true) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Store email for reference
+      localStorage.setItem('nits-event-last-email', email);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
 
       if (error) throw error;
@@ -302,8 +184,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Set a flag to indicate this is an intentional sign out
-      // This helps distinguish between user-initiated sign outs and session expirations
+      // Set status to indicate intentional sign out
       setSessionStatus('signing-out');
 
       const { error } = await supabase.auth.signOut();
@@ -340,7 +221,7 @@ export const AuthProvider = ({ children }) => {
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
         password,
-        email_confirm: true, // Auto-confirm email
+        email_confirm: true // Auto-confirm email
       });
 
       if (authError) throw authError;
@@ -367,87 +248,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Add a function to manually check and refresh the session
-  const refreshSession = async (forceRefresh = false) => {
+  // Manual session refresh function
+  const manualRefreshSession = async () => {
     try {
       setLoading(true);
       setSessionStatus('checking');
 
-      const result = await checkAndRefreshSession(forceRefresh);
+      const result = await refreshSession();
       console.log('Manual session refresh result:', result);
 
       if (result.valid) {
-        // If session is valid, update the session status
         setSessionStatus(result.refreshed ? 'refreshed' : 'active');
-
-        // If we haven't fetched the user's club data yet, do it now
-        if (user && !club && !isAdmin) {
-          try {
-            const { data: clubData } = await supabase
-              .from('clubs')
-              .select('*')
-              .eq('id', user.id)
-              .single();
-
-            if (clubData) {
-              setClub(clubData);
-            }
-          } catch (clubErr) {
-            console.error('Error fetching club data during refresh:', clubErr);
-          }
-        }
-
-        return { success: true, ...result };
+        return { success: true };
       } else {
-        // If session is invalid, try to recover it
-        console.log('Session invalid, attempting recovery...');
-        const recoveryResult = await recoverSession();
-
-        if (recoveryResult.recovered && recoveryResult.session) {
-          console.log('Session recovered successfully during refresh');
-          setUser(recoveryResult.session.user);
-          setSessionStatus('recovered');
-
-          // Check user roles after recovery
-          try {
-            // Check if user is an admin
-            const { data: adminData } = await supabase
-              .from('admins')
-              .select('*')
-              .eq('id', recoveryResult.session.user.id)
-              .single();
-
-            if (adminData) {
-              setIsAdmin(true);
-            } else {
-              // If not admin, check for club profile
-              const { data: clubData } = await supabase
-                .from('clubs')
-                .select('*')
-                .eq('id', recoveryResult.session.user.id)
-                .single();
-
-              if (clubData) {
-                setClub(clubData);
-              }
-            }
-
-            return { success: true, recovered: true };
-          } catch (roleErr) {
-            console.error('Error checking roles after recovery:', roleErr);
-          }
-        } else {
-          // If recovery failed, update the session status
-          console.log('Session recovery failed during refresh:', recoveryResult.reason);
-          setSessionStatus('invalid');
-
-          // Clear the user data
-          setUser(null);
-          setClub(null);
-          setIsAdmin(false);
-
-          return { success: false, ...result, recoveryAttempted: true, recoveryResult };
-        }
+        setSessionStatus('invalid');
+        return { success: false };
       }
     } catch (err) {
       console.error('Error in manual session refresh:', err);
@@ -465,7 +280,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Make sure we include the full URL with protocol
+      // Include full URL with protocol
       const baseUrl = window.location.origin;
       const redirectUrl = `${baseUrl}?reset-password=true`;
 
@@ -493,23 +308,11 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      console.log('Attempting to update password');
-
-      // First check if we have a session
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('Current session:', sessionData?.session ? 'Active' : 'None');
-
-      // Update the user's password
       const { data, error } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) {
-        console.error('Error in updateUser:', error);
-        throw error;
-      }
-
-      console.log('Password updated successfully:', data?.user ? 'User updated' : 'No user data');
+      if (error) throw error;
 
       return { success: true };
     } catch (err) {
@@ -532,7 +335,7 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     createClubAccount,
-    refreshSession,
+    refreshSession: manualRefreshSession,
     sendPasswordResetEmail,
     updatePassword,
   };

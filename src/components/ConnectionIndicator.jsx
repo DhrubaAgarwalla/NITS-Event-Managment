@@ -22,7 +22,7 @@ const ConnectionIndicator = () => {
     setErrorMessage(null);
     const startTime = performance.now();
 
-    // Create a timeout promise that rejects after 8 seconds (reduced from 10)
+    // Create a timeout promise that rejects after 8 seconds
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Connection check timed out after 8 seconds'));
@@ -35,11 +35,10 @@ const ConnectionIndicator = () => {
         try {
           // Try to refresh the session if needed
           const sessionResult = await refreshSession();
-          // We use sessionStatus directly from useAuth
 
           if (!sessionResult.success) {
-            console.warn('Session check failed during connection check:', sessionResult);
-            // Don't set error message here, we'll continue with the regular connection check
+            console.warn('Session check failed during connection check');
+            // Continue with regular connection check
           }
         } catch (sessionErr) {
           console.error('Error checking session during connection check:', sessionErr);

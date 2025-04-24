@@ -6,16 +6,17 @@ import { navigateAfterLogin } from '../utils/navigation';
 export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: true
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -28,7 +29,11 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
 
     try {
       // Use Supabase authentication
-      const { success, error: authError, user, isAdmin, isClub } = await signIn(formData.email, formData.password);
+      const { success, error: authError, user, isAdmin, isClub } = await signIn(
+        formData.email,
+        formData.password,
+        formData.rememberMe
+      );
 
       if (success) {
         // Set club login state if needed
@@ -142,7 +147,7 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '2rem' }}>
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label
                 htmlFor="password"
                 style={{
@@ -172,6 +177,30 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
                 }}
                 placeholder="Enter your password"
               />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleChange}
+                style={{
+                  marginRight: '0.5rem',
+                  accentColor: 'var(--primary)'
+                }}
+              />
+              <label
+                htmlFor="rememberMe"
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                Keep me logged in
+              </label>
             </div>
 
             <button
