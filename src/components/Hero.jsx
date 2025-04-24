@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
+import CollageBackground from './CollageBackground';
 
 const Hero = ({ setCurrentPage }) => {
   const heroRef = useRef(null);
@@ -123,7 +124,11 @@ const Hero = ({ setCurrentPage }) => {
 
   return (
     <section className="hero" ref={heroRef} id="home">
-      <canvas ref={particlesRef} className="hero-bg"></canvas>
+      {/* Add the collage background */}
+      <CollageBackground />
+
+      {/* Keep the original canvas as a fallback but hide it */}
+      <canvas ref={particlesRef} className="hero-bg" style={{ display: 'none' }}></canvas>
 
       <div className="container">
         <motion.div
