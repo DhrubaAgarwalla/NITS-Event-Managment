@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import supabase, { refreshSession, signInWithGoogle, isAllowedEmail } from '../lib/supabase';
+import supabase, { refreshSession } from '../lib/supabase';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -334,12 +334,10 @@ export const AuthProvider = ({ children }) => {
     sessionStatus,
     signIn,
     signOut,
-    signInWithGoogle,
     createClubAccount,
     refreshSession: manualRefreshSession,
     sendPasswordResetEmail,
     updatePassword,
-    isAllowedEmail,
   };
 
   return (
