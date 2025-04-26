@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import supabase, { refreshSession } from '../lib/supabase';
+import supabase, { forceSignOutAndRedirect, verifySession } from '../lib/supabase';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
     // Run initial check
     checkUser();
 
-    // Set up auth state change listener
+    // Set up auth state change listener with improved handling
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session);
@@ -90,11 +90,17 @@ export const AuthProvider = ({ children }) => {
           setSessionStatus('active');
           await checkUserRoles(session.user.id);
         }
-        else if (event === 'SIGNED_OUT') {
+        else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          // Clear all user state
           setUser(null);
           setClub(null);
           setIsAdmin(false);
           setSessionStatus('signed-out');
+
+          // Redirect to home page if this wasn't an intentional sign out
+          if (sessionStatus !== 'signing-out') {
+            window.location.href = '/';
+          }
         }
         else if (event === 'TOKEN_REFRESHED') {
           console.log('Auth token refreshed');
@@ -105,19 +111,90 @@ export const AuthProvider = ({ children }) => {
             await checkUserRoles(user.id);
           }
         }
+        else if (event === 'PASSWORD_RECOVERY') {
+          // Handle password recovery flow
+          setSessionStatus('recovery');
+        }
       }
     );
 
-    // Clean up subscription
+    // Add storage event listener to sync auth state across tabs
+    const handleStorageChange = (event) => {
+      // Check for our custom storage key
+      if (event.key === 'nits-event-auth') {
+        console.log('Auth storage changed in another tab');
+
+        // Auth state changed in another tab
+        if (!event.newValue && user) {
+          console.log('Auth token removed in another tab, signing out in this tab');
+          // Force sign out in this tab too
+          forceSignOutAndRedirect();
+        } else if (event.newValue && !user) {
+          console.log('Auth token added in another tab, refreshing page to sync state');
+          window.location.reload();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Add online/offline event listeners
+    const handleOffline = () => {
+      console.log('Device went offline');
+      setSessionStatus('offline');
+    };
+
+    const handleOnline = async () => {
+      console.log('Device came online, checking session');
+
+      // If we were previously logged in, verify the session is still valid
+      if (user) {
+        try {
+          const isValid = await verifySession();
+
+          if (!isValid) {
+            console.log('No valid session found after coming back online');
+            forceSignOutAndRedirect();
+          } else {
+            console.log('Valid session found after coming back online');
+
+            // Explicitly refresh the session to ensure it stays active
+            try {
+              await supabase.auth.refreshSession();
+              console.log('Session refreshed successfully after coming back online');
+            } catch (refreshErr) {
+              console.warn('Session refresh failed after coming back online:', refreshErr);
+            }
+
+            setSessionStatus('active');
+          }
+        } catch (err) {
+          console.error('Error checking session after coming back online:', err);
+          forceSignOutAndRedirect();
+        }
+      }
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    // Clean up all subscriptions and event listeners
     return () => {
       if (authListener && authListener.subscription) {
         authListener.subscription.unsubscribe();
       }
+
+      // Remove storage event listener
+      window.removeEventListener('storage', handleStorageChange);
+
+      // Remove online/offline event listeners
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
   // Sign in function
-  const signIn = async (email, password, rememberMe = true) => {
+  const signIn = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
@@ -254,15 +331,26 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setSessionStatus('checking');
 
-      const result = await refreshSession();
-      console.log('Manual session refresh result:', result);
+      // Use our verifySession function
+      const isValid = await verifySession();
 
-      if (result.valid) {
-        setSessionStatus(result.refreshed ? 'refreshed' : 'active');
-        return { success: true };
+      if (isValid) {
+        console.log('Valid session found');
+
+        // Explicitly refresh the session to ensure it stays active
+        try {
+          await supabase.auth.refreshSession();
+          console.log('Session refreshed successfully');
+        } catch (refreshErr) {
+          console.warn('Session refresh failed, but session is still valid:', refreshErr);
+        }
+
+        setSessionStatus('active');
+        return { success: true, valid: true };
       } else {
+        console.log('No valid session found');
         setSessionStatus('invalid');
-        return { success: false };
+        return { success: false, valid: false };
       }
     } catch (err) {
       console.error('Error in manual session refresh:', err);
@@ -308,7 +396,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: password
       });
 
@@ -338,6 +426,7 @@ export const AuthProvider = ({ children }) => {
     refreshSession: manualRefreshSession,
     sendPasswordResetEmail,
     updatePassword,
+    forceSignOutAndRedirect,
   };
 
   return (

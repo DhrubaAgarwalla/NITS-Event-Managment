@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import supabase, { forceSignOutAndRedirect } from '../lib/supabase';
+import supabase, { verifySession } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,8 +15,60 @@ const ConnectionIndicator = () => {
   const [connectionHistory, setConnectionHistory] = useState([]);
   // We track auth status through the sessionStatus from useAuth
   const detailsRef = useRef(null);
-  // Track consecutive failures
-  const failureCount = useRef(0);
+
+  // Function to manually check session status
+  const checkSessionStatus = async () => {
+    if (!user) return;
+
+    try {
+      setIsChecking(true);
+
+      // Use verifySession to check if session is valid
+      const isValid = await verifySession();
+
+      if (isValid) {
+        console.log('Session is valid');
+        setErrorMessage(null);
+      } else {
+        console.warn('Session is invalid');
+        setErrorMessage('Session is invalid. Try refreshing the session.');
+      }
+    } catch (err) {
+      console.error('Error checking session:', err);
+      setErrorMessage('Error checking session status');
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Function to handle 406 errors specifically
+  const handle406Error = async () => {
+    console.log('Attempting to recover from 406 error...');
+
+    try {
+      // First, try a simple query with explicit headers
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/categories?select=id&limit=1`, {
+        method: 'GET',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log('Direct API call successful, connection recovered');
+        return true;
+      } else {
+        console.warn(`Direct API call failed with status: ${response.status}`);
+        return false;
+      }
+    } catch (err) {
+      console.error('Error during 406 recovery attempt:', err);
+      return false;
+    }
+  };
 
   // Function to check Supabase connection
   const checkConnection = async () => {
@@ -32,34 +84,6 @@ const ConnectionIndicator = () => {
     });
 
     try {
-      // If user is logged in, also check session status
-      if (user) {
-        try {
-          // Try to refresh the session if needed
-          const sessionResult = await refreshSession();
-
-          if (!sessionResult.success) {
-            console.warn('Session check failed during connection check');
-
-            // If we're logged in but session is invalid, force sign out
-            if (sessionResult.valid === false) {
-              console.error('Session is invalid, forcing sign out...');
-              await forceSignOutAndRedirect();
-              return; // Stop further execution
-            }
-          }
-        } catch (sessionErr) {
-          console.error('Error checking session during connection check:', sessionErr);
-
-          // If there's a session error and we're logged in, force sign out
-          if (user) {
-            console.error('Session error while logged in, forcing sign out...');
-            await forceSignOutAndRedirect();
-            return; // Stop further execution
-          }
-        }
-      }
-
       // Try to fetch a small amount of data to test the connection with a timeout
       const { error } = await Promise.race([
         supabase
@@ -79,21 +103,6 @@ const ConnectionIndicator = () => {
       const connectionStatus = error ? false : true;
       setIsConnected(connectionStatus);
 
-      // Reset failure count on success
-      if (connectionStatus) {
-        failureCount.current = 0;
-      } else {
-        // Increment failure count on error
-        failureCount.current++;
-
-        // If we have 3 consecutive failures and user is logged in, force sign out
-        if (failureCount.current >= 3 && user) {
-          console.error('Three consecutive connection failures while logged in, forcing sign out...');
-          await forceSignOutAndRedirect();
-          return; // Stop further execution
-        }
-      }
-
       // Add to connection history (keep last 10 entries)
       const newHistoryEntry = {
         timestamp: new Date(),
@@ -111,7 +120,21 @@ const ConnectionIndicator = () => {
       // Log the result for debugging
       if (error) {
         console.warn(`Supabase connection check failed (${pingTimeMs}ms):`, error);
-        setErrorMessage(error.message || 'Connection failed');
+
+        // Check for 406 error
+        if (error.message && error.message.includes('406')) {
+          setErrorMessage('406 Not Acceptable error. Attempting to recover...');
+
+          // Try to recover from 406 error
+          const recovered = await handle406Error();
+          if (recovered) {
+            setErrorMessage('Recovered from 406 error. Try refreshing the session.');
+          } else {
+            setErrorMessage('Failed to recover from 406 error. Try refreshing the page.');
+          }
+        } else {
+          setErrorMessage(error.message || 'Connection failed');
+        }
       } else {
         console.log(`Supabase connection successful (${pingTimeMs}ms)`);
 
@@ -124,20 +147,23 @@ const ConnectionIndicator = () => {
       console.error('Error checking Supabase connection:', err);
       setIsConnected(false);
 
-      // Increment failure count
-      failureCount.current++;
-
-      // If we have 3 consecutive failures and user is logged in, force sign out
-      if (failureCount.current >= 3 && user) {
-        console.error('Three consecutive connection failures while logged in, forcing sign out...');
-        await forceSignOutAndRedirect();
-        return; // Stop further execution
-      }
-
       // Handle timeout specifically
-      if (err.message.includes('timed out')) {
+      if (err.message && err.message.includes('timed out')) {
         setErrorMessage('Connection timed out. The server may be overloaded or unreachable.');
-      } else {
+      }
+      // Handle 406 errors specifically
+      else if (err.message && err.message.includes('406')) {
+        setErrorMessage('406 Not Acceptable error. Attempting to recover...');
+
+        // Try to recover from 406 error
+        const recovered = await handle406Error();
+        if (recovered) {
+          setErrorMessage('Recovered from 406 error. Try refreshing the session.');
+        } else {
+          setErrorMessage('Failed to recover from 406 error. Try refreshing the page.');
+        }
+      }
+      else {
         setErrorMessage(err.message || 'Connection error');
       }
 
@@ -172,38 +198,6 @@ const ConnectionIndicator = () => {
       checkConnection();
     }, 30000);
 
-    // Also check connection when the window regains focus, but only if it's been a while
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        // Only check if it's been at least 15 seconds since last check
-        const now = Date.now();
-        if (now - lastCheckedTime > 15000) {
-          console.log('Window regained focus after inactivity, checking connection...');
-
-          // If user is logged in, check session validity first
-          if (user) {
-            try {
-              console.log('Checking session validity after tab change...');
-              const sessionResult = await refreshSession();
-
-              if (!sessionResult.success || !sessionResult.valid) {
-                console.error('Session invalid after tab change, forcing sign out...');
-                await forceSignOutAndRedirect();
-                return; // Stop further execution
-              }
-            } catch (err) {
-              console.error('Error checking session after tab change:', err);
-              await forceSignOutAndRedirect();
-              return; // Stop further execution
-            }
-          }
-
-          // If session is valid or user is not logged in, proceed with connection check
-          checkConnection();
-        }
-      }
-    };
-
     // Check connection when the network status changes
     const handleOnline = () => {
       console.log('Network is online, checking connection...');
@@ -211,29 +205,13 @@ const ConnectionIndicator = () => {
       setTimeout(() => checkConnection(), 1000); // Verify after a short delay
     };
 
-    const handleOffline = async () => {
+    const handleOffline = () => {
       console.log('Network is offline');
       setIsConnected(false);
       setErrorMessage('Your device is offline. Please check your internet connection.');
-
-      // If user is logged in, force sign out after a short delay
-      // This gives the user a chance to reconnect before being logged out
-      if (user) {
-        console.warn('Network went offline while logged in, will force sign out if not reconnected soon...');
-
-        // Wait 10 seconds before forcing sign out
-        setTimeout(async () => {
-          // Check if we're still offline
-          if (!navigator.onLine && user) {
-            console.error('Still offline after delay, forcing sign out...');
-            await forceSignOutAndRedirect();
-          }
-        }, 10000);
-      }
     };
 
     // Add event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -241,7 +219,6 @@ const ConnectionIndicator = () => {
     return () => {
       clearTimeout(initialCheckTimeout);
       clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -340,7 +317,7 @@ const ConnectionIndicator = () => {
               }}
             />
           )}
-          <style jsx>{`
+          <style>{`
             @keyframes ripple {
               0% { transform: scale(0.8); opacity: 0.8; }
               100% { transform: scale(1.5); opacity: 0; }
@@ -355,7 +332,7 @@ const ConnectionIndicator = () => {
             {pingTime && isConnected && ` (${pingTime}ms)`}
           </span>
         )}
-        <style jsx>{`
+        <style>{`
           @keyframes pulse {
             0% { opacity: 0.4; }
             50% { opacity: 1; }
@@ -389,20 +366,103 @@ const ConnectionIndicator = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Supabase Connection</h3>
-              <button
-                onClick={() => checkConnection()}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
-                  color: '#fff',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                }}
-              >
-                Refresh
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {user && (
+                  <>
+                    <button
+                      onClick={checkSessionStatus}
+                      style={{
+                        background: 'rgba(155, 89, 182, 0.2)',
+                        border: 'none',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Check Session
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsChecking(true);
+                          const result = await refreshSession();
+                          if (result.success) {
+                            console.log('Session refreshed manually');
+                            setErrorMessage(null);
+                          } else {
+                            console.error('Failed to refresh session:', result.error);
+                            setErrorMessage('Session refresh failed');
+                          }
+                        } catch (err) {
+                          console.error('Error refreshing session:', err);
+                          setErrorMessage('Session refresh error');
+                        } finally {
+                          setIsChecking(false);
+                          checkConnection();
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(52, 152, 219, 0.2)',
+                        border: 'none',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Refresh Session
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsChecking(true);
+                          setErrorMessage('Attempting to fix 406 error...');
+                          const recovered = await handle406Error();
+                          if (recovered) {
+                            setErrorMessage('Successfully fixed 406 error. Try refreshing the session.');
+                          } else {
+                            setErrorMessage('Failed to fix 406 error. Try refreshing the page.');
+                          }
+                        } catch (err) {
+                          console.error('Error fixing 406 error:', err);
+                          setErrorMessage('Error during 406 fix attempt');
+                        } finally {
+                          setIsChecking(false);
+                          checkConnection();
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(231, 76, 60, 0.2)',
+                        border: 'none',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Fix 406 Error
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => checkConnection()}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    color: '#fff',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Check Connection
+                </button>
+              </div>
             </div>
 
             <div style={{ marginBottom: '15px' }}>

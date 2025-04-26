@@ -31,8 +31,7 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
       // Use Supabase authentication
       const { success, error: authError, user, isAdmin, isClub } = await signIn(
         formData.email,
-        formData.password,
-        formData.rememberMe
+        formData.password
       );
 
       if (success) {
