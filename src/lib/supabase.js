@@ -9,16 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase credentials are missing. Please check your .env file.');
 }
 
-// Create the Supabase client with simple, robust configuration
+// Create the Supabase client with Google OAuth support
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'nits-event-auth',
-    // Use default localStorage implementation for simplicity and reliability
     storage: localStorage,
-    // Use PKCE flow for better security
     flowType: 'pkce',
   },
   global: {
@@ -29,7 +27,50 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * Simple function to check and refresh the session if needed
+ * Sign in with Google OAuth
+ * This function redirects the user to Google's authentication page
+ */
+export const signInWithGoogle = async () => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          // Optional: Restrict to specific domain
+          // hd: 'nitsilchar.ac.in', // Uncomment to restrict to NIT Silchar domain
+          // access_type: 'offline', // Get a refresh token
+          // prompt: 'consent', // Force consent screen
+        }
+      }
+    });
+
+    if (error) {
+      console.error('Error initiating Google sign-in:', error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Exception during Google sign-in:', error);
+    return { success: false, error };
+  }
+};
+
+/**
+ * Check if the user's email is from an allowed domain
+ * This can be used to restrict access to specific email domains
+ */
+export const isAllowedEmail = (email) => {
+  if (!email) return false;
+
+  // Allow any email for now - you can restrict to specific domains if needed
+  // Example: return email.endsWith('@nitsilchar.ac.in');
+  return true;
+};
+
+/**
+ * Check and refresh the session if needed
  */
 export const refreshSession = async () => {
   try {
@@ -47,7 +88,7 @@ export const refreshSession = async () => {
 
     if (expiresIn < 600000) {
       console.log(`Session token expiring soon (${Math.round(expiresIn/1000/60)} minutes), refreshing...`);
-      const { data, error } = await supabase.auth.refreshSession();
+      const { error } = await supabase.auth.refreshSession();
 
       if (error) {
         console.error('Error refreshing session:', error);
@@ -66,7 +107,7 @@ export const refreshSession = async () => {
 };
 
 /**
- * Simple function to handle visibility change
+ * Handle visibility change to maintain session across tab changes
  */
 export const setupVisibilityChangeHandler = () => {
   const handleVisibilityChange = async () => {
