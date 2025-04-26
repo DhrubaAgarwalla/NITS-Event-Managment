@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import supabase from '../lib/supabase';
+import supabase, { forceSignOutAndRedirect } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +15,8 @@ const ConnectionIndicator = () => {
   const [connectionHistory, setConnectionHistory] = useState([]);
   // We track auth status through the sessionStatus from useAuth
   const detailsRef = useRef(null);
+  // Track consecutive failures
+  const failureCount = useRef(0);
 
   // Function to check Supabase connection
   const checkConnection = async () => {
@@ -38,11 +40,23 @@ const ConnectionIndicator = () => {
 
           if (!sessionResult.success) {
             console.warn('Session check failed during connection check');
-            // Continue with regular connection check
+
+            // If we're logged in but session is invalid, force sign out
+            if (sessionResult.valid === false) {
+              console.error('Session is invalid, forcing sign out...');
+              await forceSignOutAndRedirect();
+              return; // Stop further execution
+            }
           }
         } catch (sessionErr) {
           console.error('Error checking session during connection check:', sessionErr);
-          // Continue with regular connection check
+
+          // If there's a session error and we're logged in, force sign out
+          if (user) {
+            console.error('Session error while logged in, forcing sign out...');
+            await forceSignOutAndRedirect();
+            return; // Stop further execution
+          }
         }
       }
 
@@ -64,6 +78,21 @@ const ConnectionIndicator = () => {
       // If there's no error, we're connected
       const connectionStatus = error ? false : true;
       setIsConnected(connectionStatus);
+
+      // Reset failure count on success
+      if (connectionStatus) {
+        failureCount.current = 0;
+      } else {
+        // Increment failure count on error
+        failureCount.current++;
+
+        // If we have 3 consecutive failures and user is logged in, force sign out
+        if (failureCount.current >= 3 && user) {
+          console.error('Three consecutive connection failures while logged in, forcing sign out...');
+          await forceSignOutAndRedirect();
+          return; // Stop further execution
+        }
+      }
 
       // Add to connection history (keep last 10 entries)
       const newHistoryEntry = {
@@ -94,6 +123,16 @@ const ConnectionIndicator = () => {
     } catch (err) {
       console.error('Error checking Supabase connection:', err);
       setIsConnected(false);
+
+      // Increment failure count
+      failureCount.current++;
+
+      // If we have 3 consecutive failures and user is logged in, force sign out
+      if (failureCount.current >= 3 && user) {
+        console.error('Three consecutive connection failures while logged in, forcing sign out...');
+        await forceSignOutAndRedirect();
+        return; // Stop further execution
+      }
 
       // Handle timeout specifically
       if (err.message.includes('timed out')) {
@@ -134,12 +173,32 @@ const ConnectionIndicator = () => {
     }, 30000);
 
     // Also check connection when the window regains focus, but only if it's been a while
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         // Only check if it's been at least 15 seconds since last check
         const now = Date.now();
         if (now - lastCheckedTime > 15000) {
           console.log('Window regained focus after inactivity, checking connection...');
+
+          // If user is logged in, check session validity first
+          if (user) {
+            try {
+              console.log('Checking session validity after tab change...');
+              const sessionResult = await refreshSession();
+
+              if (!sessionResult.success || !sessionResult.valid) {
+                console.error('Session invalid after tab change, forcing sign out...');
+                await forceSignOutAndRedirect();
+                return; // Stop further execution
+              }
+            } catch (err) {
+              console.error('Error checking session after tab change:', err);
+              await forceSignOutAndRedirect();
+              return; // Stop further execution
+            }
+          }
+
+          // If session is valid or user is not logged in, proceed with connection check
           checkConnection();
         }
       }
@@ -152,10 +211,25 @@ const ConnectionIndicator = () => {
       setTimeout(() => checkConnection(), 1000); // Verify after a short delay
     };
 
-    const handleOffline = () => {
+    const handleOffline = async () => {
       console.log('Network is offline');
       setIsConnected(false);
       setErrorMessage('Your device is offline. Please check your internet connection.');
+
+      // If user is logged in, force sign out after a short delay
+      // This gives the user a chance to reconnect before being logged out
+      if (user) {
+        console.warn('Network went offline while logged in, will force sign out if not reconnected soon...');
+
+        // Wait 10 seconds before forcing sign out
+        setTimeout(async () => {
+          // Check if we're still offline
+          if (!navigator.onLine && user) {
+            console.error('Still offline after delay, forcing sign out...');
+            await forceSignOutAndRedirect();
+          }
+        }, 10000);
+      }
     };
 
     // Add event listeners
