@@ -1277,73 +1277,86 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                     This is a solo event. Each participant will register individually.
                   </p>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label
-                        htmlFor="min_participants"
-                        style={{
-                          display: 'block',
-                          marginBottom: '0.5rem',
-                          fontSize: '0.9rem',
-                          color: 'var(--text-secondary)'
-                        }}
-                      >
-                        Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
-                      </label>
-                      <input
-                        type="number"
-                        id="min_participants"
-                        name="min_participants"
-                        value={formData.min_participants}
-                        onChange={handleInputChange}
-                        min="2"
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem 1rem',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '4px',
-                          color: 'var(--text-primary)',
-                          fontSize: '1rem'
-                        }}
-                        placeholder="Min team members"
-                      />
-                    </div>
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label
+                          htmlFor="min_participants"
+                          style={{
+                            display: 'block',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
+                          Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          id="min_participants"
+                          name="min_participants"
+                          value={formData.min_participants}
+                          onChange={handleInputChange}
+                          min="2"
+                          required
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder="Min team members"
+                        />
+                      </div>
 
-                    <div>
-                      <label
-                        htmlFor="max_participants"
-                        style={{
-                          display: 'block',
-                          marginBottom: '0.5rem',
-                          fontSize: '0.9rem',
-                          color: 'var(--text-secondary)'
-                        }}
-                      >
-                        Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
-                      </label>
-                      <input
-                        type="number"
-                        id="max_participants"
-                        name="max_participants"
-                        value={formData.max_participants}
-                        onChange={handleInputChange}
-                        min={formData.min_participants || 2}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '0.8rem 1rem',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '4px',
-                          color: 'var(--text-primary)',
-                          fontSize: '1rem'
-                        }}
-                        placeholder="Max team members"
-                      />
+                      <div>
+                        <label
+                          htmlFor="max_participants"
+                          style={{
+                            display: 'block',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
+                          Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                        </label>
+                        <input
+                          type="number"
+                          id="max_participants"
+                          name="max_participants"
+                          value={formData.max_participants}
+                          onChange={handleInputChange}
+                          min={formData.min_participants || 2}
+                          required
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder="Max team members"
+                        />
+                      </div>
                     </div>
-                  </div>
+                    <p style={{
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)',
+                      marginTop: '0.75rem',
+                      padding: '0.5rem',
+                      backgroundColor: 'rgba(110, 68, 255, 0.1)',
+                      borderRadius: '4px'
+                    }}>
+                      <strong>Note:</strong> There is no limit on the number of teams that can register for this event.
+                      These settings only control the minimum and maximum number of members allowed per team.
+                    </p>
+                  </>
                 )}
               </div>
 

@@ -79,13 +79,14 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   };
 
   // Handle export registrations
-  const handleExportRegistrations = async () => {
+  const handleExportRegistrations = async (format = 'excel') => {
     try {
       setExportLoading(true);
 
       const result = await registrationService.exportRegistrationsAsCSV(
         event.id,
-        event.title
+        event.title,
+        format
       );
 
       if (!result.success) {
@@ -93,11 +94,19 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
         return;
       }
 
-      // Download the Excel file
-      if (result.excelFile) {
+      // Download the file based on format
+      if (format === 'excel' && result.excelFile) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(result.excelFile.blob);
         link.download = result.excelFile.filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (format === 'pdf' && result.pdfFile) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(result.pdfFile.blob);
+        link.download = result.pdfFile.filename;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
@@ -483,25 +492,47 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
           <div className="registrations-tab">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Registrations for {event.title}</h3>
-              <button
-                onClick={handleExportRegistrations}
-                disabled={exportLoading || registrations.length === 0}
-                style={{
-                  backgroundColor: 'var(--primary)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '0.5rem 1rem',
-                  cursor: registrations.length === 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '0.9rem',
-                  opacity: registrations.length === 0 ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <span>📊</span> {exportLoading ? 'Exporting...' : 'Export as Excel'}
-              </button>
+              <div className="export-buttons" style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => handleExportRegistrations('excel')}
+                  disabled={exportLoading || registrations.length === 0}
+                  style={{
+                    backgroundColor: 'rgba(68, 255, 210, 0.15)',
+                    color: 'var(--accent)',
+                    border: '1px solid rgba(68, 255, 210, 0.3)',
+                    borderRadius: '4px',
+                    padding: '0.5rem 1rem',
+                    cursor: registrations.length === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    opacity: registrations.length === 0 ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span>📊</span> {exportLoading ? 'Exporting...' : 'Excel'}
+                </button>
+
+                <button
+                  onClick={() => handleExportRegistrations('pdf')}
+                  disabled={exportLoading || registrations.length === 0}
+                  style={{
+                    backgroundColor: 'rgba(255, 68, 68, 0.15)',
+                    color: '#ff5555',
+                    border: '1px solid rgba(255, 68, 68, 0.3)',
+                    borderRadius: '4px',
+                    padding: '0.5rem 1rem',
+                    cursor: registrations.length === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    opacity: registrations.length === 0 ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span>📄</span> {exportLoading ? 'Exporting...' : 'PDF'}
+                </button>
+              </div>
             </div>
 
             {registrations.length > 0 ? (

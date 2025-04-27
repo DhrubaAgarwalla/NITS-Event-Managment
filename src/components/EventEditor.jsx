@@ -523,45 +523,58 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                 This is a solo event. Each participant will register individually.
               </p>
             ) : (
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label
-                    htmlFor="min_participants"
-                    style={labelStyle}
-                  >
-                    Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="min_participants"
-                    name="min_participants"
-                    value={formData.min_participants}
-                    onChange={handleChange}
-                    min="2"
-                    required
-                    style={inputStyle}
-                  />
-                </div>
+              <>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label
+                      htmlFor="min_participants"
+                      style={labelStyle}
+                    >
+                      Minimum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="min_participants"
+                      name="min_participants"
+                      value={formData.min_participants}
+                      onChange={handleChange}
+                      min="2"
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label
-                    htmlFor="max_participants"
-                    style={labelStyle}
-                  >
-                    Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="max_participants"
-                    name="max_participants"
-                    value={formData.max_participants}
-                    onChange={handleChange}
-                    min={formData.min_participants || 2}
-                    required
-                    style={inputStyle}
-                  />
+                  <div className="form-group">
+                    <label
+                      htmlFor="max_participants"
+                      style={labelStyle}
+                    >
+                      Maximum Members per Team <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="max_participants"
+                      name="max_participants"
+                      value={formData.max_participants}
+                      onChange={handleChange}
+                      min={formData.min_participants || 2}
+                      required
+                      style={inputStyle}
+                    />
+                  </div>
                 </div>
-              </div>
+                <p style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)',
+                  marginTop: '0.75rem',
+                  padding: '0.5rem',
+                  backgroundColor: 'rgba(110, 68, 255, 0.1)',
+                  borderRadius: '4px'
+                }}>
+                  <strong>Note:</strong> There is no limit on the number of teams that can register for this event.
+                  These settings only control the minimum and maximum number of members allowed per team.
+                </p>
+              </>
             )}
           </div>
 

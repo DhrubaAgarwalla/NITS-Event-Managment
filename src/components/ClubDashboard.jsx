@@ -1725,53 +1725,105 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                   <h3 style={{ margin: 0 }}>
                     Registrations for {selectedEvent?.title}
                   </h3>
-                  <button
-                    className="btn export-excel-btn"
-                    onClick={async () => {
-                      try {
-                        // Export registrations as Excel
-                        const result = await registrationService.exportRegistrationsAsCSV(
-                          selectedEvent.id,
-                          selectedEvent.title
-                        );
+                  <div className="export-buttons" style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      className="btn export-excel-btn"
+                      onClick={async () => {
+                        try {
+                          // Export registrations as Excel
+                          const result = await registrationService.exportRegistrationsAsCSV(
+                            selectedEvent.id,
+                            selectedEvent.title,
+                            'excel'
+                          );
 
-                        if (!result.success) {
-                          alert(result.message || 'Failed to export registrations');
-                          return;
-                        }
+                          if (!result.success) {
+                            alert(result.message || 'Failed to export registrations');
+                            return;
+                          }
 
-                        // Download the Excel file
-                        if (result.excelFile) {
-                          const link = document.createElement('a');
-                          link.href = URL.createObjectURL(result.excelFile.blob);
-                          link.download = result.excelFile.filename;
-                          link.style.display = 'none';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
+                          // Download the Excel file
+                          if (result.excelFile) {
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(result.excelFile.blob);
+                            link.download = result.excelFile.filename;
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }
+                        } catch (err) {
+                          console.error('Error exporting registrations:', err);
+                          alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
-                      } catch (err) {
-                        console.error('Error exporting registrations:', err);
-                        alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
-                      }
-                    }}
-                    style={{
-                      backgroundColor: 'rgba(68, 255, 210, 0.15)',
-                      color: 'var(--accent)',
-                      padding: '0.75rem 1.25rem',
-                      borderRadius: '4px',
-                      border: '1px solid rgba(68, 255, 210, 0.3)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      whiteSpace: 'nowrap',
-                      fontWeight: '500',
-                      fontSize: '0.95rem'
-                    }}
-                  >
-                    <span style={{ fontSize: '1.2rem' }}>📊</span> Export as Excel
-                  </button>
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(68, 255, 210, 0.15)',
+                        color: 'var(--accent)',
+                        padding: '0.75rem 1.25rem',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(68, 255, 210, 0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '500',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.2rem' }}>📊</span> Excel
+                    </button>
+
+                    <button
+                      className="btn export-pdf-btn"
+                      onClick={async () => {
+                        try {
+                          // Export registrations as PDF
+                          const result = await registrationService.exportRegistrationsAsCSV(
+                            selectedEvent.id,
+                            selectedEvent.title,
+                            'pdf'
+                          );
+
+                          if (!result.success) {
+                            alert(result.message || 'Failed to export registrations');
+                            return;
+                          }
+
+                          // Download the PDF file
+                          if (result.pdfFile) {
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(result.pdfFile.blob);
+                            link.download = result.pdfFile.filename;
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }
+                        } catch (err) {
+                          console.error('Error exporting registrations:', err);
+                          alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
+                        }
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(255, 68, 68, 0.15)',
+                        color: '#ff5555',
+                        padding: '0.75rem 1.25rem',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255, 68, 68, 0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '500',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.2rem' }}>📄</span> PDF
+                    </button>
+                  </div>
                 </div>
 
                 {registrations.length === 0 ? (

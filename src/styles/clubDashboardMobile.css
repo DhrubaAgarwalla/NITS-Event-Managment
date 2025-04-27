@@ -135,11 +135,20 @@
     }
   }
 
-  /* Export button styling for mobile */
-  .export-excel-btn {
-    margin-top: 0.5rem;
-    width: 100%;
-    justify-content: center;
+  /* Export buttons styling for mobile */
+  @media (max-width: 768px) {
+    .export-buttons {
+      flex-direction: column;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .export-excel-btn,
+    .export-pdf-btn {
+      margin-top: 0.5rem;
+      width: 100%;
+      justify-content: center;
+    }
   }
 
   /* Adjust header and export button layout on mobile */
