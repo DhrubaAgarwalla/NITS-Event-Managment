@@ -1,0 +1,15 @@
+/* Club Dashboard Desktop Styles */
+
+/* Registration table responsive styles */
+.desktop-view {
+  display: block;
+}
+
+.mobile-view {
+  display: none;
+}
+
+/* Ensure the registration container has proper spacing */
+.registration-container {
+  width: 100%;
+}

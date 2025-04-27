@@ -1,0 +1,154 @@
+/* Mobile styles for About page */
+
+/* General mobile adjustments */
+@media (max-width: 768px) {
+  .about-container {
+    padding: 1rem !important;
+  }
+  
+  .about-header {
+    margin-bottom: 2rem !important;
+  }
+  
+  .about-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .about-subtitle {
+    font-size: 1rem !important;
+  }
+  
+  .about-image {
+    height: 200px !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .about-content {
+    font-size: 0.95rem !important;
+  }
+  
+  .about-section {
+    margin-bottom: 2rem !important;
+  }
+  
+  .about-section-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .about-section-content {
+    font-size: 0.95rem !important;
+  }
+  
+  .about-team-section {
+    margin-bottom: 2rem !important;
+  }
+  
+  .about-team-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .team-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .team-member {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  
+  .team-member-image {
+    width: 120px !important;
+    height: 120px !important;
+    margin: 0 auto 1rem !important;
+  }
+  
+  .team-member-info {
+    padding: 0 !important;
+  }
+  
+  .team-member-name {
+    font-size: 1.1rem !important;
+  }
+  
+  .team-member-role {
+    font-size: 0.9rem !important;
+  }
+  
+  .team-member-bio {
+    font-size: 0.9rem !important;
+  }
+  
+  .about-contact-section {
+    margin-bottom: 2rem !important;
+  }
+  
+  .about-contact-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .contact-item {
+    padding: 1rem !important;
+  }
+  
+  .contact-item-title {
+    font-size: 1rem !important;
+  }
+  
+  .contact-item-content {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .about-title {
+    font-size: 1.3rem !important;
+  }
+  
+  .about-subtitle {
+    font-size: 0.9rem !important;
+  }
+  
+  .about-image {
+    height: 150px !important;
+  }
+  
+  .about-content {
+    font-size: 0.9rem !important;
+  }
+  
+  .about-section-title {
+    font-size: 1.1rem !important;
+  }
+  
+  .about-section-content {
+    font-size: 0.9rem !important;
+  }
+  
+  .team-member-image {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  
+  .team-member-name {
+    font-size: 1rem !important;
+  }
+  
+  .team-member-role {
+    font-size: 0.85rem !important;
+  }
+  
+  .team-member-bio {
+    font-size: 0.85rem !important;
+  }
+}

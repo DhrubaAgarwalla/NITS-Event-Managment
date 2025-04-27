@@ -1,0 +1,133 @@
+/* Mobile styles for Club Details page */
+
+/* General mobile adjustments */
+@media (max-width: 768px) {
+  .club-details-container {
+    padding: 0 !important;
+  }
+  
+  .club-banner {
+    height: 200px !important;
+  }
+  
+  .club-content-wrapper {
+    flex-direction: column !important;
+    padding: 1rem !important;
+  }
+  
+  .club-main-content {
+    width: 100% !important;
+    padding-right: 0 !important;
+  }
+  
+  .club-sidebar {
+    width: 100% !important;
+    margin-top: 2rem !important;
+  }
+  
+  .club-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .club-description {
+    font-size: 0.95rem !important;
+  }
+  
+  .club-meta {
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+  
+  .club-meta-item {
+    font-size: 0.9rem !important;
+  }
+  
+  .club-social-links {
+    flex-wrap: wrap;
+    margin-bottom: 1rem !important;
+  }
+  
+  .club-social-link {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .club-events-section {
+    padding: 1rem !important;
+  }
+  
+  .club-events-title {
+    font-size: 1.2rem !important;
+  }
+  
+  .club-event-card {
+    flex-direction: column !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .club-event-image {
+    width: 100% !important;
+    height: 150px !important;
+  }
+  
+  .club-event-content {
+    padding: 1rem !important;
+  }
+  
+  .club-event-title {
+    font-size: 1.1rem !important;
+  }
+  
+  .club-event-date {
+    font-size: 0.85rem !important;
+  }
+  
+  .club-event-description {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .club-contact-section {
+    padding: 1rem !important;
+  }
+  
+  .club-contact-title {
+    font-size: 1.2rem !important;
+  }
+  
+  .club-contact-item {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .club-banner {
+    height: 150px !important;
+  }
+  
+  .club-title {
+    font-size: 1.3rem !important;
+  }
+  
+  .club-description {
+    font-size: 0.9rem !important;
+  }
+  
+  .club-meta-item {
+    font-size: 0.85rem !important;
+  }
+  
+  .club-event-title {
+    font-size: 1rem !important;
+  }
+  
+  .club-event-date {
+    font-size: 0.8rem !important;
+  }
+  
+  .club-event-description {
+    font-size: 0.85rem !important;
+  }
+}

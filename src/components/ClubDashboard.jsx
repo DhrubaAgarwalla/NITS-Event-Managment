@@ -451,6 +451,21 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   return (
     <div className="club-dashboard" style={{ minHeight: '100vh', backgroundColor: 'var(--dark-bg)', padding: '2rem 0' }}>
       <div className="container">
+        {/* Mobile Dashboard Title - Only visible on mobile */}
+        <div className="mobile-dashboard-title" style={{
+          display: 'none',
+          textAlign: 'center',
+          marginBottom: '1.5rem',
+          padding: '1rem',
+          backgroundColor: 'var(--dark-surface)',
+          borderRadius: '8px',
+          '@media (max-width: 768px)': {
+            display: 'block'
+          }
+        }}>
+          <h2 style={{ margin: 0 }}>Club Dashboard</h2>
+        </div>
+
         {/* Error message */}
         {error && (
           <div
@@ -530,6 +545,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
         {/* Dashboard Header */}
         <div
+          className="dashboard-header"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -540,7 +556,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             borderRadius: '10px'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="dashboard-header-content" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div
               style={{
                 width: '60px',
@@ -550,7 +566,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '2rem'
+                fontSize: '2rem',
+                flexShrink: 0
               }}
             >
               {club.logo_url ? (
@@ -568,7 +585,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
               <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)' }}>{club.contact_email || club.email}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="dashboard-header-actions" style={{ display: 'flex', gap: '1rem' }}>
             <button
               className="btn"
               onClick={() => setIsEditingProfile(true)}
@@ -583,7 +600,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                justifyContent: 'center'
               }}
             >
               <span>✏️</span> Edit Profile
@@ -609,6 +627,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
         {/* Dashboard Tabs */}
         <div
+          className="dashboard-tabs"
           style={{
             display: 'flex',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -625,7 +644,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
               borderBottom: activeTab === 'events' ? '2px solid var(--primary)' : 'none',
               color: activeTab === 'events' ? 'var(--text-primary)' : 'var(--text-secondary)',
               cursor: 'pointer',
-              fontWeight: activeTab === 'events' ? '600' : '400'
+              fontWeight: activeTab === 'events' ? '600' : '400',
+              whiteSpace: 'nowrap'
             }}
           >
             Manage Events
@@ -640,7 +660,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
               borderBottom: activeTab === 'registrations' ? '2px solid var(--primary)' : 'none',
               color: activeTab === 'registrations' ? 'var(--text-primary)' : 'var(--text-secondary)',
               cursor: 'pointer',
-              fontWeight: activeTab === 'registrations' ? '600' : '400'
+              fontWeight: activeTab === 'registrations' ? '600' : '400',
+              whiteSpace: 'nowrap'
             }}
           >
             Track Registrations
@@ -670,6 +691,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
             {/* Events Filters */}
             <div
+              className="events-filters"
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -680,7 +702,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                 borderRadius: '8px'
               }}
             >
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="events-filters-buttons" style={{ display: 'flex', gap: '1rem' }}>
                 <button
                   className={`btn ${statusFilter === 'all' ? 'btn-primary' : ''}`}
                   onClick={() => setStatusFilter('all')}
@@ -710,7 +732,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                   Completed
                 </button>
               </div>
-              <div>
+              <div className="events-filters-search">
                 <input
                   type="text"
                   placeholder="Search events..."
@@ -755,6 +777,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     }}
                   >
                     <div
+                      className="event-image"
                       style={{
                         width: '200px',
                         height: '100%',
@@ -763,14 +786,15 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         backgroundPosition: 'center'
                       }}
                     ></div>
-                    <div style={{ flex: 1, padding: '1.5rem', position: 'relative' }}>
+                    <div className="event-content" style={{ flex: 1, padding: '1.5rem', position: 'relative' }}>
                       <div
                         style={{
                           position: 'absolute',
                           top: '1rem',
                           right: '1rem',
                           display: 'flex',
-                          gap: '0.5rem'
+                          gap: '0.5rem',
+                          zIndex: 5
                         }}
                       >
                         <button
@@ -804,13 +828,13 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div className="event-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
+                          <h3 className="event-title" style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
                           <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)' }}>
                             {formatDate(event.start_date, 'MMM d, yyyy')} - {formatDate(event.end_date, 'MMM d, yyyy')} • {event.location || 'No location specified'}
                           </p>
-                          <p style={{ margin: '0 0 1.5rem' }}>{event.description || 'No description provided'}</p>
+                          <p className="event-description" style={{ margin: '0 0 1.5rem' }}>{event.description || 'No description provided'}</p>
 
                           {event.category && (
                             <span
@@ -820,7 +844,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                 fontSize: '0.8rem',
                                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                                 color: event.categories?.color || 'var(--text-secondary)',
-                                marginRight: '0.5rem'
+                                marginRight: '0.5rem',
+                                display: 'inline-block',
+                                marginBottom: '0.5rem'
                               }}
                             >
                               {event.categories?.name || 'Uncategorized'}
@@ -833,7 +859,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                               borderRadius: '20px',
                               fontSize: '0.8rem',
                               backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                              color: 'var(--text-secondary)'
+                              color: 'var(--text-secondary)',
+                              display: 'inline-block',
+                              marginBottom: '0.5rem'
                             }}
                           >
                             {event.registration_method === 'internal' ? 'Internal Registration' :
@@ -858,6 +886,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       </div>
 
                       <div
+                        className="event-footer"
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -878,7 +907,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                               backgroundColor: 'rgba(255,255,255,0.1)',
                               borderRadius: '3px',
                               overflow: 'hidden',
-                              marginTop: '0.5rem'
+                              marginTop: '0.5rem',
+                              maxWidth: '100%'
                             }}
                           >
                             <div
@@ -891,7 +921,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="event-actions" style={{ display: 'flex', gap: '0.5rem' }}>
                           {event.status === 'upcoming' && (
                             <button
                               className="btn"
@@ -911,8 +941,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           <button
                             className="btn btn-primary"
                             onClick={() => {
-                              setSelectedEvent(event.id);
-                              setActiveTab('registrations');
+                              loadEventRegistrations(event.id);
                             }}
                           >
                             View Registrations
@@ -1688,14 +1717,16 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: '1.5rem'
+                    marginBottom: '1.5rem',
+                    flexWrap: 'wrap',
+                    gap: '1rem'
                   }}
                 >
-                  <h3>
+                  <h3 style={{ margin: 0 }}>
                     Registrations for {selectedEvent?.title}
                   </h3>
                   <button
-                    className="btn"
+                    className="btn export-excel-btn"
                     onClick={async () => {
                       try {
                         // Export registrations as Excel
@@ -1724,8 +1755,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                       }
                     }}
+                    style={{
+                      backgroundColor: 'rgba(68, 255, 210, 0.15)',
+                      color: 'var(--accent)',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(68, 255, 210, 0.3)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      whiteSpace: 'nowrap',
+                      fontWeight: '500',
+                      fontSize: '0.95rem'
+                    }}
                   >
-                    Export as Excel
+                    <span style={{ fontSize: '1.2rem' }}>📊</span> Export as Excel
                   </button>
                 </div>
 
@@ -1741,111 +1786,137 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     <p>No registrations found for this event.</p>
                   </div>
                 ) : (
-                  <div
-                    style={{
-                      backgroundColor: 'var(--dark-surface)',
-                      borderRadius: '10px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Roll Number</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Department</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Year</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Type</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Date</th>
-                          <th style={{ padding: '1rem', textAlign: 'left' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {registrations.map(registration => (
-                          <tr
-                            key={registration.id}
-                            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
-                          >
-                            <td style={{ padding: '1rem' }}>{registration.participant_name}</td>
-                            <td style={{ padding: '1rem' }}>{registration.participant_id || 'N/A'}</td>
-                            <td style={{ padding: '1rem' }}>{registration.additional_info?.department || 'N/A'}</td>
-                            <td style={{ padding: '1rem' }}>{registration.additional_info?.year || 'N/A'}</td>
-                            <td style={{ padding: '1rem' }}>
-                              {registration.additional_info?.team_members ? (
-                                <span style={{ color: 'var(--accent)' }}>
-                                  Team ({registration.additional_info.team_members.length + 1} members)
-                                </span>
-                              ) : (
-                                <span>Individual</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '1rem' }}>
-                              {formatDate(registration.created_at, 'MMM d, yyyy')}
-                            </td>
-                            <td style={{ padding: '1rem' }}>
-                              <button
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--accent)',
-                                  cursor: 'pointer',
-                                  marginRight: '0.5rem'
-                                }}
-                                onClick={() => {
-                                  setSelectedRegistration(registration);
-                                }}
+                  <div className="registration-container">
+                    {/* Table with horizontal scroll for all screen sizes */}
+                    <div
+                      className="registration-table-wrapper"
+                      style={{
+                        backgroundColor: 'var(--dark-surface)',
+                        borderRadius: '10px',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {/* Scroll indicator for mobile */}
+                      <div className="scroll-indicator" style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: 'rgba(68, 255, 210, 0.1)',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '0.9rem',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        <span style={{ fontSize: '1.1rem' }}>👉</span> Swipe horizontally to see all details
+                      </div>
+
+                      {/* Scrollable table container */}
+                      <div className="table-scroll-container" style={{
+                        overflowX: 'auto',
+                        width: '100%',
+                        position: 'relative',
+                        WebkitOverflowScrolling: 'touch' // For smooth scrolling on iOS
+                      }}>
+                        <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Roll Number</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Department</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Year</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Type</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Date</th>
+                              <th style={{ padding: '1rem', textAlign: 'left' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {registrations.map(registration => (
+                              <tr
+                                key={registration.id}
+                                style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
                               >
-                                View Details
-                              </button>
-                              <button
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--primary)',
-                                  cursor: 'pointer',
-                                  marginRight: '0.5rem'
-                                }}
-                                onClick={() => {
-                                  const newStatus = registration.status === 'registered' ? 'attended' : 'registered';
-                                  registrationService.updateRegistrationStatus(registration.id, newStatus)
-                                    .then(() => {
-                                      loadEventRegistrations(selectedEvent.id);
-                                    })
-                                    .catch(err => {
-                                      console.error('Error updating status:', err);
-                                      setError('Failed to update registration status');
-                                    });
-                                }}
-                              >
-                                {registration.status === 'registered' ? 'Mark Attended' : 'Mark Registered'}
-                              </button>
-                              <button
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#ff4444',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={() => {
-                                  if (window.confirm('Are you sure you want to delete this registration?')) {
-                                    registrationService.deleteRegistration(registration.id)
-                                      .then(() => {
-                                        loadEventRegistrations(selectedEvent.id);
-                                      })
-                                      .catch(err => {
-                                        console.error('Error deleting registration:', err);
-                                        setError('Failed to delete registration');
-                                      });
-                                  }
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                <td style={{ padding: '1rem' }}>{registration.participant_name}</td>
+                                <td style={{ padding: '1rem' }}>{registration.participant_id || 'N/A'}</td>
+                                <td style={{ padding: '1rem' }}>{registration.additional_info?.department || 'N/A'}</td>
+                                <td style={{ padding: '1rem' }}>{registration.additional_info?.year || 'N/A'}</td>
+                                <td style={{ padding: '1rem' }}>
+                                  {registration.additional_info?.team_members ? (
+                                    <span style={{ color: 'var(--accent)' }}>
+                                      Team ({registration.additional_info.team_members.length + 1} members)
+                                    </span>
+                                  ) : (
+                                    <span>Individual</span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '1rem' }}>
+                                  {formatDate(registration.created_at, 'MMM d, yyyy')}
+                                </td>
+                                <td style={{ padding: '1rem', whiteSpace: 'nowrap' }}>
+                                  <button
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--accent)',
+                                      cursor: 'pointer',
+                                      marginRight: '0.5rem'
+                                    }}
+                                    onClick={() => {
+                                      setSelectedRegistration(registration);
+                                    }}
+                                  >
+                                    View Details
+                                  </button>
+                                  <button
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--primary)',
+                                      cursor: 'pointer',
+                                      marginRight: '0.5rem'
+                                    }}
+                                    onClick={() => {
+                                      const newStatus = registration.status === 'registered' ? 'attended' : 'registered';
+                                      registrationService.updateRegistrationStatus(registration.id, newStatus)
+                                        .then(() => {
+                                          loadEventRegistrations(selectedEvent.id);
+                                        })
+                                        .catch(err => {
+                                          console.error('Error updating status:', err);
+                                          setError('Failed to update registration status');
+                                        });
+                                    }}
+                                  >
+                                    {registration.status === 'registered' ? 'Mark Attended' : 'Mark Registered'}
+                                  </button>
+                                  <button
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ff4444',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => {
+                                      if (window.confirm('Are you sure you want to delete this registration?')) {
+                                        registrationService.deleteRegistration(registration.id)
+                                          .then(() => {
+                                            loadEventRegistrations(selectedEvent.id);
+                                          })
+                                          .catch(err => {
+                                            console.error('Error deleting registration:', err);
+                                            setError('Failed to delete registration');
+                                          });
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
@@ -1867,49 +1938,55 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
       {/* Modals */}
       {isEditingProfile && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <ClubProfileEditor
-            onClose={() => setIsEditingProfile(false)}
-            onUpdate={handleProfileUpdate}
-          />
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
+            <ClubProfileEditor
+              onClose={() => setIsEditingProfile(false)}
+              onUpdate={handleProfileUpdate}
+            />
+          </div>
         </div>
       )}
 
       {isEditingEvent && eventToEdit && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <EventEditor
-            event={eventToEdit}
-            onClose={() => {
-              setIsEditingEvent(false);
-              setEventToEdit(null);
-            }}
-            onUpdate={(updatedEvent) => {
-              // Update the event in the events list
-              setEvents(prevEvents =>
-                prevEvents.map(event =>
-                  event.id === updatedEvent.id ? updatedEvent : event
-                )
-              );
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
+            <EventEditor
+              event={eventToEdit}
+              onClose={() => {
+                setIsEditingEvent(false);
+                setEventToEdit(null);
+              }}
+              onUpdate={(updatedEvent) => {
+                // Update the event in the events list
+                setEvents(prevEvents =>
+                  prevEvents.map(event =>
+                    event.id === updatedEvent.id ? updatedEvent : event
+                  )
+                );
 
-              // If this is the selected event, update it
-              if (selectedEvent && selectedEvent.id === updatedEvent.id) {
-                setSelectedEvent(updatedEvent);
-              }
+                // If this is the selected event, update it
+                if (selectedEvent && selectedEvent.id === updatedEvent.id) {
+                  setSelectedEvent(updatedEvent);
+                }
 
-              // Close the editor
-              setIsEditingEvent(false);
-              setEventToEdit(null);
-            }}
-          />
+                // Close the editor
+                setIsEditingEvent(false);
+                setEventToEdit(null);
+              }}
+            />
+          </div>
         </div>
       )}
 
       {selectedRegistration && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <RegistrationDetails
-            registration={selectedRegistration}
-            onClose={() => setSelectedRegistration(null)}
-          />
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
+            <RegistrationDetails
+              registration={selectedRegistration}
+              onClose={() => setSelectedRegistration(null)}
+            />
+          </div>
         </div>
       )}
     </div>

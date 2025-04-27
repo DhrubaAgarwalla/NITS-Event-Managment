@@ -110,7 +110,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
       <div style={{ marginBottom: '1.5rem' }}>
         <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Participant Information</h4>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>ID/Roll Number</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{registration.participant_id || 'N/A'}</p>
@@ -137,7 +137,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
         <div style={{ marginBottom: '1.5rem' }}>
           <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Team Members</h4>
 
-          <div style={{
+          <div className="team-members-container" style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             borderRadius: '6px',
             padding: '0.75rem',
@@ -146,27 +146,31 @@ const RegistrationDetails = ({ registration, onClose }) => {
             {teamMembers.map((member, index) => (
               <div
                 key={index}
+                className="team-member-item"
                 style={{
                   padding: '0.6rem',
-                  borderBottom: index < teamMembers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                  borderBottom: index < teamMembers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none'
+                }}
+              >
+                <div className="team-member-details" style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '0.5rem'
-                }}
-              >
-                <div>
-                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.95rem' }}>{member.name}</p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    ID: {member.rollNumber || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Department: {member.department || 'N/A'}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Year: {member.year || 'N/A'}
-                  </p>
+                }}>
+                  <div>
+                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.95rem', fontWeight: '500' }}>{member.name}</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      ID: {member.rollNumber || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Department: {member.department || 'N/A'}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Year: {member.year || 'N/A'}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -177,7 +181,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
       <div style={{ marginBottom: '1.5rem' }}>
         <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Registration Timeline</h4>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Registered On</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatDate(registration.created_at)}</p>
@@ -190,7 +194,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+      <div className="form-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
         <button
           onClick={onClose}
           style={{
@@ -200,7 +204,8 @@ const RegistrationDetails = ({ registration, onClose }) => {
             borderRadius: '4px',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
-            fontSize: '0.95rem'
+            fontSize: '0.95rem',
+            minWidth: '120px'
           }}
         >
           Close

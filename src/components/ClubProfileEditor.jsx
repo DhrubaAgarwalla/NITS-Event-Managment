@@ -248,8 +248,8 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group">
+          <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
               <label htmlFor="contact_email" style={labelStyle}>
                 Contact Email
               </label>
@@ -263,7 +263,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label htmlFor="contact_phone" style={labelStyle}>
                 Contact Phone
               </label>
@@ -315,7 +315,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             Add your club's social media profiles. These will be displayed on your club page.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="social-links-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group" style={{ marginBottom: '0.75rem' }}>
               <label htmlFor="instagram" style={labelStyle}>
                 Instagram
@@ -438,7 +438,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+        <div className="form-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={onClose}
@@ -449,7 +449,8 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
               borderRadius: '4px',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: '0.95rem'
+              fontSize: '0.95rem',
+              minWidth: '120px'
             }}
           >
             Cancel
@@ -465,7 +466,8 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
               color: 'white',
               cursor: 'pointer',
               fontSize: '0.95rem',
-              opacity: isLoading ? 0.7 : 1
+              opacity: isLoading ? 0.7 : 1,
+              minWidth: '120px'
             }}
           >
             {isLoading ? 'Saving...' : 'Save Changes'}

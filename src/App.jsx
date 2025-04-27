@@ -5,6 +5,12 @@ import Lenis from '@studio-freight/lenis'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 import './styles/dropdown.css'
+import './styles/mobile.css'
+import './styles/clubDashboardDesktop.css'
+import './styles/clubDashboardMobile.css'
+import './styles/eventDetailsMobile.css'
+import './styles/clubDetailsMobile.css'
+import './styles/aboutMobile.css'
 
 // Connection Indicator
 import ConnectionIndicator from './components/ConnectionIndicator'

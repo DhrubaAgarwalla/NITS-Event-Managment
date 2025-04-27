@@ -383,7 +383,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label htmlFor="start_date" style={labelStyle}>
                 Start Date <span style={{ color: 'var(--primary)' }}>*</span>
@@ -415,7 +415,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+          <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
             <div className="form-group">
               <label htmlFor="end_date" style={labelStyle}>
                 End Date <span style={{ color: 'var(--primary)' }}>*</span>
@@ -523,8 +523,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                 This is a solo event. Each participant will register individually.
               </p>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
                   <label
                     htmlFor="min_participants"
                     style={labelStyle}
@@ -543,7 +543,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                   />
                 </div>
 
-                <div>
+                <div className="form-group">
                   <label
                     htmlFor="max_participants"
                     style={labelStyle}
@@ -628,10 +628,11 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             <label style={labelStyle}>
               Event Tags
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+            <div className="tag-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
               {tags.map(tag => (
                 <div
                   key={tag.id}
+                  className="tag-item"
                   onClick={() => handleTagSelection(tag.id)}
                   style={{
                     backgroundColor: formData.selectedTags.includes(tag.id) ? tag.color : 'rgba(255, 255, 255, 0.05)',
@@ -694,7 +695,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+        <div className="form-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={onClose}
@@ -705,7 +706,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               borderRadius: '4px',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: '0.95rem'
+              fontSize: '0.95rem',
+              minWidth: '120px'
             }}
           >
             Cancel
@@ -721,7 +723,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               color: 'white',
               cursor: 'pointer',
               fontSize: '0.95rem',
-              opacity: isLoading ? 0.7 : 1
+              opacity: isLoading ? 0.7 : 1,
+              minWidth: '120px'
             }}
           >
             {isLoading ? 'Saving...' : 'Save Changes'}
