@@ -427,6 +427,7 @@ const ClubGallery = ({ gallery = [] }) => {
                 onClick={(e) => e.stopPropagation()}
               />
             </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
