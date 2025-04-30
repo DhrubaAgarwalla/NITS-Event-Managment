@@ -395,6 +395,37 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
     }
   };
 
+  // Handle toggling registration status (open/closed)
+  const handleToggleRegistration = async (eventId, isCurrentlyOpen) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Toggle the registration status
+      const newStatus = !isCurrentlyOpen;
+      const updatedEvent = await eventService.toggleRegistrationStatus(eventId, newStatus);
+
+      // Update the events list with the updated event
+      setEvents(prevEvents =>
+        prevEvents.map(event =>
+          event.id === eventId ? updatedEvent : event
+        )
+      );
+
+      // If this is the selected event, update it too
+      if (selectedEvent && selectedEvent.id === eventId) {
+        setSelectedEvent(updatedEvent);
+      }
+
+      console.log(`Registration ${newStatus ? 'opened' : 'closed'} successfully for event ID: ${eventId}`);
+    } catch (err) {
+      console.error('Error toggling registration status:', err);
+      setError(`Failed to update registration status: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -898,6 +929,21 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                             {event.registration_method === 'internal' ? 'Internal Registration' :
                              event.registration_method === 'external' ? 'External Form' : 'Both'}
                           </span>
+
+                          <span
+                            style={{
+                              padding: '0.3rem 0.8rem',
+                              borderRadius: '20px',
+                              fontSize: '0.8rem',
+                              backgroundColor: event.registration_open === false ? 'rgba(255, 68, 68, 0.1)' : 'rgba(68, 255, 68, 0.1)',
+                              color: event.registration_open === false ? '#ff4444' : '#44ff44',
+                              display: 'inline-block',
+                              marginBottom: '0.5rem',
+                              marginLeft: '0.5rem'
+                            }}
+                          >
+                            {event.registration_open === false ? 'Registration Closed' : 'Registration Open'}
+                          </span>
                         </div>
                         <span
                           style={{
@@ -969,6 +1015,17 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                               Complete Event
                             </button>
                           )}
+                          <button
+                            className={`btn ${event.registration_open === false ? 'btn-danger' : 'btn-success'}`}
+                            onClick={() => handleToggleRegistration(event.id, event.registration_open !== false)}
+                            style={{
+                              backgroundColor: event.registration_open === false ? 'rgba(255, 68, 68, 0.2)' : 'rgba(68, 255, 68, 0.2)',
+                              color: event.registration_open === false ? '#ff4444' : '#44ff44',
+                              border: `1px solid ${event.registration_open === false ? '#ff4444' : '#44ff44'}`
+                            }}
+                          >
+                            {event.registration_open === false ? 'Open Registration' : 'Close Registration'}
+                          </button>
                           <button
                             className="btn btn-primary"
                             onClick={() => {

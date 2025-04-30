@@ -130,6 +130,11 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
     setError('');
 
     try {
+      // Check if registration is open
+      if (eventData.registration_open === false) {
+        throw new Error('Registration for this event has been closed by the organizers');
+      }
+
       // Validate form
       if (formData.team === 'team') {
         // Check if all team member fields are filled
@@ -243,8 +248,10 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
               Register for {eventData?.title || 'Event'}
             </h2>
 
-            {/* External Registration Form Link */}
-            {(eventData.registration_method === 'external' || eventData.registration_method === 'both') && eventData.external_form_url && (
+            {/* External Registration Form Link - Only show if registration is open */}
+            {(eventData.registration_method === 'external' || eventData.registration_method === 'both') &&
+             eventData.external_form_url &&
+             eventData.registration_open !== false && (
               <motion.div
                 className="external-form-link"
                 initial={{ opacity: 0, y: -10 }}
@@ -322,8 +329,9 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
               </motion.div>
             )}
 
-            {/* Internal Registration Form - Only show if registration method is internal or both */}
-            {(eventData.registration_method === 'internal' || eventData.registration_method === 'both') && (
+            {/* Internal Registration Form - Only show if registration method is internal or both AND registration is open */}
+            {(eventData.registration_method === 'internal' || eventData.registration_method === 'both') &&
+             eventData.registration_open !== false && (
             <form onSubmit={handleSubmit}>
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                 <label
@@ -957,8 +965,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
             </form>
             )}
 
-            {/* Message when no registration method is available */}
-            {!eventData.registration_method && (
+            {/* Message when no registration method is available or registration is closed */}
+            {(!eventData.registration_method || eventData.registration_open === false) && (
               <motion.div
                 className="no-registration"
                 initial={{ opacity: 0, y: -10 }}
@@ -968,14 +976,17 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
                   backgroundColor: 'rgba(255, 255, 255, 0.05)',
                   borderRadius: '8px',
                   textAlign: 'center',
-                  marginTop: '2rem'
+                  marginTop: '2rem',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}
               >
-                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: eventData.registration_open === false ? '#ff4444' : 'var(--text-secondary)' }}>
                   Registration Not Available
                 </h3>
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                  Registration for this event is currently not available. Please check back later or contact the organizers for more information.
+                  {!eventData.registration_method
+                    ? "Registration for this event is currently not available. Please check back later or contact the organizers for more information."
+                    : "Registration for this event has been closed by the organizers. Please contact them for more information."}
                 </p>
               </motion.div>
             )}

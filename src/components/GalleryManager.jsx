@@ -1,25 +1,66 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { uploadImage } from '../lib/cloudinary';
 import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 const GalleryManager = () => {
   const { club } = useAuth();
   const [gallery, setGallery] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(true);
+  const [loadedImageCount, setLoadedImageCount] = useState(0);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [imageLoadErrors, setImageLoadErrors] = useState({});
 
   // Load gallery images when component mounts
   useEffect(() => {
-    if (club && club.gallery) {
-      setGallery(club.gallery);
+    if (club) {
+      setLoadingImages(true);
+      setLoadedImageCount(0);
+      setImageLoadErrors({});
+
+      // If gallery exists, set it; otherwise, set empty array
+      const galleryImages = club.gallery || [];
+      setGallery(galleryImages);
+
+      // If there are no images, we're not loading
+      if (galleryImages.length === 0) {
+        setLoadingImages(false);
+      }
     }
   }, [club]);
+
+  // Handle image load completion
+  const handleImageLoad = useCallback(() => {
+    setLoadedImageCount(prev => {
+      const newCount = prev + 1;
+      // If all images are loaded, set loading to false
+      if (newCount >= gallery.length) {
+        setLoadingImages(false);
+      }
+      return newCount;
+    });
+  }, [gallery.length]);
+
+  // Handle image load error
+  const handleImageError = useCallback((index, imageUrl) => {
+    setImageLoadErrors(prev => ({
+      ...prev,
+      [index]: true
+    }));
+
+    // Still count this as "loaded" for the loading state
+    handleImageLoad(index);
+
+    console.error(`Failed to load image at index ${index}: ${imageUrl}`);
+  }, [handleImageLoad]);
 
   // Handle image file selection
   const handleImageChange = (e) => {
@@ -169,75 +210,148 @@ const GalleryManager = () => {
         </p>
 
         {/* Error and success messages */}
-        {error && (
-          <div
-            style={{
-              padding: '0.75rem',
-              backgroundColor: 'rgba(255, 0, 0, 0.1)',
-              borderLeft: '4px solid #ff0033',
-              marginBottom: '1rem',
-              color: '#ff0033',
-              fontSize: '0.9rem'
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div
-            style={{
-              padding: '0.75rem',
-              backgroundColor: 'rgba(0, 255, 0, 0.1)',
-              borderLeft: '4px solid #00cc00',
-              marginBottom: '1rem',
-              color: '#00cc00',
-              fontSize: '0.9rem'
-            }}
-          >
-            {success}
-          </div>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                padding: '1rem',
+                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                border: '1px solid rgba(255, 0, 0, 0.2)',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                color: '#ff4444',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>⚠️</div>
+              <div>{error}</div>
+            </motion.div>
+          )}
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                padding: '1rem',
+                backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                border: '1px solid rgba(0, 255, 0, 0.2)',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                color: '#44cc44',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>✅</div>
+              <div>{success}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Upload form */}
         <form onSubmit={handleUpload} style={{ marginBottom: '2rem' }}>
-          <div style={{
-            border: '2px dashed rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            padding: '1rem',
-            textAlign: 'center',
-            marginBottom: '1rem',
-            cursor: 'pointer',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)'
-          }}
-          onClick={() => document.getElementById('gallery-image-upload').click()}
+          <motion.div
+            style={{
+              border: '2px dashed rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1rem',
+              textAlign: 'center',
+              marginBottom: '1rem',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)'
+            }}
+            whileHover={{ borderColor: 'rgba(var(--primary-rgb), 0.5)' }}
+            onClick={() => document.getElementById('gallery-image-upload').click()}
           >
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Gallery Preview"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '250px',
-                  borderRadius: '8px',
-                  marginBottom: '0.5rem'
-                }}
-              />
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '200px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)'
-              }}>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
-                  <div>Click to upload image</div>
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {imagePreview ? (
+                <motion.div
+                  key="preview"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div style={{
+                    width: '100%',
+                    height: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '0.5rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <img
+                      src={imagePreview}
+                      alt="Gallery Preview"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '200px',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                    Click to change image
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="upload"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)'
+                  }}
+                >
+                  <div>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.5rem',
+                      color: 'var(--primary)',
+                      opacity: 0.7
+                    }}>
+                      ➕
+                    </div>
+                    <div style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                      Click to upload image
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '250px', margin: '0 auto' }}>
+                      Drag and drop or click to select an image file
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <input
               type="file"
               id="gallery-image-upload"
@@ -245,31 +359,73 @@ const GalleryManager = () => {
               onChange={handleImageChange}
               style={{ display: 'none' }}
             />
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+
+            <div style={{
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)',
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              marginTop: '0.5rem'
+            }}>
               Recommended: High quality images, max 10MB
             </div>
-          </div>
+          </motion.div>
 
           {uploadProgress > 0 && uploadProgress < 100 && (
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                Uploading image... {uploadProgress}%
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginBottom: '1rem',
+                backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid rgba(var(--primary-rgb), 0.2)'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.9rem',
+                marginBottom: '0.5rem',
+                color: 'var(--primary)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="upload-spinner" style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid rgba(var(--primary-rgb), 0.3)',
+                    borderTop: '2px solid var(--primary)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  Uploading image...
+                </div>
+                <div style={{ fontWeight: 'bold' }}>{uploadProgress}%</div>
               </div>
               <div style={{
                 width: '100%',
-                height: '8px',
+                height: '10px',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '4px',
-                overflow: 'hidden'
+                borderRadius: '5px',
+                overflow: 'hidden',
+                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)'
               }}>
-                <div style={{
-                  width: `${uploadProgress}%`,
-                  height: '100%',
-                  backgroundColor: 'var(--primary)',
-                  transition: 'width 0.3s ease'
-                }} />
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${uploadProgress}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  style={{
+                    height: '100%',
+                    backgroundColor: 'var(--primary)',
+                    borderRadius: '5px',
+                    boxShadow: '0 1px 3px rgba(var(--primary-rgb), 0.5)'
+                  }}
+                />
               </div>
-            </div>
+            </motion.div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -294,62 +450,170 @@ const GalleryManager = () => {
 
         {/* Gallery images */}
         <div>
-          <h4 style={{ marginBottom: '1rem' }}>Gallery Images ({gallery.length}/15)</h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h4>Gallery Images ({gallery.length}/15)</h4>
+            {loadingImages && gallery.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                <div className="loading-spinner" style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid rgba(var(--primary-rgb), 0.3)',
+                  borderTop: '2px solid var(--primary)',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                Loading images ({loadedImageCount}/{gallery.length})
+                <style jsx>{`
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}</style>
+              </div>
+            )}
+          </div>
 
           {gallery.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>
-              No images in gallery yet. Upload some images to showcase your club!
-            </p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                color: 'var(--text-secondary)',
+                textAlign: 'center',
+                padding: '3rem 1rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '8px',
+                border: '1px dashed rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🖼️</div>
+              <p style={{ margin: 0, fontSize: '1.1rem' }}>No images in gallery yet.</p>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', opacity: 0.7 }}>
+                Upload some images to showcase your club's activities!
+              </p>
+            </motion.div>
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '1rem'
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: '1rem',
+              marginTop: '1.5rem'
             }}>
-              {gallery.map((imageUrl, index) => (
-                <div
-                  key={index}
-                  style={{
-                    position: 'relative',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    aspectRatio: '1',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
-                  }}
-                >
-                  <img
-                    src={imageUrl}
-                    alt={`Gallery image ${index + 1}`}
+              <AnimatePresence>
+                {gallery.map((imageUrl, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                     style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
-                  <button
-                    onClick={() => handleRemoveImage(imageUrl)}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      border: 'none',
+                      position: 'relative',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      aspectRatio: '1',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
                       display: 'flex',
-                      alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
-                      fontSize: '1rem'
+                      alignItems: 'center',
+                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
                     }}
-                    title="Remove image"
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    {/* Placeholder while image is loading */}
+                    {!imageLoadErrors[index] && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                          zIndex: 1,
+                          opacity: loadedImageCount > index ? 0 : 1,
+                          transition: 'opacity 0.3s ease'
+                        }}
+                      >
+                        <div className="image-loading-spinner" style={{
+                          width: '30px',
+                          height: '30px',
+                          border: '3px solid rgba(255, 255, 255, 0.1)',
+                          borderTop: '3px solid rgba(255, 255, 255, 0.8)',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }}></div>
+                      </div>
+                    )}
+
+                    {/* Error placeholder if image failed to load */}
+                    {imageLoadErrors[index] && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                        zIndex: 1
+                      }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
+                        <div style={{ fontSize: '0.8rem', textAlign: 'center', padding: '0 1rem' }}>
+                          Failed to load image
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actual image with lazy loading */}
+                    <LazyLoadImage
+                      src={imageUrl}
+                      alt={`Gallery image ${index + 1}`}
+                      effect="blur"
+                      threshold={200}
+                      onLoad={handleImageLoad}
+                      onError={() => handleImageError(index, imageUrl)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        opacity: imageLoadErrors[index] ? 0.3 : 1
+                      }}
+                    />
+
+                    {/* Remove button */}
+                    <button
+                      onClick={() => handleRemoveImage(imageUrl)}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        zIndex: 2
+                      }}
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

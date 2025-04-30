@@ -26,6 +26,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     registration_method: 'internal',
     external_form_url: '',
     image_url: '',
+    registration_open: true,
     selectedTags: []
   });
   const [imageFile, setImageFile] = useState(null);
@@ -87,6 +88,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         registration_method: event.registration_method || 'internal',
         external_form_url: event.external_form_url || '',
         image_url: event.image_url || '',
+        registration_open: event.registration_open !== false, // Default to true if not explicitly set to false
         selectedTags: selectedTagIds
       });
 
@@ -234,7 +236,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         category_id: formData.category_id,
         registration_method: formData.registration_method,
         external_form_url: formData.external_form_url || null,
-        image_url: imageUrl
+        image_url: imageUrl,
+        registration_open: formData.registration_open
       };
 
       // Update event
@@ -675,6 +678,35 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               <option value="external">External (Use Google Form)</option>
               <option value="both">Both (Internal & External)</option>
             </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+            <label style={labelStyle}>
+              Registration Status
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                id="registration_open"
+                name="registration_open"
+                checked={formData.registration_open}
+                onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    registration_open: e.target.checked
+                  }));
+                }}
+                style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
+              />
+              <label htmlFor="registration_open" style={{ cursor: 'pointer', margin: 0 }}>
+                Allow participants to register for this event
+              </label>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.5rem 0 0 0' }}>
+              {formData.registration_open
+                ? "Registration is currently open. Participants can register for this event."
+                : "Registration is currently closed. Participants cannot register for this event."}
+            </p>
           </div>
 
           {(formData.registration_method === 'external' || formData.registration_method === 'both') && (

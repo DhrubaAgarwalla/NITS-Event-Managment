@@ -44,6 +44,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     // Registration method fields
     registration_method: 'internal',
     external_form_url: '',
+    registration_open: true, // Default to open registration
 
     // Tags field
     selectedTags: [],
@@ -428,7 +429,8 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         category_id: formData.category_id, // Ensure this is a valid category ID
         registration_method: formData.registration_method || 'internal',
         external_form_url: formData.external_form_url || null,
-        image_url: imageUrl || null
+        image_url: imageUrl || null,
+        registration_open: formData.registration_open
       };
 
       // Handle schedule data separately to avoid JSON serialization issues
@@ -1348,6 +1350,29 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                     />
                     <span>Use Both Methods</span>
                   </label>
+                </div>
+
+                <div style={{ marginTop: '1rem', marginBottom: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      name="registration_open"
+                      checked={formData.registration_open}
+                      onChange={(e) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          registration_open: e.target.checked
+                        }));
+                      }}
+                      style={{ marginRight: '0.5rem', width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                    />
+                    <span style={{ fontWeight: 'bold' }}>Allow participants to register for this event</span>
+                  </label>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0.5rem 0 0 1.5rem' }}>
+                    {formData.registration_open
+                      ? "Registration is currently open. Participants can register for this event."
+                      : "Registration is currently closed. Participants cannot register for this event."}
+                  </p>
                 </div>
 
                 {(formData.registration_method === 'external' || formData.registration_method === 'both') && (

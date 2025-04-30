@@ -477,6 +477,36 @@ const eventService = {
       console.error('Error updating event status:', error);
       throw error;
     }
+  },
+
+  // Toggle registration status (open/closed)
+  toggleRegistrationStatus: async (id, isOpen) => {
+    try {
+      console.log(`Setting registration status to ${isOpen ? 'open' : 'closed'} for event ID: ${id}`);
+      const eventRef = ref(database, `events/${id}`);
+
+      await update(eventRef, {
+        registration_open: isOpen,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Registration status updated successfully');
+
+      // Get the updated event
+      const snapshot = await get(eventRef);
+
+      if (!snapshot.exists()) {
+        throw new Error('Event not found after update');
+      }
+
+      return {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
+    } catch (error) {
+      console.error('Error updating registration status:', error);
+      throw error;
+    }
   }
 };
 
