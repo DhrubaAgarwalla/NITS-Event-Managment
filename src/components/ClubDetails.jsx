@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import clubService from '../services/clubService';
 import eventService from '../services/eventService';
 import { navigateTo } from '../utils/navigation';
+import ClubGallery from './ClubGallery';
 import './MobileTabs.css';
 
 const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
@@ -224,14 +225,12 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                 Team
               </button>
             )}
-            {club.gallery && club.gallery.length > 0 && (
-              <button
-                className={`mobile-tab ${activeMobileTab === 'gallery' ? 'active' : ''}`}
-                onClick={() => setActiveMobileTab('gallery')}
-              >
-                Gallery
-              </button>
-            )}
+            <button
+              className={`mobile-tab ${activeMobileTab === 'gallery' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('gallery')}
+            >
+              Gallery
+            </button>
             <button
               className={`mobile-tab ${activeMobileTab === 'contact' ? 'active' : ''}`}
               onClick={() => setActiveMobileTab('contact')}
@@ -371,39 +370,16 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
             )}
 
             {/* Gallery Tab Content */}
-            {club.gallery && (
-              <div className={`mobile-tab-content ${activeMobileTab === 'gallery' ? 'active' : ''}`}>
-                <div className="tab-content-gallery">
-                  <h3>Gallery</h3>
-                  <p style={{ marginBottom: '2rem' }}>
-                    Take a look at some moments from our past events and activities.
-                  </p>
+            <div className={`mobile-tab-content ${activeMobileTab === 'gallery' ? 'active' : ''}`}>
+              <div className="tab-content-gallery">
+                <h3>Gallery</h3>
+                <p style={{ marginBottom: '2rem' }}>
+                  Take a look at some moments from our past events and activities.
+                </p>
 
-                  <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                    {club.gallery.map((image, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          borderRadius: '10px',
-                          overflow: 'hidden',
-                          height: '250px',
-                          cursor: 'pointer',
-                          transition: 'transform 0.3s ease'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-                        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      >
-                        <img
-                          src={image}
-                          alt={`Gallery image ${index + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <ClubGallery gallery={club.gallery || []} />
               </div>
-            )}
+            </div>
 
             {/* Contact Tab Content */}
             <div className={`mobile-tab-content ${activeMobileTab === 'contact' ? 'active' : ''}`}>
@@ -811,23 +787,21 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                   Team
                 </button>
               )}
-              {club.gallery && club.gallery.length > 0 && (
-                <button
-                  className={`event-tab tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('gallery')}
-                  style={{
-                    padding: '1rem 1.5rem',
-                    backgroundColor: activeTab === 'gallery' ? 'var(--dark-surface)' : 'transparent',
-                    border: 'none',
-                    borderBottom: activeTab === 'gallery' ? '2px solid var(--primary)' : 'none',
-                    color: activeTab === 'gallery' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontWeight: activeTab === 'gallery' ? '600' : '400'
-                  }}
-                >
-                  Gallery
-                </button>
-              )}
+              <button
+                className={`event-tab tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+                onClick={() => setActiveTab('gallery')}
+                style={{
+                  padding: '1rem 1.5rem',
+                  backgroundColor: activeTab === 'gallery' ? 'var(--dark-surface)' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'gallery' ? '2px solid var(--primary)' : 'none',
+                  color: activeTab === 'gallery' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === 'gallery' ? '600' : '400'
+                }}
+              >
+                Gallery
+              </button>
             </div>
 
             {/* Tab Content */}
@@ -967,7 +941,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
               </motion.div>
             )}
 
-            {activeTab === 'gallery' && club.gallery && (
+            {activeTab === 'gallery' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -979,28 +953,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                   Take a look at some moments from our past events and activities.
                 </p>
 
-                <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                  {club.gallery.map((image, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        height: '250px',
-                        cursor: 'pointer',
-                        transition: 'transform 0.3s ease'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-                      onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                      <img
-                        src={image}
-                        alt={`Gallery image ${index + 1}`}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <ClubGallery gallery={club.gallery || []} />
               </motion.div>
             )}
           </div>

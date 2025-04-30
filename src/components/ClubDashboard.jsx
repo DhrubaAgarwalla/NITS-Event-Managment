@@ -7,12 +7,13 @@ import { logoutAndRedirect, navigateToHome } from '../utils/navigation';
 import ClubProfileEditor from './ClubProfileEditor';
 import EventEditor from './EventEditor';
 import RegistrationDetails from './RegistrationDetails';
+import GalleryManager from './GalleryManager';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState('events');
+  const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'gallery'
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -679,6 +680,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             }}
           >
             Track Registrations
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gallery')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'gallery' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'gallery' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'gallery' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'gallery' ? '600' : '400',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Manage Gallery
           </button>
         </div>
 
@@ -1998,6 +2015,13 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                 <p>Please select an event to view registrations.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Gallery Tab Content */}
+        {activeTab === 'gallery' && (
+          <div className="gallery-tab">
+            <GalleryManager />
           </div>
         )}
       </div>

@@ -80,6 +80,81 @@ const clubService = {
     }
   },
 
+  // Add image to club gallery
+  addGalleryImage: async (clubId, imageUrl) => {
+    try {
+      console.log(`Adding image to gallery for club ID: ${clubId}`);
+      const clubRef = ref(database, `clubs/${clubId}`);
+
+      // Get current club data
+      const snapshot = await get(clubRef);
+      if (!snapshot.exists()) {
+        throw new Error('Club not found');
+      }
+
+      const clubData = snapshot.val();
+
+      // Initialize gallery array if it doesn't exist
+      const gallery = clubData.gallery || [];
+
+      // Check if we've reached the maximum number of images (15)
+      if (gallery.length >= 15) {
+        throw new Error('Gallery limit reached (maximum 15 images)');
+      }
+
+      // Add new image to gallery
+      gallery.push(imageUrl);
+
+      // Update club with new gallery
+      await update(clubRef, {
+        gallery,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Gallery image added successfully');
+      return gallery;
+    } catch (error) {
+      console.error('Error adding gallery image:', error);
+      throw error;
+    }
+  },
+
+  // Remove image from club gallery
+  removeGalleryImage: async (clubId, imageUrl) => {
+    try {
+      console.log(`Removing image from gallery for club ID: ${clubId}`);
+      const clubRef = ref(database, `clubs/${clubId}`);
+
+      // Get current club data
+      const snapshot = await get(clubRef);
+      if (!snapshot.exists()) {
+        throw new Error('Club not found');
+      }
+
+      const clubData = snapshot.val();
+
+      // Check if gallery exists
+      if (!clubData.gallery || !Array.isArray(clubData.gallery)) {
+        throw new Error('Gallery not found');
+      }
+
+      // Remove image from gallery
+      const updatedGallery = clubData.gallery.filter(url => url !== imageUrl);
+
+      // Update club with new gallery
+      await update(clubRef, {
+        gallery: updatedGallery,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Gallery image removed successfully');
+      return updatedGallery;
+    } catch (error) {
+      console.error('Error removing gallery image:', error);
+      throw error;
+    }
+  },
+
   // Submit club request (for non-admin users)
   submitClubRequest: async (requestData) => {
     try {

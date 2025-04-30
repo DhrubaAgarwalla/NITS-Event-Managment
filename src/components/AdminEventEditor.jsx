@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
+import { uploadImage } from '../lib/cloudinary';
 
 const AdminEventEditor = ({ event, onClose, onUpdate }) => {
   const [categories, setCategories] = useState([]);
@@ -24,6 +25,9 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
     is_featured: false,
     selectedTags: []
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -81,6 +85,11 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         is_featured: event.is_featured || false,
         selectedTags: selectedTagIds
       });
+
+      // Set image preview if URL exists
+      if (event.image_url) {
+        setImagePreview(event.image_url);
+      }
     }
   }, [event]);
 
@@ -112,6 +121,48 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         };
       }
     });
+  };
+
+  // Handle image file selection
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image must be less than 10MB');
+        return;
+      }
+
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Upload image to Cloudinary
+  const uploadImageToCloudinary = async (file) => {
+    try {
+      setUploadProgress(0);
+
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Upload progress: ${progress}%`);
+        setUploadProgress(progress);
+      };
+
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(file, 'event-images', updateProgress);
+
+      if (!result || !result.url) {
+        throw new Error('Image upload failed: No URL returned from Cloudinary');
+      }
+
+      setUploadProgress(100);
+      return result.url;
+    } catch (err) {
+      console.error('Error uploading image to Cloudinary:', err);
+      throw err;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -150,6 +201,17 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         throw new Error('End date/time must be after start date/time');
       }
 
+      // Upload image if a new one is selected
+      let imageUrl = formData.image_url;
+      if (imageFile) {
+        try {
+          setError('Uploading image...');
+          imageUrl = await uploadImageToCloudinary(imageFile);
+        } catch (uploadError) {
+          throw new Error(`Error uploading image: ${uploadError.message}`);
+        }
+      }
+
       // Prepare event data
       const eventData = {
         title: formData.title,
@@ -165,7 +227,7 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         category_id: formData.category_id,
         registration_method: formData.registration_method,
         external_form_url: formData.external_form_url || null,
-        image_url: formData.image_url || null,
+        image_url: imageUrl,
         is_featured: formData.is_featured
       };
 
@@ -579,40 +641,96 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         <div style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Media</h3>
 
+          <div style={{
+            border: '2px dashed rgba(255, 255, 255, 0.2)',
+            borderRadius: '8px',
+            padding: '1rem',
+            textAlign: 'center',
+            marginBottom: '1rem',
+            cursor: 'pointer',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)'
+          }}
+          onClick={() => document.getElementById('admin-event-image-upload').click()}
+          >
+            {imagePreview ? (
+              <img
+                src={imagePreview}
+                alt="Event Preview"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '250px',
+                  borderRadius: '8px',
+                  marginBottom: '0.5rem'
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '100%',
+                height: '200px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)'
+              }}>
+                <div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                  <div>Click to upload event banner</div>
+                </div>
+              </div>
+            )}
+            <input
+              type="file"
+              id="admin-event-image-upload"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: 'none' }}
+            />
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Recommended: 1200x600px, max 10MB
+            </div>
+          </div>
+
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                Uploading image... {uploadProgress}%
+              </div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  backgroundColor: 'var(--primary)',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          )}
+
           <div className="form-group" style={{ marginBottom: '0.75rem' }}>
             <label htmlFor="image_url" style={labelStyle}>
-              Image URL
+              Image URL (Optional - Upload above or enter URL)
             </label>
             <input
               type="url"
               id="image_url"
               name="image_url"
               value={formData.image_url}
-              onChange={handleChange}
+              onChange={(e) => {
+                handleChange(e);
+                if (e.target.value) {
+                  setImagePreview(e.target.value);
+                }
+              }}
               style={inputStyle}
               placeholder="https://example.com/image.jpg"
             />
           </div>
-
-          {formData.image_url && (
-            <div style={{ marginBottom: '0.75rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Image Preview:</p>
-              <img
-                src={formData.image_url}
-                alt="Event preview"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '200px',
-                  borderRadius: '4px',
-                  objectFit: 'cover'
-                }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL';
-                }}
-              />
-            </div>
-          )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

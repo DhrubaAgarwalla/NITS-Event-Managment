@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
+import { uploadImage } from '../lib/cloudinary';
 
 const ClubProfileEditor = ({ onClose, onUpdate }) => {
   const { club } = useAuth();
@@ -12,6 +13,10 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     contact_phone: '',
     website: '',
     logo_url: '',
+    banner_url: '',
+    established_date: '',
+    member_count: '',
+    achievements: '',
     social_links: {
       instagram: '',
       facebook: '',
@@ -21,6 +26,11 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
       github: ''
     }
   });
+  const [logoFile, setLogoFile] = useState(null);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [bannerPreview, setBannerPreview] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -35,6 +45,10 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         contact_phone: club.contact_phone || '',
         website: club.website || '',
         logo_url: club.logo_url || '',
+        banner_url: club.banner_url || '',
+        established_date: club.established_date || '',
+        member_count: club.member_count?.toString() || '',
+        achievements: club.achievements || '',
         social_links: club.social_links || {
           instagram: '',
           facebook: '',
@@ -44,6 +58,15 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
           github: ''
         }
       });
+
+      // Set preview images if URLs exist
+      if (club.logo_url) {
+        setLogoPreview(club.logo_url);
+      }
+
+      if (club.banner_url) {
+        setBannerPreview(club.banner_url);
+      }
     }
   }, [club]);
 
@@ -66,6 +89,64 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     }));
   };
 
+  // Handle logo file selection
+  const handleLogoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Logo image must be less than 5MB');
+        return;
+      }
+
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Handle banner file selection
+  const handleBannerChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Banner image must be less than 10MB');
+        return;
+      }
+
+      setBannerFile(file);
+      setBannerPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Upload image to Cloudinary
+  const uploadImageToCloudinary = async (file, folder) => {
+    try {
+      setUploadProgress(0);
+
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Upload progress: ${progress}%`);
+        setUploadProgress(progress);
+      };
+
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(file, folder, updateProgress);
+
+      if (!result || !result.url) {
+        throw new Error('Image upload failed: No URL returned from Cloudinary');
+      }
+
+      setUploadProgress(100);
+      return result.url;
+    } catch (err) {
+      console.error('Error uploading image to Cloudinary:', err);
+      throw err;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -78,6 +159,28 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         throw new Error('Club name is required');
       }
 
+      // Upload logo if a new one is selected
+      let logoUrl = formData.logo_url;
+      if (logoFile) {
+        try {
+          setError('Uploading logo...');
+          logoUrl = await uploadImageToCloudinary(logoFile, 'club-logos');
+        } catch (uploadError) {
+          throw new Error(`Error uploading logo: ${uploadError.message}`);
+        }
+      }
+
+      // Upload banner if a new one is selected
+      let bannerUrl = formData.banner_url;
+      if (bannerFile) {
+        try {
+          setError('Uploading banner...');
+          bannerUrl = await uploadImageToCloudinary(bannerFile, 'club-banners');
+        } catch (uploadError) {
+          throw new Error(`Error uploading banner: ${uploadError.message}`);
+        }
+      }
+
       // Prepare update data
       const updateData = {
         name: formData.name,
@@ -85,14 +188,20 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         contact_email: formData.contact_email,
         contact_phone: formData.contact_phone,
         website: formData.website,
-        logo_url: formData.logo_url,
+        logo_url: logoUrl,
+        banner_url: bannerUrl,
+        established_date: formData.established_date,
+        member_count: formData.member_count ? parseInt(formData.member_count) : null,
+        achievements: formData.achievements,
         social_links: formData.social_links
       };
 
       // Update club profile
+      setError('Updating profile...');
       const updatedClub = await clubService.updateClubProfile(club.id, updateData);
 
       // Show success message
+      setError('');
       setSuccess(true);
 
       // Notify parent component
@@ -138,7 +247,11 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     borderRadius: '4px 0 0 4px',
     borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
     borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '0.9rem'
   };
 
   const socialInputStyle = {
@@ -248,6 +361,56 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             />
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div>
+              <label htmlFor="established_date" style={labelStyle}>
+                Established Date
+              </label>
+              <input
+                type="date"
+                id="established_date"
+                name="established_date"
+                value={formData.established_date}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="member_count" style={labelStyle}>
+                Member Count
+              </label>
+              <input
+                type="number"
+                id="member_count"
+                name="member_count"
+                value={formData.member_count}
+                onChange={handleChange}
+                min="0"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+            <label htmlFor="achievements" style={labelStyle}>
+              Achievements
+            </label>
+            <textarea
+              id="achievements"
+              name="achievements"
+              value={formData.achievements}
+              onChange={handleChange}
+              rows={3}
+              style={{
+                ...inputStyle,
+                minHeight: '80px',
+                resize: 'vertical'
+              }}
+              placeholder="List your club's major achievements"
+            />
+          </div>
+
           <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
               <label htmlFor="contact_email" style={labelStyle}>
@@ -293,20 +456,137 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-            <label htmlFor="logo_url" style={labelStyle}>
-              Logo URL
-            </label>
-            <input
-              type="url"
-              id="logo_url"
-              name="logo_url"
-              value={formData.logo_url}
-              onChange={handleChange}
-              style={inputStyle}
-              placeholder="https://example.com/logo.png"
-            />
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 300px' }}>
+              <label style={labelStyle}>
+                Club Logo
+              </label>
+              <div style={{
+                border: '2px dashed rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '1rem',
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+                cursor: 'pointer',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)'
+              }}
+              onClick={() => document.getElementById('logo-upload').click()}
+              >
+                {logoPreview ? (
+                  <img
+                    src={logoPreview}
+                    alt="Logo Preview"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '150px',
+                      borderRadius: '8px',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%',
+                    height: '150px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                      <div>Click to upload logo</div>
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  style={{ display: 'none' }}
+                />
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Recommended: Square image, max 5MB
+                </div>
+              </div>
+            </div>
+
+            <div style={{ flex: '1 1 300px' }}>
+              <label style={labelStyle}>
+                Club Banner
+              </label>
+              <div style={{
+                border: '2px dashed rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '1rem',
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+                cursor: 'pointer',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)'
+              }}
+              onClick={() => document.getElementById('banner-upload').click()}
+              >
+                {bannerPreview ? (
+                  <img
+                    src={bannerPreview}
+                    alt="Banner Preview"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '150px',
+                      borderRadius: '8px',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%',
+                    height: '150px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                      <div>Click to upload banner</div>
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="banner-upload"
+                  accept="image/*"
+                  onChange={handleBannerChange}
+                  style={{ display: 'none' }}
+                />
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Recommended: 1200x400px, max 10MB
+                </div>
+              </div>
+            </div>
           </div>
+
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                Uploading image... {uploadProgress}%
+              </div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  backgroundColor: 'var(--primary)',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
