@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import eventService from '../services/eventService';
-import supabase from '../lib/supabase';
+import { uploadImage } from '../lib/cloudinary';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 
@@ -68,13 +68,18 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         console.log('Categories loaded:', categoriesList);
 
         if (categoriesList && categoriesList.length > 0) {
+          // Remove duplicate categories by name
+          const uniqueCategories = categoriesList.filter((category, index, self) =>
+            index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
+          );
+
           // Set categories and default category_id
-          setCategories(categoriesList);
+          setCategories(uniqueCategories);
           setFormData(prev => ({
             ...prev,
-            category_id: categoriesList[0].id
+            category_id: uniqueCategories[0].id
           }));
-          console.log('Set default category_id to:', categoriesList[0].id);
+          console.log('Set default category_id to:', uniqueCategories[0].id);
         } else {
           console.warn('No categories found in the database');
           // Use hardcoded categories as fallback
@@ -97,7 +102,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         console.log('Tags loaded:', tagsList);
 
         if (tagsList && tagsList.length > 0) {
-          setTags(tagsList);
+          // Remove duplicate tags by name
+          const uniqueTags = tagsList.filter((tag, index, self) =>
+            index === self.findIndex(t => t.name.toLowerCase() === tag.name.toLowerCase())
+          );
+          setTags(uniqueTags);
         } else {
           console.warn('No tags found in the database');
           // Use hardcoded tags as fallback
@@ -311,14 +320,15 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     }));
   };
 
-  // Upload image to Supabase storage
-  const uploadImage = async () => {
+  // Upload image to Cloudinary - this is now only used for preview and progress tracking
+  // The actual upload is handled by eventService.createEvent
+  const handleImageUpload = async () => {
     if (!imageFile) return null;
 
     try {
       // Set initial upload progress
       setUploadProgress(0);
-      console.log('Starting image upload process...');
+      console.log('Starting image upload process to Cloudinary...');
 
       // Check file size
       const fileSizeMB = imageFile.size / (1024 * 1024);
@@ -328,94 +338,26 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         throw new Error(`File size (${fileSizeMB.toFixed(2)} MB) exceeds the 10 MB limit`);
       }
 
-      // Create a safe filename by removing special characters
-      const safeFileName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Upload progress: ${progress}%`);
+        setUploadProgress(progress);
+      };
 
-      // Create a simple path to avoid potential issues
-      const timestamp = Date.now();
-      const filePath = `${timestamp}_${safeFileName}`;
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(imageFile, 'event-images', updateProgress);
 
-      console.log('Uploading image to path:', filePath);
-
-      // Manually update progress to show activity
-      setUploadProgress(10);
-
-      // Convert the file to a base64 string first to ensure it's properly formatted
-      const reader = new FileReader();
-
-      // Create a promise to handle the FileReader
-      const readFileAsDataURL = new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(imageFile);
-      });
-
-      // Wait for the file to be read
-      const dataUrl = await readFileAsDataURL;
-      console.log('File read as data URL successfully');
-      setUploadProgress(30);
-
-      // Extract the base64 data from the data URL
-      const base64Data = dataUrl.split(',')[1];
-
-      // Convert base64 to blob
-      const byteCharacters = atob(base64Data);
-      const byteArrays = [];
-
-      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) {
-          byteNumbers[i] = slice.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
+      if (!result || !result.url) {
+        throw new Error('Image upload failed: No URL returned from Cloudinary');
       }
 
-      const blob = new Blob(byteArrays, { type: imageFile.type });
-      console.log('Converted to blob successfully');
-      setUploadProgress(50);
-
-      // Upload the blob
-      const { data, error } = await supabase.storage
-        .from('event-images')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: imageFile.type
-        });
-
-      console.log('Upload request completed');
-
-      if (error) {
-        console.error('Supabase storage upload error:', error);
-        throw new Error(`Image upload failed: ${error.message}`);
-      }
-
-      if (!data || !data.path) {
-        console.error('Upload succeeded but no data returned');
-        throw new Error('Image upload failed: No data returned');
-      }
-
-      console.log('Upload successful, data:', data);
-      setUploadProgress(90);
-
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(data.path);
-
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Failed to get public URL for uploaded image');
-      }
-
-      console.log('Image public URL:', urlData.publicUrl);
+      console.log('Upload successful, URL:', result.url);
       setUploadProgress(100);
 
       // Return the public URL
-      return urlData.publicUrl;
+      return result.url;
     } catch (err) {
-      console.error('Error uploading image:', err);
+      console.error('Error uploading image to Cloudinary:', err);
       // Return null instead of throwing to allow event creation to continue
       setError(`Image upload failed: ${err.message}. Event will be created without an image.`);
       setUploadProgress(0); // Reset progress
@@ -458,7 +400,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       if (imageFile) {
         try {
           setCreationStep('uploading_image');
-          imageUrl = await uploadImage();
+          imageUrl = await handleImageUpload();
           // If upload failed but didn't throw (returned null), we can continue without an image
           if (!imageUrl) {
             console.warn('Image upload returned null, continuing without image');
@@ -508,22 +450,19 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
       console.log('Event data being sent to server:', eventData);
 
-      // First check Supabase connection before attempting to create the event
+      // First check Firebase connection before attempting to create the event
       setCreationStep('checking_connection');
 
       try {
         // Create a simple connection check promise
         const connectionCheckPromise = new Promise(async (resolve, reject) => {
           try {
-            const { error } = await supabase
-              .from('categories')
-              .select('id')
-              .limit(1);
-
-            if (error) {
-              reject(new Error(`Database connection error: ${error.message}`));
-            } else {
+            // Use eventService to check connection by getting categories
+            const categories = await eventService.getCategories();
+            if (categories) {
               resolve(true);
+            } else {
+              reject(new Error('Database connection error: Failed to fetch categories'));
             }
           } catch (err) {
             reject(new Error(`Database connection failed: ${err.message}`));
@@ -559,8 +498,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       // Race between the event creation and the timeout
       const createdEvent = await Promise.race([
         (async () => {
-          // First create the event
-          const newEvent = await eventService.createEvent(eventData);
+          // First create the event - pass both eventData and imageFile
+          // This ensures the image is uploaded directly by the service
+          const newEvent = await eventService.createEvent(eventData, imageFile);
 
           // Then add tags if any are selected
           if (formData.selectedTags && formData.selectedTags.length > 0) {

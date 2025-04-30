@@ -108,7 +108,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
   const addTeamMember = () => {
     // Check if we've reached the maximum team size (including the team leader)
     if (teamMembers.length < maxTeamSize - 1) {
-      setTeamMembers([...teamMembers, { name: '', email: '', rollNumber: '', phone: '' }]);
+      setTeamMembers([...teamMembers, { name: '', department: '', year: '', rollNumber: '' }]);
     }
   };
 

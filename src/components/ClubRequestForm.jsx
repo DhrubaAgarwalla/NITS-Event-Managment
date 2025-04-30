@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
-import supabase from '../lib/supabase';
+import { uploadImage } from '../lib/cloudinary';
 
 export default function ClubRequestForm({ setCurrentPage }) {
   const [formData, setFormData] = useState({
@@ -84,33 +84,22 @@ export default function ClubRequestForm({ setCurrentPage }) {
       // First upload the logo file if provided
       let logoUrl = null;
       if (logoFile) {
-        // Create a unique file path in the storage bucket
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `club-logos/${fileName}`;
+        try {
+          // Upload to Cloudinary with progress tracking
+          const updateProgress = (progress) => {
+            setUploadProgress(progress);
+          };
 
-        // Upload the file
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('public')
-          .upload(filePath, logoFile, {
-            cacheControl: '3600',
-            upsert: false,
-            onUploadProgress: (progress) => {
-              const percent = Math.round((progress.loaded / progress.total) * 100);
-              setUploadProgress(percent);
-            }
-          });
+          const result = await uploadImage(logoFile, 'club-logos', updateProgress);
 
-        if (uploadError) {
+          if (!result || !result.url) {
+            throw new Error('Error uploading logo: No URL returned');
+          }
+
+          logoUrl = result.url;
+        } catch (uploadError) {
           throw new Error(`Error uploading logo: ${uploadError.message}`);
         }
-
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('public')
-          .getPublicUrl(filePath);
-
-        logoUrl = publicUrl;
       }
 
       // Submit club request with logo URL

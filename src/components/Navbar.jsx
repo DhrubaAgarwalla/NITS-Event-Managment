@@ -29,11 +29,14 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Don't render navbar for logged-in club users on the dashboard page
-  // But show it on other pages like create-event
-  if (isClubLoggedIn && currentPage !== 'create-event') {
+  // Only hide navbar on club dashboard page
+  // This ensures navbar is visible on all other pages, even after refresh
+  if (isClubLoggedIn && currentPage === 'club-dashboard') {
+    console.log('Hiding navbar on club dashboard');
     return null;
   }
+
+  console.log('Showing navbar', { isClubLoggedIn, currentPage, user });
 
   return (
     <>

@@ -11,7 +11,7 @@ A 3D immersive website with high-quality scrolling effects and overlay page anim
 - Dark-themed 3D immersive design
 - Smooth scrolling and animations
 - Responsive design for all devices
-- Supabase integration for backend
+- Firebase integration for backend
 
 ## Technologies Used
 
@@ -19,7 +19,8 @@ A 3D immersive website with high-quality scrolling effects and overlay page anim
 - Three.js for 3D effects
 - Framer Motion for animations
 - GSAP for scrolling effects
-- Supabase for backend and authentication
+- Firebase for backend and authentication
+- Cloudinary for image storage
 - Date-fns for date formatting
 
 ## Getting Started
@@ -28,7 +29,8 @@ A 3D immersive website with high-quality scrolling effects and overlay page anim
 
 - Node.js (v18 or higher)
 - npm or yarn
-- Supabase account
+- Firebase account
+- Cloudinary account
 
 ### Installation
 
@@ -43,11 +45,22 @@ A 3D immersive website with high-quality scrolling effects and overlay page anim
    npm install
    ```
 
-3. Create a `.env` file in the root directory with your Supabase credentials:
+3. Create a `.env` file in the root directory with your Firebase and Cloudinary credentials:
    ```
-   VITE_SUPABASE_URL=your-supabase-url
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   VITE_SUPABASE_SERVICE_KEY=your-supabase-service-key
+   # Firebase credentials
+   VITE_FIREBASE_API_KEY=your-firebase-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-firebase-auth-domain
+   VITE_FIREBASE_PROJECT_ID=your-firebase-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your-firebase-messaging-sender-id
+   VITE_FIREBASE_APP_ID=your-firebase-app-id
+   VITE_FIREBASE_DATABASE_URL=your-firebase-database-url
+
+   # Cloudinary credentials
+   VITE_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+   VITE_CLOUDINARY_API_KEY=your-cloudinary-api-key
+   VITE_CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+   VITE_CLOUDINARY_UPLOAD_PRESET=your-cloudinary-upload-preset
    ```
 
 4. Start the development server:

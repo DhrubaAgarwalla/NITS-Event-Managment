@@ -1,5 +1,15 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import supabase, { forceSignOutAndRedirect, verifySession } from '../lib/supabase';
+import {
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  updatePassword as firebaseUpdatePassword,
+  createUserWithEmailAndPassword,
+  updateProfile
+} from 'firebase/auth';
+import { ref, get, set, update } from 'firebase/database';
+import { auth, database, forceSignOutAndRedirect } from '../lib/firebase';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -20,114 +30,72 @@ export const AuthProvider = ({ children }) => {
 
   // Check for current session on mount and set up auth state listener
   useEffect(() => {
-    // Initial session check
-    const checkUser = async () => {
-      try {
-        setLoading(true);
+    console.log('Setting up Firebase auth state listener');
 
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
+    // Check if there was an intentional logout
+    const wasLoggedOut = localStorage.getItem('nits-event-logout') === 'true';
+    if (wasLoggedOut) {
+      console.log('Detected previous logout, clearing flag');
+      localStorage.removeItem('nits-event-logout');
+    }
 
-        if (session) {
-          console.log('Session found on initial load');
-          setUser(session.user);
-          setSessionStatus('active');
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        console.log('User is signed in:', currentUser.uid);
+        setUser(currentUser);
+        setSessionStatus('active');
 
-          // Check user roles
-          await checkUserRoles(session.user.id);
-        } else {
-          console.log('No session found on initial load');
-          setSessionStatus('no-session');
-        }
-      } catch (err) {
-        console.error('Error checking authentication:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        // Check user roles
+        await checkUserRoles(currentUser.uid);
+      } else {
+        console.log('No user is signed in');
+        setUser(null);
+        setClub(null);
+        setIsAdmin(false);
+        setSessionStatus('no-session');
       }
-    };
+
+      setLoading(false);
+    });
 
     // Helper function to check user roles
     const checkUserRoles = async (userId) => {
       try {
         // Check if user is an admin
-        const { data: adminData } = await supabase
-          .from('admins')
-          .select('*')
-          .eq('id', userId)
-          .single();
+        const adminRef = ref(database, `admins/${userId}`);
+        const adminSnapshot = await get(adminRef);
 
-        if (adminData) {
+        if (adminSnapshot.exists()) {
+          console.log('User is an admin');
           setIsAdmin(true);
           return;
         }
 
         // If not admin, check for club profile
-        const { data: clubData } = await supabase
-          .from('clubs')
-          .select('*')
-          .eq('id', userId)
-          .single();
+        const clubRef = ref(database, `clubs/${userId}`);
+        const clubSnapshot = await get(clubRef);
 
-        if (clubData) {
-          setClub(clubData);
+        if (clubSnapshot.exists()) {
+          console.log('User is a club');
+          setClub({
+            id: userId,
+            ...clubSnapshot.val()
+          });
         }
       } catch (err) {
         console.error('Error checking user roles:', err);
       }
     };
 
-    // Run initial check
-    checkUser();
-
-    // Set up auth state change listener with improved handling
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session);
-
-        if (event === 'SIGNED_IN' && session) {
-          setUser(session.user);
-          setSessionStatus('active');
-          await checkUserRoles(session.user.id);
-        }
-        else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          // Clear all user state
-          setUser(null);
-          setClub(null);
-          setIsAdmin(false);
-          setSessionStatus('signed-out');
-
-          // Redirect to home page if this wasn't an intentional sign out
-          if (sessionStatus !== 'signing-out') {
-            window.location.href = '/';
-          }
-        }
-        else if (event === 'TOKEN_REFRESHED') {
-          console.log('Auth token refreshed');
-          setSessionStatus('refreshed');
-
-          // Refresh user data if needed
-          if (user) {
-            await checkUserRoles(user.id);
-          }
-        }
-        else if (event === 'PASSWORD_RECOVERY') {
-          // Handle password recovery flow
-          setSessionStatus('recovery');
-        }
-      }
-    );
-
     // Add storage event listener to sync auth state across tabs
     const handleStorageChange = (event) => {
-      // Check for our custom storage key
-      if (event.key === 'nits-event-auth') {
+      // Firebase handles this automatically, but we'll keep the listener for custom logic
+      if (event.key === 'firebase:authUser') {
         console.log('Auth storage changed in another tab');
 
-        // Auth state changed in another tab
+        // If auth was removed in another tab but we still have a user here
         if (!event.newValue && user) {
           console.log('Auth token removed in another tab, signing out in this tab');
-          // Force sign out in this tab too
           forceSignOutAndRedirect();
         } else if (event.newValue && !user) {
           console.log('Auth token added in another tab, refreshing page to sync state');
@@ -146,50 +114,20 @@ export const AuthProvider = ({ children }) => {
 
     const handleOnline = async () => {
       console.log('Device came online, checking session');
-
-      // If we were previously logged in, verify the session is still valid
-      if (user) {
-        try {
-          const isValid = await verifySession();
-
-          if (!isValid) {
-            console.log('No valid session found after coming back online');
-            forceSignOutAndRedirect();
-          } else {
-            console.log('Valid session found after coming back online');
-
-            // Explicitly refresh the session to ensure it stays active
-            try {
-              await supabase.auth.refreshSession();
-              console.log('Session refreshed successfully after coming back online');
-            } catch (refreshErr) {
-              console.warn('Session refresh failed after coming back online:', refreshErr);
-            }
-
-            setSessionStatus('active');
-          }
-        } catch (err) {
-          console.error('Error checking session after coming back online:', err);
-          forceSignOutAndRedirect();
-        }
+      if (auth.currentUser) {
+        setSessionStatus('active');
       }
     };
 
-    window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
-    // Clean up all subscriptions and event listeners
+    // Cleanup subscription
     return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-
-      // Remove storage event listener
+      unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
-
-      // Remove online/offline event listeners
-      window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -202,46 +140,37 @@ export const AuthProvider = ({ children }) => {
       // Store email for reference
       localStorage.setItem('nits-event-last-email', email);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const currentUser = userCredential.user;
 
       // Check user roles
       let isUserAdmin = false;
       let isUserClub = false;
       let clubData = null;
 
-      if (data.user) {
-        // Check if user is an admin
-        const { data: adminData } = await supabase
-          .from('admins')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+      // Check if user is an admin
+      const adminRef = ref(database, `admins/${currentUser.uid}`);
+      const adminSnapshot = await get(adminRef);
 
-        if (adminData) {
-          isUserAdmin = true;
-        } else {
-          // If not admin, check for club profile
-          const { data: fetchedClubData } = await supabase
-            .from('clubs')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
+      if (adminSnapshot.exists()) {
+        isUserAdmin = true;
+      } else {
+        // If not admin, check for club profile
+        const clubRef = ref(database, `clubs/${currentUser.uid}`);
+        const clubSnapshot = await get(clubRef);
 
-          if (fetchedClubData) {
-            isUserClub = true;
-            clubData = fetchedClubData;
-          }
+        if (clubSnapshot.exists()) {
+          isUserClub = true;
+          clubData = {
+            id: currentUser.uid,
+            ...clubSnapshot.val()
+          };
         }
       }
 
       return {
         success: true,
-        user: data.user,
+        user: currentUser,
         isAdmin: isUserAdmin,
         isClub: isUserClub,
         club: clubData
@@ -264,9 +193,7 @@ export const AuthProvider = ({ children }) => {
       // Set status to indicate intentional sign out
       setSessionStatus('signing-out');
 
-      const { error } = await supabase.auth.signOut();
-
-      if (error) throw error;
+      await firebaseSignOut(auth);
 
       setUser(null);
       setClub(null);
@@ -295,27 +222,29 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true // Auto-confirm email
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Update user profile with club name
+      await updateProfile(newUser, {
+        displayName: clubData.name
       });
 
-      if (authError) throw authError;
+      // Create club profile in database
+      const clubRef = ref(database, `clubs/${newUser.uid}`);
+      await set(clubRef, {
+        ...clubData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
-      // Create club profile
-      if (authData.user) {
-        const { data, error } = await supabase
-          .from('clubs')
-          .insert([{ ...clubData, id: authData.user.id }])
-          .select();
-
-        if (error) throw error;
-
-        return { success: true, club: data[0] };
-      }
-
-      throw new Error('Failed to create user');
+      return {
+        success: true,
+        club: {
+          id: newUser.uid,
+          ...clubData
+        }
+      };
     } catch (err) {
       console.error('Error creating club account:', err);
       setError(err.message);
@@ -325,26 +254,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Manual session refresh function
+  // Manual session refresh function (for compatibility with old code)
   const manualRefreshSession = async () => {
     try {
       setLoading(true);
       setSessionStatus('checking');
 
-      // Use our verifySession function
-      const isValid = await verifySession();
-
-      if (isValid) {
-        console.log('Valid session found');
-
-        // Explicitly refresh the session to ensure it stays active
-        try {
-          await supabase.auth.refreshSession();
-          console.log('Session refreshed successfully');
-        } catch (refreshErr) {
-          console.warn('Session refresh failed, but session is still valid:', refreshErr);
-        }
-
+      // In Firebase, we don't need to manually refresh the session
+      // But we'll check if the user is still authenticated
+      if (auth.currentUser) {
+        console.log('User is still authenticated');
         setSessionStatus('active');
         return { success: true, valid: true };
       } else {
@@ -353,10 +272,10 @@ export const AuthProvider = ({ children }) => {
         return { success: false, valid: false };
       }
     } catch (err) {
-      console.error('Error in manual session refresh:', err);
+      console.error('Error refreshing session:', err);
       setError(err.message);
       setSessionStatus('error');
-      return { success: false, error: err.message };
+      return { success: false, valid: false, error: err.message };
     } finally {
       setLoading(false);
     }
@@ -370,15 +289,14 @@ export const AuthProvider = ({ children }) => {
 
       // Include full URL with protocol
       const baseUrl = window.location.origin;
-      const redirectUrl = `${baseUrl}?reset-password=true`;
+      const actionCodeSettings = {
+        url: `${baseUrl}?reset-password=true`,
+        handleCodeInApp: true
+      };
 
-      console.log('Sending password reset email with redirect URL:', redirectUrl);
+      console.log('Sending password reset email with redirect URL:', actionCodeSettings.url);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-      if (error) throw error;
+      await firebaseSendPasswordResetEmail(auth, email, actionCodeSettings);
 
       return { success: true };
     } catch (err) {
@@ -396,11 +314,11 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
+      if (!auth.currentUser) {
+        throw new Error('No authenticated user found');
+      }
 
-      if (error) throw error;
+      await firebaseUpdatePassword(auth.currentUser, password);
 
       return { success: true };
     } catch (err) {

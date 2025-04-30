@@ -58,15 +58,22 @@ export const hardRefresh = () => {
 // Logout and redirect
 export const logoutAndRedirect = async (signOutFn) => {
   try {
+    console.log('Logging out and redirecting...');
+
     if (typeof signOutFn === 'function') {
       await signOutFn();
+      console.log('Sign out function completed');
     }
+
+    // Store a flag in localStorage to indicate intentional logout
+    localStorage.setItem('nits-event-logout', 'true');
 
     // Add a small delay to ensure state updates are processed
     setTimeout(() => {
+      console.log('Performing hard refresh to clear state');
       // Force a complete page refresh to clear all state
       hardRefresh();
-    }, 100);
+    }, 300); // Increased delay to ensure state updates
   } catch (error) {
     console.error('Error during logout:', error);
     // Even if there's an error, still redirect to home

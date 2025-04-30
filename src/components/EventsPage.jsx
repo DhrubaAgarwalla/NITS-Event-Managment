@@ -64,13 +64,15 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
       (event.categories && event.categories.name.toLowerCase() === filter.toLowerCase());
 
     // Search filter
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (event.clubs && event.clubs.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      // Search in tags
+    const searchTermLower = searchTerm.toLowerCase().trim();
+    const matchesSearch = searchTermLower === '' ||
+      event.title.toLowerCase().includes(searchTermLower) ||
+      event.description.toLowerCase().includes(searchTermLower) ||
+      (event.clubs && event.clubs.name.toLowerCase().includes(searchTermLower)) ||
+      // Exact match for tag name (for tag filtering)
       (event.tags && event.tags.some(tag =>
-        tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+        tag.name.toLowerCase() === searchTermLower ||
+        tag.name.toLowerCase().includes(searchTermLower)
       ));
 
     return matchesFilter && matchesSearch;
@@ -102,15 +104,22 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
               >
                 All
               </button>
-              {categories.map(category => (
-                <button
-                  key={category.id}
-                  className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
-                  onClick={() => setFilter(category.name.toLowerCase())}
-                >
-                  {category.name}
-                </button>
-              ))}
+              {/* Limit to 6 unique categories */}
+              {categories
+                .filter((category, index, self) =>
+                  // Remove duplicates by name
+                  index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
+                )
+                .slice(0, 6)
+                .map(category => (
+                  <button
+                    key={category.id}
+                    className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
+                    onClick={() => setFilter(category.name.toLowerCase())}
+                  >
+                    {category.name}
+                  </button>
+                ))}
             </div>
 
             <div>
@@ -185,8 +194,8 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                         </span>
                       )}
 
-                      {/* Tags */}
-                      {event.tags && event.tags.slice(0, 2).map((tag, idx) => (
+                      {/* Tags - Show limited tags (max 6) */}
+                      {event.tags && event.tags.slice(0, 6).map((tag, idx) => (
                         <span
                           key={idx}
                           style={{
@@ -208,15 +217,22 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                       ))}
 
                       {/* Show +X more if there are more tags */}
-                      {event.tags && event.tags.length > 2 && (
+                      {event.tags && event.tags.length > 6 && (
                         <span style={{
                           padding: '0.2rem 0.5rem',
                           backgroundColor: 'rgba(255, 255, 255, 0.05)',
                           borderRadius: '4px',
                           color: 'var(--text-secondary)',
-                          fontSize: '0.7rem'
-                        }}>
-                          +{event.tags.length - 2} more
+                          fontSize: '0.7rem',
+                          cursor: 'pointer'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEventId(event.id);
+                          navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
+                        }}
+                        >
+                          +{event.tags.length - 6} more
                         </span>
                       )}
 

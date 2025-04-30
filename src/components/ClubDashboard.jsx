@@ -384,6 +384,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   // Handle logout
   const handleLogout = async () => {
     try {
+      console.log('Logging out from club dashboard');
       // First set isClubLoggedIn to false to show the navbar
       setIsClubLoggedIn(false);
       // Set current page to home
@@ -1743,10 +1744,10 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           }
 
                           // Download the Excel file
-                          if (result.excelFile) {
+                          if (result.url && result.filename) {
                             const link = document.createElement('a');
-                            link.href = URL.createObjectURL(result.excelFile.blob);
-                            link.download = result.excelFile.filename;
+                            link.href = result.url;
+                            link.download = result.filename;
                             link.style.display = 'none';
                             document.body.appendChild(link);
                             link.click();
@@ -1792,10 +1793,10 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           }
 
                           // Download the PDF file
-                          if (result.pdfFile) {
+                          if (result.url && result.filename) {
                             const link = document.createElement('a');
-                            link.href = URL.createObjectURL(result.pdfFile.blob);
-                            link.download = result.pdfFile.filename;
+                            link.href = result.url;
+                            link.download = result.filename;
                             link.style.display = 'none';
                             document.body.appendChild(link);
                             link.click();

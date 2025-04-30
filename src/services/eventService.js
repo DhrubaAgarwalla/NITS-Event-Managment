@@ -1,597 +1,428 @@
-import supabase from '../lib/supabase';
+import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from 'firebase/database';
+import { database } from '../lib/firebase';
+import { uploadImage } from '../lib/cloudinary';
 
 // Event-related database operations
 const eventService = {
-  // Get all events
-  getAllEvents: async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name, logo_url),
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .order('start_date', { ascending: false });
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    const processedData = data.map(event => {
-      // Extract tags from the nested structure
-      const tags = event.event_tags ?
-        event.event_tags.map(et => et.tags).filter(tag => tag) :
-        [];
-
-      // Remove the raw event_tags data and add the processed tags
-      const { event_tags, ...restEvent } = event;
-      return {
-        ...restEvent,
-        tags
-      };
-    });
-
-    return processedData;
-  },
-
-  // Get featured events
-  getFeaturedEvents: async (limit = 6) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name, logo_url),
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .eq('is_featured', true)
-      .gte('end_date', new Date().toISOString())
-      .order('start_date')
-      .limit(limit);
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    const processedData = data.map(event => {
-      // Extract tags from the nested structure
-      const tags = event.event_tags ?
-        event.event_tags.map(et => et.tags).filter(tag => tag) :
-        [];
-
-      // Remove the raw event_tags data and add the processed tags
-      const { event_tags, ...restEvent } = event;
-      return {
-        ...restEvent,
-        tags
-      };
-    });
-
-    return processedData;
-  },
-
-  // Get upcoming events
-  getUpcomingEvents: async (limit = 10) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name, logo_url),
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .eq('status', 'upcoming')
-      .gte('start_date', new Date().toISOString())
-      .order('start_date')
-      .limit(limit);
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    const processedData = data.map(event => {
-      // Extract tags from the nested structure
-      const tags = event.event_tags ?
-        event.event_tags.map(et => et.tags).filter(tag => tag) :
-        [];
-
-      // Remove the raw event_tags data and add the processed tags
-      const { event_tags, ...restEvent } = event;
-      return {
-        ...restEvent,
-        tags
-      };
-    });
-
-    return processedData;
-  },
-
-  // Get ongoing events
-  getOngoingEvents: async (limit = 10) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name, logo_url),
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .eq('status', 'ongoing')
-      .order('end_date')
-      .limit(limit);
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    const processedData = data.map(event => {
-      // Extract tags from the nested structure
-      const tags = event.event_tags ?
-        event.event_tags.map(et => et.tags).filter(tag => tag) :
-        [];
-
-      // Remove the raw event_tags data and add the processed tags
-      const { event_tags, ...restEvent } = event;
-      return {
-        ...restEvent,
-        tags
-      };
-    });
-
-    return processedData;
-  },
-
-  // Get a specific event by ID
-  getEventById: async (id) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name, logo_url, description, contact_email, contact_phone),
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    if (data && data.event_tags) {
-      const tags = data.event_tags.map(et => et.tags).filter(tag => tag);
-      const { event_tags, ...restEvent } = data;
-      return {
-        ...restEvent,
-        tags
-      };
-    }
-
-    return data;
-  },
-
-  // Create a new event
-  createEvent: async (eventData) => {
-    // Create a timeout promise that rejects after 20 seconds
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Supabase operation timed out after 20 seconds'));
-      }, 20000);
-    });
-
-    try {
-      console.log('Creating event with data:', eventData);
-
-      // Check Supabase connection first
-      console.log('Checking Supabase connection before creating event...');
-      try {
-        const connectionCheckStart = performance.now();
-        const { data: connectionCheck, error: connectionError } = await Promise.race([
-          supabase.from('categories').select('id').limit(1),
-          timeoutPromise
-        ]);
-        const connectionCheckTime = Math.round(performance.now() - connectionCheckStart);
-
-        if (connectionError) {
-          console.error(`Supabase connection check failed (${connectionCheckTime}ms):`, connectionError);
-          throw new Error(`Database connection error: ${connectionError.message}`);
-        }
-
-        console.log(`Supabase connection check successful (${connectionCheckTime}ms)`);
-      } catch (connectionErr) {
-        console.error('Failed to connect to Supabase:', connectionErr);
-        throw new Error(`Database connection error: ${connectionErr.message}`);
-      }
-
-      // Ensure category_id is valid
-      if (!eventData.category_id) {
-        // Fetch a default category if none is provided
-        const categories = await eventService.getCategories();
-        if (categories && categories.length > 0) {
-          eventData.category_id = categories[0].id;
-        } else {
-          // Use a fallback ID if no categories exist
-          eventData.category_id = '1';
-        }
-      }
-
-      // Create a minimal version of the event data with only required fields
-      const minimalEventData = {
-        title: String(eventData.title || '').trim(),
-        description: String(eventData.description || '').trim(),
-        start_date: eventData.start_date,
-        end_date: eventData.end_date,
-        location: String(eventData.location || '').trim(),
-        status: 'upcoming',
-        club_id: eventData.club_id,
-        category_id: eventData.category_id,
-        registration_method: 'internal',
-        participation_type: eventData.participation_type || 'individual',
-        min_participants: eventData.min_participants || null,
-        max_participants: eventData.max_participants || null
-      };
-
-      console.log('Setting participation_type to:', minimalEventData.participation_type);
-
-      // Validate required fields
-      if (!minimalEventData.title) {
-        throw new Error('Event title is required');
-      }
-
-      if (!minimalEventData.start_date || !minimalEventData.end_date) {
-        throw new Error('Event start and end dates are required');
-      }
-
-      if (!minimalEventData.club_id) {
-        throw new Error('Club ID is required');
-      }
-
-      if (!minimalEventData.category_id) {
-        throw new Error('Category ID is required');
-      }
-
-      console.log('Sending minimal event data to Supabase:', minimalEventData);
-
-      // Create the event with minimal data first with timeout
-      const insertStart = performance.now();
-      const { data, error } = await Promise.race([
-        supabase
-          .from('events')
-          .insert([minimalEventData])
-          .select(),
-        timeoutPromise
-      ]);
-      const insertTime = Math.round(performance.now() - insertStart);
-
-      if (error) {
-        console.error(`Error creating event with minimal data (${insertTime}ms):`, error);
-        throw new Error(`Failed to create event: ${error.message}`);
-      }
-
-      if (!data || !data[0] || !data[0].id) {
-        throw new Error('Event created but no data returned');
-      }
-
-      console.log(`Event created successfully with minimal data (${insertTime}ms):`, data[0]);
-      const eventId = data[0].id;
-
-      // Now add optional fields one by one
-      const updates = {};
-
-      // max_participants is already set in minimalEventData
-
-      // Add registration_deadline if provided
-      if (eventData.registration_deadline) {
-        updates.registration_deadline = eventData.registration_deadline;
-      }
-
-      // Add status if provided and valid
-      if (eventData.status && ['upcoming', 'ongoing', 'completed', 'cancelled'].includes(eventData.status)) {
-        updates.status = eventData.status;
-      }
-
-      // Add registration_method if provided and valid
-      if (eventData.registration_method && ['internal', 'external', 'both'].includes(eventData.registration_method)) {
-        updates.registration_method = eventData.registration_method;
-      }
-
-      // Add external_form_url if provided
-      if (eventData.external_form_url) {
-        updates.external_form_url = String(eventData.external_form_url).trim();
-      }
-
-      // Add image_url if provided
-      if (eventData.image_url) {
-        updates.image_url = String(eventData.image_url).trim();
-      }
-
-      // Add additional_info if provided
-      if (eventData.additional_info) {
-        try {
-          console.log('Using additional_info from form data:', eventData.additional_info);
-          // Use the actual additional_info from the form data
-          updates.additional_info = eventData.additional_info;
-        } catch (e) {
-          console.warn('Error processing additional_info:', e);
-          console.warn('Using default schedule as fallback');
-          updates.additional_info = {
-            schedule: [
-              {
-                day: 'Day 1',
-                events: [
-                  { time: '09:00', title: 'Event', location: '' }
-                ]
-              }
-            ]
-          };
-        }
-      }
-
-      // Only update if there are fields to update
-      if (Object.keys(updates).length > 0) {
-        console.log('Updating event with additional fields:', updates);
-
-        try {
-          const updateStart = performance.now();
-          const { data: updatedData, error: updateError } = await Promise.race([
-            supabase
-              .from('events')
-              .update(updates)
-              .eq('id', eventId)
-              .select(),
-            timeoutPromise
-          ]);
-          const updateTime = Math.round(performance.now() - updateStart);
-
-          if (updateError) {
-            console.error(`Error updating event with additional fields (${updateTime}ms):`, updateError);
-            console.warn('Event created but additional fields could not be added');
-            return data[0]; // Return the original event data
-          }
-
-          console.log(`Event updated with additional fields (${updateTime}ms):`, updatedData[0]);
-          return updatedData[0];
-        } catch (updateErr) {
-          console.error('Exception updating event:', updateErr);
-          // If it's a timeout error, the event might still be updated in the background
-          if (updateErr.message.includes('timed out')) {
-            console.warn('Update operation timed out, but the event was created successfully');
-          }
-          return data[0]; // Return the original event data
-        }
-      }
-
-      // Return the original event data if no updates were needed
-      return data[0];
-    } catch (err) {
-      console.error('Exception in createEvent:', err);
-      throw err;
-    }
-  },
-
-  // Update an event
-  updateEvent: async (id, updates) => {
-    const { data, error } = await supabase
-      .from('events')
-      .update(updates)
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-    return data[0];
-  },
-
-  // Delete an event
-  deleteEvent: async (id) => {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-    return true;
-  },
-
   // Get all categories
   getCategories: async () => {
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
+      console.log('Getting all categories from Firebase');
+      const categoriesRef = ref(database, 'categories');
+      const snapshot = await get(categoriesRef);
 
-      if (error) {
-        console.error('Error fetching categories:', error);
-        throw error;
+      if (!snapshot.exists()) {
+        console.log('No categories found');
+        return [];
       }
 
-      console.log('Categories fetched from database:', data);
-      return data || [];
-    } catch (err) {
-      console.error('Exception in getCategories:', err);
-      // Return default categories if there's an error
-      return [
-        { id: '1', name: 'Technical', color: '#3498db' },
-        { id: '2', name: 'Cultural', color: '#e74c3c' },
-        { id: '3', name: 'Sports', color: '#2ecc71' },
-        { id: '4', name: 'Academic', color: '#f39c12' },
-        { id: '5', name: 'Workshop', color: '#9b59b6' }
-      ];
-    }
-  },
+      const categories = [];
+      snapshot.forEach((childSnapshot) => {
+        categories.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
 
-  // Create a new category (admin only)
-  createCategory: async (categoryData) => {
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([categoryData])
-      .select();
-
-    if (error) throw error;
-    return data[0];
-  },
-
-  // Update event status
-  updateEventStatus: async (id, status) => {
-    const { data, error } = await supabase
-      .from('events')
-      .update({ status, updated_at: new Date() })
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-    return data[0];
-  },
-
-  // Get events for a specific club
-  getClubEvents: async (clubId) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        categories (id, name, color),
-        event_tags (tag_id, tags:tag_id(id, name, color))
-      `)
-      .eq('club_id', clubId)
-      .order('start_date', { ascending: false });
-
-    if (error) throw error;
-
-    // Process the data to format tags properly
-    const processedData = data.map(event => {
-      // Extract tags from the nested structure
-      const tags = event.event_tags ?
-        event.event_tags.map(et => et.tags).filter(tag => tag) :
-        [];
-
-      // Remove the raw event_tags data and add the processed tags
-      const { event_tags, ...restEvent } = event;
-      return {
-        ...restEvent,
-        tags
-      };
-    });
-
-    return processedData;
-  },
-
-  // Update an existing event
-  updateEvent: async (eventId, eventData) => {
-    // Validate inputs
-    if (!eventId) throw new Error('Event ID is required');
-    if (!eventData) throw new Error('Event data is required');
-
-    console.log('Updating event with ID:', eventId);
-    console.log('Update data:', eventData);
-
-    // Update the event
-    const { data, error } = await supabase
-      .from('events')
-      .update({ ...eventData, updated_at: new Date() })
-      .eq('id', eventId)
-      .select();
-
-    if (error) {
-      console.error('Error updating event:', error);
+      console.log(`Found ${categories.length} categories`);
+      return categories;
+    } catch (error) {
+      console.error('Error getting categories:', error);
       throw error;
     }
-
-    if (!data || data.length === 0) {
-      throw new Error('Event not found or you do not have permission to update it');
-    }
-
-    return data[0];
   },
 
   // Get all tags
   getAllTags: async () => {
     try {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('*')
-        .order('name');
+      console.log('Getting all tags from Firebase');
+      const tagsRef = ref(database, 'tags');
+      const snapshot = await get(tagsRef);
 
-      if (error) {
-        console.error('Error fetching tags:', error);
-        throw error;
+      if (!snapshot.exists()) {
+        console.log('No tags found');
+        return [];
       }
 
-      return data || [];
-    } catch (err) {
-      console.error('Exception in getAllTags:', err);
-      // Return default tags if there's an error
-      return [
-        { id: '1', name: 'Technical', color: '#3498db' },
-        { id: '2', name: 'Cultural', color: '#e74c3c' },
-        { id: '3', name: 'Sports', color: '#2ecc71' },
-        { id: '4', name: 'Workshop', color: '#9b59b6' },
-        { id: '5', name: 'Seminar', color: '#f39c12' }
-      ];
+      const tags = [];
+      snapshot.forEach((childSnapshot) => {
+        tags.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+
+      console.log(`Found ${tags.length} tags`);
+      return tags;
+    } catch (error) {
+      console.error('Error getting tags:', error);
+      throw error;
     }
   },
 
   // Add tags to an event
   addTagsToEvent: async (eventId, tagIds) => {
-    if (!eventId) throw new Error('Event ID is required');
-    if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
-      throw new Error('Tag IDs array is required');
-    }
+    try {
+      console.log(`Adding tags to event ${eventId}:`, tagIds);
+      const eventTagsRef = ref(database, `event_tags/${eventId}`);
 
-    // Create entries for the junction table
-    const entries = tagIds.map(tagId => ({
-      event_id: eventId,
-      tag_id: tagId
-    }));
+      // Create an object with tag IDs as keys
+      const tagsObject = {};
+      tagIds.forEach(tagId => {
+        tagsObject[tagId] = true;
+      });
 
-    const { data, error } = await supabase
-      .from('event_tags')
-      .insert(entries)
-      .select();
-
-    if (error) {
+      await set(eventTagsRef, tagsObject);
+      console.log('Tags added successfully');
+      return true;
+    } catch (error) {
       console.error('Error adding tags to event:', error);
       throw error;
     }
-
-    return data;
   },
+  // Get all events
+  getAllEvents: async () => {
+    try {
+      console.log('Getting all events from Firebase');
+      const eventsRef = ref(database, 'events');
+      const snapshot = await get(eventsRef);
 
-  // Remove tags from an event
-  removeTagsFromEvent: async (eventId, tagIds) => {
-    if (!eventId) throw new Error('Event ID is required');
-    if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
-      throw new Error('Tag IDs array is required');
-    }
+      if (!snapshot.exists()) {
+        console.log('No events found');
+        return [];
+      }
 
-    const { error } = await supabase
-      .from('event_tags')
-      .delete()
-      .eq('event_id', eventId)
-      .in('tag_id', tagIds);
+      const events = [];
+      snapshot.forEach((childSnapshot) => {
+        const eventData = childSnapshot.val();
+        events.push({
+          id: childSnapshot.key,
+          ...eventData
+        });
+      });
 
-    if (error) {
-      console.error('Error removing tags from event:', error);
+      console.log(`Found ${events.length} events`);
+
+      // Sort by start_date descending
+      return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    } catch (error) {
+      console.error('Error getting all events:', error);
       throw error;
     }
-
-    return true;
   },
 
-  // Get tags for a specific event
-  getEventTags: async (eventId) => {
-    if (!eventId) throw new Error('Event ID is required');
+  // Get upcoming events
+  getUpcomingEvents: async (limit = 10) => {
+    try {
+      console.log(`Getting upcoming events (limit: ${limit})`);
+      const eventsRef = ref(database, 'events');
+      const snapshot = await get(eventsRef);
 
-    const { data, error } = await supabase
-      .from('event_tags')
-      .select(`
-        tag_id,
-        tags:tag_id (id, name, color)
-      `)
-      .eq('event_id', eventId);
+      if (!snapshot.exists()) {
+        console.log('No events found');
+        return [];
+      }
 
-    if (error) {
-      console.error('Error fetching event tags:', error);
+      const now = new Date();
+      const events = [];
+
+      snapshot.forEach((childSnapshot) => {
+        const eventData = childSnapshot.val();
+
+        // Check if event is upcoming and start date is in the future
+        if (
+          eventData.status === 'upcoming' &&
+          new Date(eventData.start_date) >= now
+        ) {
+          events.push({
+            id: childSnapshot.key,
+            ...eventData
+          });
+        }
+      });
+
+      console.log(`Found ${events.length} upcoming events`);
+
+      // Sort by start_date ascending and limit
+      return events
+        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting upcoming events:', error);
       throw error;
     }
+  },
 
-    // Extract the tags from the nested structure
-    return data.map(item => item.tags);
+  // Get a specific event by ID
+  getEventById: async (id) => {
+    try {
+      console.log(`Getting event by ID: ${id}`);
+      const eventRef = ref(database, `events/${id}`);
+      const snapshot = await get(eventRef);
+
+      if (!snapshot.exists()) {
+        console.log('Event not found');
+        return null;
+      }
+
+      const eventData = {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
+
+      console.log('Found event data:', eventData);
+
+      // Get club data if available
+      let clubData = null;
+      if (eventData.club_id) {
+        const clubRef = ref(database, `clubs/${eventData.club_id}`);
+        const clubSnapshot = await get(clubRef);
+
+        if (clubSnapshot.exists()) {
+          clubData = {
+            id: clubSnapshot.key,
+            ...clubSnapshot.val()
+          };
+          console.log('Found club data for event:', clubData.name);
+        } else {
+          console.log('Club not found for ID:', eventData.club_id);
+        }
+      }
+
+      // Get category data if available
+      let categoryData = null;
+      if (eventData.category_id) {
+        const categoryRef = ref(database, `categories/${eventData.category_id}`);
+        const categorySnapshot = await get(categoryRef);
+
+        if (categorySnapshot.exists()) {
+          categoryData = {
+            id: categorySnapshot.key,
+            ...categorySnapshot.val()
+          };
+        }
+      }
+
+      // Get tags if available
+      let tags = [];
+      if (eventData.tags) {
+        // If tags are stored as an array of IDs, fetch each tag
+        if (Array.isArray(eventData.tags)) {
+          const tagPromises = eventData.tags.map(async (tagId) => {
+            const tagRef = ref(database, `tags/${tagId}`);
+            const tagSnapshot = await get(tagRef);
+            if (tagSnapshot.exists()) {
+              return {
+                id: tagSnapshot.key,
+                ...tagSnapshot.val()
+              };
+            }
+            return null;
+          });
+
+          tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
+        }
+        // If tags are stored as an object with tag IDs as keys
+        else if (typeof eventData.tags === 'object') {
+          tags = Object.keys(eventData.tags).map(tagId => ({
+            id: tagId,
+            ...eventData.tags[tagId]
+          }));
+        }
+      }
+
+      // Return event with related data
+      return {
+        ...eventData,
+        clubs: clubData,
+        categories: categoryData,
+        tags
+      };
+    } catch (error) {
+      console.error('Error getting event by ID:', error);
+      throw error;
+    }
+  },
+
+  // Create a new event
+  createEvent: async (eventData, imageFile = null) => {
+    try {
+      console.log('Creating new event:', eventData.title);
+
+      // Upload image if provided
+      let imageUrl = null;
+      if (imageFile) {
+        console.log('Uploading event image to Cloudinary');
+        const uploadResult = await uploadImage(imageFile, 'event-images');
+        imageUrl = uploadResult.url;
+        console.log('Image uploaded successfully:', imageUrl);
+      }
+
+      // Create event with image URL
+      const eventsRef = ref(database, 'events');
+      const newEventRef = push(eventsRef);
+
+      // Prepare event data with image URL and timestamps
+      const newEvent = {
+        ...eventData,
+        image_url: imageUrl,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Save to database
+      await set(newEventRef, newEvent);
+      console.log('Event created successfully with ID:', newEventRef.key);
+
+      return {
+        id: newEventRef.key,
+        ...newEvent
+      };
+    } catch (error) {
+      console.error('Error creating event:', error);
+      throw error;
+    }
+  },
+
+  // Update an event
+  updateEvent: async (id, updates, imageFile = null) => {
+    try {
+      console.log(`Updating event with ID: ${id}`);
+
+      // Upload new image if provided
+      if (imageFile) {
+        console.log('Uploading new event image to Cloudinary');
+        const uploadResult = await uploadImage(imageFile, 'event-images');
+        updates.image_url = uploadResult.url;
+        console.log('New image uploaded successfully:', updates.image_url);
+      }
+
+      // Update the event
+      const eventRef = ref(database, `events/${id}`);
+
+      // Add updated timestamp
+      updates.updated_at = new Date().toISOString();
+
+      await update(eventRef, updates);
+      console.log('Event updated successfully');
+
+      // Get the updated event
+      const snapshot = await get(eventRef);
+
+      return {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
+    } catch (error) {
+      console.error('Error updating event:', error);
+      throw error;
+    }
+  },
+
+  // Delete an event
+  deleteEvent: async (id) => {
+    try {
+      console.log(`Deleting event with ID: ${id}`);
+      const eventRef = ref(database, `events/${id}`);
+      await remove(eventRef);
+      console.log('Event deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
+  },
+
+  // Get events for a specific club
+  getClubEvents: async (clubId) => {
+    try {
+      console.log(`Getting events for club ID: ${clubId}`);
+      const eventsRef = ref(database, 'events');
+      const clubEventsQuery = query(
+        eventsRef,
+        orderByChild('club_id'),
+        equalTo(clubId)
+      );
+
+      const snapshot = await get(clubEventsQuery);
+
+      if (!snapshot.exists()) {
+        console.log('No events found for this club');
+        return [];
+      }
+
+      const events = [];
+      snapshot.forEach((childSnapshot) => {
+        events.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+
+      console.log(`Found ${events.length} events for club`);
+
+      // Sort by start_date descending
+      return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    } catch (error) {
+      console.error('Error getting club events:', error);
+      throw error;
+    }
+  },
+
+  // Get featured events
+  getFeaturedEvents: async (limit = 5) => {
+    try {
+      console.log(`Getting featured events (limit: ${limit})`);
+      const eventsRef = ref(database, 'events');
+      const snapshot = await get(eventsRef);
+
+      if (!snapshot.exists()) {
+        console.log('No events found');
+        return [];
+      }
+
+      const events = [];
+      snapshot.forEach((childSnapshot) => {
+        const eventData = childSnapshot.val();
+
+        // Check if event is featured
+        if (eventData.is_featured) {
+          events.push({
+            id: childSnapshot.key,
+            ...eventData
+          });
+        }
+      });
+
+      console.log(`Found ${events.length} featured events`);
+
+      // Sort by start_date and limit
+      return events
+        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting featured events:', error);
+      throw error;
+    }
+  },
+
+  // Update event status
+  updateEventStatus: async (id, status) => {
+    try {
+      console.log(`Updating event status to ${status} for event ID: ${id}`);
+      const eventRef = ref(database, `events/${id}`);
+
+      await update(eventRef, {
+        status,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Event status updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      throw error;
+    }
   }
 };
 

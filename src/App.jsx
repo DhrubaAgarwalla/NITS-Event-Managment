@@ -12,8 +12,8 @@ import './styles/eventDetailsMobile.css'
 import './styles/clubDetailsMobile.css'
 import './styles/aboutMobile.css'
 
-// Connection Indicator
-import ConnectionIndicator from './components/ConnectionIndicator'
+// Connection Indicator (hidden)
+// import ConnectionIndicator from './components/ConnectionIndicator'
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
@@ -113,7 +113,10 @@ function App() {
 
   // Update isClubLoggedIn based on auth context and handle redirects
   useEffect(() => {
+    console.log('Auth state changed:', { user, club, isAdmin, authLoading });
+
     if (user && club) {
+      console.log('Setting isClubLoggedIn to true');
       setIsClubLoggedIn(true);
 
       // If user is on login page and already logged in, redirect to appropriate dashboard
@@ -121,6 +124,7 @@ function App() {
         navigateAfterLogin(setCurrentPage, user, isAdmin, true);
       }
     } else {
+      console.log('Setting isClubLoggedIn to false');
       setIsClubLoggedIn(false);
 
       // If user is on a protected page but not logged in, redirect to login
@@ -244,7 +248,6 @@ function App() {
           <div className="app">
             <Cursor />
             <Navbar setCurrentPage={setCurrentPage} isClubLoggedIn={isClubLoggedIn} currentPage={currentPage} />
-            <ConnectionIndicator />
 
             {currentPage === 'home' && (
               <div className="smooth-scroll" ref={scrollContainerRef}>

@@ -202,15 +202,22 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
           >
             All
           </button>
-          {categories.map(category => (
-            <button
-              key={category.id}
-              className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
-              onClick={() => setFilter(category.name.toLowerCase())}
-            >
-              {category.name}
-            </button>
-          ))}
+          {/* Limit to 6 unique categories */}
+          {categories
+            .filter((category, index, self) =>
+              // Remove duplicates by name
+              index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
+            )
+            .slice(0, 6)
+            .map(category => (
+              <button
+                key={category.id}
+                className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
+                onClick={() => setFilter(category.name.toLowerCase())}
+              >
+                {category.name}
+              </button>
+            ))}
         </motion.div>
 
         {loading ? (
@@ -267,8 +274,8 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                       </span>
                     )}
 
-                    {/* Tags */}
-                    {event.tags && event.tags.slice(0, 2).map((tag, idx) => (
+                    {/* Tags - Show limited tags (max 6) */}
+                    {event.tags && event.tags.slice(0, 6).map((tag, idx) => (
                       <span
                         key={idx}
                         style={{
@@ -289,15 +296,21 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                     ))}
 
                     {/* Show +X more if there are more tags */}
-                    {event.tags && event.tags.length > 2 && (
+                    {event.tags && event.tags.length > 6 && (
                       <span style={{
                         padding: '0.2rem 0.5rem',
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         borderRadius: '4px',
                         color: 'var(--text-secondary)',
-                        fontSize: '0.7rem'
-                      }}>
-                        +{event.tags.length - 2} more
+                        fontSize: '0.7rem',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
+                      }}
+                      >
+                        +{event.tags.length - 6} more
                       </span>
                     )}
 

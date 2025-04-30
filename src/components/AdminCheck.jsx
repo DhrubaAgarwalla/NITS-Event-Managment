@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import supabase from '../lib/supabase';
+import { ref, get } from 'firebase/database';
+import { database } from '../lib/firebase';
 
 export default function AdminCheck({ setCurrentPage }) {
   const { user, isAdmin } = useAuth();
@@ -12,24 +13,17 @@ export default function AdminCheck({ setCurrentPage }) {
     const checkAdminStatus = async () => {
       try {
         setLoading(true);
-        
+
         if (!user) {
           setError('You are not logged in');
           return;
         }
-        
+
         // Check if user is in admins table
-        const { data, error } = await supabase
-          .from('admins')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-        
-        setAdminStatus(!!data);
+        const adminRef = ref(database, `admins/${user.uid}`);
+        const snapshot = await get(adminRef);
+
+        setAdminStatus(snapshot.exists());
       } catch (err) {
         console.error('Error checking admin status:', err);
         setError(err.message);
@@ -37,14 +31,14 @@ export default function AdminCheck({ setCurrentPage }) {
         setLoading(false);
       }
     };
-    
+
     checkAdminStatus();
   }, [user]);
 
   return (
     <div className="container" style={{ padding: '3rem' }}>
       <h2>Admin Status Check</h2>
-      
+
       {loading ? (
         <p>Checking admin status...</p>
       ) : error ? (
@@ -57,17 +51,17 @@ export default function AdminCheck({ setCurrentPage }) {
           <p>Email: {user?.email}</p>
           <p>Admin status from context: {isAdmin ? 'Yes' : 'No'}</p>
           <p>Admin status from direct check: {adminStatus ? 'Yes' : 'No'}</p>
-          
+
           <div style={{ marginTop: '2rem' }}>
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => setCurrentPage('admin-dashboard')}
               style={{ marginRight: '1rem' }}
             >
               Go to Admin Dashboard
             </button>
-            
-            <button 
+
+            <button
               className="btn"
               onClick={() => setCurrentPage('home')}
             >

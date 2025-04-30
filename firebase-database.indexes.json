@@ -1,0 +1,26 @@
+{
+  "rules": {
+    ".read": "true",
+    ".write": "auth != null"
+  },
+  "indexes": {
+    "events": {
+      ".indexOn": ["club_id", "status", "category_id", "start_date"]
+    },
+    "registrations": {
+      ".indexOn": ["event_id", "user_id"]
+    },
+    "categories": {
+      ".indexOn": ["name"]
+    },
+    "club_requests": {
+      ".indexOn": ["status", "created_at"]
+    },
+    "tags": {
+      ".indexOn": ["name"]
+    },
+    "event_tags": {
+      ".indexOn": [".key"]
+    }
+  }
+}

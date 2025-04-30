@@ -1,158 +1,272 @@
-import supabase from '../lib/supabase';
+import { ref, get, set, update, remove } from 'firebase/database';
+import { database } from '../lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 // Admin-related database operations
 const adminService = {
+  // Alias for getAllClubRequests for backward compatibility
+  getClubRequests: async () => {
+    return adminService.getAllClubRequests();
+  },
+
+  // Toggle event featured status
+  toggleEventFeatured: async (eventId, isFeatured) => {
+    try {
+      console.log(`Setting event ${eventId} featured status to ${isFeatured}`);
+
+      const eventRef = ref(database, `events/${eventId}`);
+      await update(eventRef, {
+        is_featured: isFeatured,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Event featured status updated successfully');
+
+      return true;
+    } catch (error) {
+      console.error('Error updating event featured status:', error);
+      throw error;
+    }
+  },
   // Check if a user is an admin
   isAdmin: async (userId) => {
-    const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      console.log(`Checking if user ${userId} is an admin`);
+      const adminRef = ref(database, `admins/${userId}`);
+      const snapshot = await get(adminRef);
 
-    if (error) throw error;
-    return !!data;
+      const isAdmin = snapshot.exists();
+      console.log(`User is admin: ${isAdmin}`);
+
+      return isAdmin;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      throw error;
+    }
   },
 
   // Create a club account (admin only)
   createClubAccount: async (email, password, clubData) => {
     try {
-      // Use regular signup instead of admin API
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            is_club: true,
-            club_name: clubData.name
-          }
-        }
+      console.log(`Creating club account for ${email}`);
+
+      // Create auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      console.log(`Created auth user with ID: ${newUser.uid}`);
+
+      // Update user profile with club name
+      await updateProfile(newUser, {
+        displayName: clubData.name
       });
 
-      if (authError) {
-        console.error('Auth error creating club account:', authError);
-        throw authError;
-      }
+      // Create club profile in database
+      const clubRef = ref(database, `clubs/${newUser.uid}`);
+      await set(clubRef, {
+        ...clubData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
-      // Create club profile
-      if (authData.user) {
-        // Add a delay to ensure the user is created in the auth system
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Club profile created successfully');
 
-        const { data, error } = await supabase
-          .from('clubs')
-          .insert([{ ...clubData, id: authData.user.id }])
-          .select();
+      // Generate a random password to show to the admin if none was provided
+      const tempPassword = password || Math.random().toString(36).slice(-8);
 
-        if (error) {
-          console.error('Database error creating club profile:', error);
-          throw error;
-        }
-
-        // Generate a random password to show to the admin
-        const tempPassword = password || Math.random().toString(36).slice(-8);
-
-        return {
-          success: true,
-          club: data?.[0] || { name: clubData.name, email },
-          tempPassword
-        };
-      }
-
-      throw new Error('Failed to create user');
-    } catch (err) {
-      console.error('Error creating club account:', err);
-      throw err;
+      return {
+        success: true,
+        club: {
+          id: newUser.uid,
+          ...clubData
+        },
+        tempPassword
+      };
+    } catch (error) {
+      console.error('Error creating club account:', error);
+      throw error;
     }
   },
 
   // Get all club requests
-  getClubRequests: async () => {
+  getAllClubRequests: async () => {
     try {
-      const { data, error } = await supabase
-        .from('club_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      console.log('Getting all club requests');
+      const requestsRef = ref(database, 'club_requests');
+      const snapshot = await get(requestsRef);
 
-      if (error) {
-        console.error('Error fetching club requests:', error);
-        // Return empty array instead of throwing error
+      if (!snapshot.exists()) {
+        console.log('No club requests found');
         return [];
       }
 
-      return data || [];
-    } catch (err) {
-      console.error('Unexpected error in getClubRequests:', err);
-      return [];
+      const requests = [];
+      snapshot.forEach((childSnapshot) => {
+        requests.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+
+      console.log(`Found ${requests.length} club requests`);
+
+      // Sort by creation date (newest first)
+      return requests.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } catch (error) {
+      console.error('Error getting club requests:', error);
+      throw error;
     }
   },
 
-  // Approve a club request
-  approveClubRequest: async (requestId, email, password, clubData) => {
+  // Approve a club request and create account
+  approveClubRequest: async (requestId, email, password, clubData = null) => {
     try {
-      // Create the club account
-      const result = await adminService.createClubAccount(email, password, clubData);
+      console.log(`Approving club request with ID: ${requestId}`);
 
-      // Update the request status
-      const { error } = await supabase
-        .from('club_requests')
-        .update({
-          status: 'approved',
-          admin_notes: 'Account created successfully',
-          updated_at: new Date()
-        })
-        .eq('id', requestId);
+      // Get the request data
+      const requestRef = ref(database, `club_requests/${requestId}`);
+      const snapshot = await get(requestRef);
 
-      if (error) throw error;
+      if (!snapshot.exists()) {
+        throw new Error('Club request not found');
+      }
+
+      const requestData = snapshot.val();
+
+      // Use provided club data or create from request data
+      const finalClubData = clubData || {
+        name: requestData.club_name,
+        description: requestData.additional_info || '',
+        contact_email: requestData.contact_email,
+        contact_phone: requestData.contact_phone || '',
+        logo_url: requestData.logo_url || '',
+        website: '',
+        social_links: {}
+      };
+
+      // Use provided email or from request data
+      const finalEmail = email || requestData.contact_email;
+
+      const result = await adminService.createClubAccount(
+        finalEmail,
+        password,
+        finalClubData
+      );
+
+      // Update request status
+      await update(requestRef, {
+        status: 'approved',
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Club request approved and account created successfully');
 
       return result;
-    } catch (err) {
-      console.error('Error approving club request:', err);
-      throw err;
+    } catch (error) {
+      console.error('Error approving club request:', error);
+      throw error;
     }
   },
 
   // Reject a club request
-  rejectClubRequest: async (requestId, reason) => {
-    const { data, error } = await supabase
-      .from('club_requests')
-      .update({
+  rejectClubRequest: async (requestId, reason = '') => {
+    try {
+      console.log(`Rejecting club request with ID: ${requestId}`);
+
+      const requestRef = ref(database, `club_requests/${requestId}`);
+      await update(requestRef, {
         status: 'rejected',
         admin_notes: reason,
-        updated_at: new Date()
-      })
-      .eq('id', requestId)
-      .select();
+        updated_at: new Date().toISOString()
+      });
 
-    if (error) throw error;
-    return data[0];
+      console.log('Club request rejected successfully');
+
+      return true;
+    } catch (error) {
+      console.error('Error rejecting club request:', error);
+      throw error;
+    }
   },
 
-  // Get all events for admin review
+  // Get all clubs
+  getAllClubs: async () => {
+    try {
+      console.log('Getting all clubs');
+      const clubsRef = ref(database, 'clubs');
+      const snapshot = await get(clubsRef);
+
+      if (!snapshot.exists()) {
+        console.log('No clubs found');
+        return [];
+      }
+
+      const clubs = [];
+      snapshot.forEach((childSnapshot) => {
+        clubs.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+
+      console.log(`Found ${clubs.length} clubs`);
+
+      // Sort by name
+      return clubs.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error getting all clubs:', error);
+      throw error;
+    }
+  },
+
+  // Delete a club
+  deleteClub: async (clubId) => {
+    try {
+      console.log(`Deleting club with ID: ${clubId}`);
+
+      // Note: This only deletes the club profile, not the auth user
+      // In a production app, you would use Firebase Admin SDK to delete the auth user as well
+      const clubRef = ref(database, `clubs/${clubId}`);
+      await remove(clubRef);
+
+      console.log('Club deleted successfully');
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting club:', error);
+      throw error;
+    }
+  },
+
+  // Get all events
   getAllEvents: async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select(`
-        *,
-        clubs (id, name),
-        categories (id, name, color)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      console.log('Getting all events');
+      const eventsRef = ref(database, 'events');
+      const snapshot = await get(eventsRef);
 
-    if (error) throw error;
-    return data;
-  },
+      if (!snapshot.exists()) {
+        console.log('No events found');
+        return [];
+      }
 
-  // Feature or unfeature an event
-  toggleEventFeatured: async (eventId, isFeatured) => {
-    const { data, error } = await supabase
-      .from('events')
-      .update({ is_featured: isFeatured })
-      .eq('id', eventId)
-      .select();
+      const events = [];
+      snapshot.forEach((childSnapshot) => {
+        events.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
 
-    if (error) throw error;
-    return data[0];
+      console.log(`Found ${events.length} events`);
+
+      // Sort by start date (newest first)
+      return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    } catch (error) {
+      console.error('Error getting all events:', error);
+      throw error;
+    }
   }
 };
 

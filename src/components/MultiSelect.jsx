@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 
 /**
  * Multi-Select Component
- * 
+ *
  * @param {Object} props - Component props
  * @param {string} props.id - The ID for the select element
  * @param {string} props.name - The name for the select element
@@ -85,7 +85,7 @@ const MultiSelect = ({
 
   return (
     <div className="multi-select-container" ref={containerRef} style={style}>
-      <div 
+      <div
         className="multi-select-header"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
@@ -103,8 +103,8 @@ const MultiSelect = ({
           {value.map(val => (
             <div key={val} className="selected-tag">
               {getLabel(val)}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={(e) => removeOption(val, e)}
                 disabled={disabled}
               >
@@ -117,21 +117,26 @@ const MultiSelect = ({
 
       {isOpen && !disabled && (
         <div className="multi-select-dropdown">
-          {options.map(option => (
-            <div
-              key={option.value}
-              className={`multi-select-option ${value.includes(option.value) ? 'selected' : ''}`}
-              onClick={() => toggleOption(option.value)}
-            >
-              <input
-                type="checkbox"
-                checked={value.includes(option.value)}
-                onChange={() => {}}
-                style={{ marginRight: '10px' }}
-              />
-              {option.label}
-            </div>
-          ))}
+          {/* Filter out duplicate options by label */}
+          {options
+            .filter((option, index, self) =>
+              index === self.findIndex(o => o.label.toLowerCase() === option.label.toLowerCase())
+            )
+            .map(option => (
+              <div
+                key={option.value}
+                className={`multi-select-option ${value.includes(option.value) ? 'selected' : ''}`}
+                onClick={() => toggleOption(option.value)}
+              >
+                <input
+                  type="checkbox"
+                  checked={value.includes(option.value)}
+                  onChange={() => {}}
+                  style={{ marginRight: '10px' }}
+                />
+                {option.label}
+              </div>
+            ))}
         </div>
       )}
     </div>

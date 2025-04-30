@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import supabase, { verifySession } from '../lib/supabase';
+import { ref, get } from 'firebase/database';
+import { database } from '../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,54 +24,26 @@ const ConnectionIndicator = () => {
     try {
       setIsChecking(true);
 
-      // Use verifySession to check if session is valid
-      const isValid = await verifySession();
-
-      if (isValid) {
+      // Check if user is authenticated in Firebase
+      if (user.uid) {
         console.log('Session is valid');
         setErrorMessage(null);
+        return true;
       } else {
         console.warn('Session is invalid');
         setErrorMessage('Session is invalid. Try refreshing the session.');
+        return false;
       }
     } catch (err) {
       console.error('Error checking session:', err);
       setErrorMessage('Error checking session status');
+      return false;
     } finally {
       setIsChecking(false);
     }
   };
 
-  // Function to handle 406 errors specifically
-  const handle406Error = async () => {
-    console.log('Attempting to recover from 406 error...');
-
-    try {
-      // First, try a simple query with explicit headers
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/categories?select=id&limit=1`, {
-        method: 'GET',
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        console.log('Direct API call successful, connection recovered');
-        return true;
-      } else {
-        console.warn(`Direct API call failed with status: ${response.status}`);
-        return false;
-      }
-    } catch (err) {
-      console.error('Error during 406 recovery attempt:', err);
-      return false;
-    }
-  };
-
-  // Function to check Supabase connection
+  // Function to check Firebase connection
   const checkConnection = async () => {
     setIsChecking(true);
     setErrorMessage(null);
@@ -85,12 +58,9 @@ const ConnectionIndicator = () => {
 
     try {
       // Try to fetch a small amount of data to test the connection with a timeout
-      const { error } = await Promise.race([
-        supabase
-          .from('categories')
-          .select('id')
-          .limit(1)
-          .maybeSingle(),
+      const categoriesRef = ref(database, 'categories');
+      await Promise.race([
+        get(categoriesRef),
         timeoutPromise
       ]);
 
@@ -99,16 +69,15 @@ const ConnectionIndicator = () => {
       const pingTimeMs = Math.round(endTime - startTime);
       setPingTime(pingTimeMs);
 
-      // If there's no error, we're connected
-      const connectionStatus = error ? false : true;
-      setIsConnected(connectionStatus);
+      // If we got here without an error, we're connected
+      setIsConnected(true);
 
       // Add to connection history (keep last 10 entries)
       const newHistoryEntry = {
         timestamp: new Date(),
-        status: connectionStatus,
+        status: true,
         pingTime: pingTimeMs,
-        error: error ? error.message : null,
+        error: null,
         authStatus: user ? sessionStatus : 'no-user'
       };
 
@@ -117,53 +86,20 @@ const ConnectionIndicator = () => {
         return newHistory.slice(0, 10); // Keep only last 10 entries
       });
 
-      // Log the result for debugging
-      if (error) {
-        console.warn(`Supabase connection check failed (${pingTimeMs}ms):`, error);
+      console.log(`Firebase connection successful (${pingTimeMs}ms)`);
 
-        // Check for 406 error
-        if (error.message && error.message.includes('406')) {
-          setErrorMessage('406 Not Acceptable error. Attempting to recover...');
-
-          // Try to recover from 406 error
-          const recovered = await handle406Error();
-          if (recovered) {
-            setErrorMessage('Recovered from 406 error. Try refreshing the session.');
-          } else {
-            setErrorMessage('Failed to recover from 406 error. Try refreshing the page.');
-          }
-        } else {
-          setErrorMessage(error.message || 'Connection failed');
-        }
-      } else {
-        console.log(`Supabase connection successful (${pingTimeMs}ms)`);
-
-        // If ping time is high, add a warning
-        if (pingTimeMs > 1000) {
-          setErrorMessage(`Connection is slow (${pingTimeMs}ms). This may affect application performance.`);
-        }
+      // If ping time is high, add a warning
+      if (pingTimeMs > 1000) {
+        setErrorMessage(`Connection is slow (${pingTimeMs}ms). This may affect application performance.`);
       }
     } catch (err) {
-      console.error('Error checking Supabase connection:', err);
+      console.error('Error checking Firebase connection:', err);
       setIsConnected(false);
 
       // Handle timeout specifically
       if (err.message && err.message.includes('timed out')) {
         setErrorMessage('Connection timed out. The server may be overloaded or unreachable.');
-      }
-      // Handle 406 errors specifically
-      else if (err.message && err.message.includes('406')) {
-        setErrorMessage('406 Not Acceptable error. Attempting to recover...');
-
-        // Try to recover from 406 error
-        const recovered = await handle406Error();
-        if (recovered) {
-          setErrorMessage('Recovered from 406 error. Try refreshing the session.');
-        } else {
-          setErrorMessage('Failed to recover from 406 error. Try refreshing the page.');
-        }
-      }
-      else {
+      } else {
         setErrorMessage(err.message || 'Connection error');
       }
 
@@ -365,7 +301,7 @@ const ConnectionIndicator = () => {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Supabase Connection</h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Firebase Connection</h3>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {user && (
                   <>
@@ -414,37 +350,6 @@ const ConnectionIndicator = () => {
                       }}
                     >
                       Refresh Session
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          setIsChecking(true);
-                          setErrorMessage('Attempting to fix 406 error...');
-                          const recovered = await handle406Error();
-                          if (recovered) {
-                            setErrorMessage('Successfully fixed 406 error. Try refreshing the session.');
-                          } else {
-                            setErrorMessage('Failed to fix 406 error. Try refreshing the page.');
-                          }
-                        } catch (err) {
-                          console.error('Error fixing 406 error:', err);
-                          setErrorMessage('Error during 406 fix attempt');
-                        } finally {
-                          setIsChecking(false);
-                          checkConnection();
-                        }
-                      }}
-                      style={{
-                        background: 'rgba(231, 76, 60, 0.2)',
-                        border: 'none',
-                        color: '#fff',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                      }}
-                    >
-                      Fix 406 Error
                     </button>
                   </>
                 )}
