@@ -368,14 +368,27 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const handleUpdateStatus = async (eventId, newStatus) => {
     try {
       setIsLoading(true);
-      const updatedEvent = await eventService.updateEventStatus(eventId, newStatus);
-      setEvents(events.map(event =>
-        event.id === eventId ? updatedEvent : event
-      ));
       setError(null);
+
+      // Update the event status
+      const updatedEvent = await eventService.updateEventStatus(eventId, newStatus);
+
+      // Update the events list with the updated event
+      setEvents(prevEvents =>
+        prevEvents.map(event =>
+          event.id === eventId ? updatedEvent : event
+        )
+      );
+
+      // If this is the selected event, update it too
+      if (selectedEvent && selectedEvent.id === eventId) {
+        setSelectedEvent(updatedEvent);
+      }
+
+      console.log(`Event status updated to ${newStatus} successfully`);
     } catch (err) {
       console.error('Error updating event status:', err);
-      setError('Failed to update event status');
+      setError(`Failed to update event status: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

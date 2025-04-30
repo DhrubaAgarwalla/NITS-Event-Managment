@@ -59,20 +59,25 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
 
   // Filter events based on category and search term
   const filteredEvents = events.filter(event => {
-    // Category filter
+    // Category filter - check both category and categories for backward compatibility
     const matchesFilter = filter === 'all' ||
-      (event.categories && event.categories.name.toLowerCase() === filter.toLowerCase());
+      (event.category && event.category.name && event.category.name.toLowerCase() === filter.toLowerCase()) ||
+      (event.categories && event.categories.name && event.categories.name.toLowerCase() === filter.toLowerCase());
 
     // Search filter
     const searchTermLower = searchTerm.toLowerCase().trim();
     const matchesSearch = searchTermLower === '' ||
-      event.title.toLowerCase().includes(searchTermLower) ||
-      event.description.toLowerCase().includes(searchTermLower) ||
-      (event.clubs && event.clubs.name.toLowerCase().includes(searchTermLower)) ||
-      // Exact match for tag name (for tag filtering)
-      (event.tags && event.tags.some(tag =>
-        tag.name.toLowerCase() === searchTermLower ||
-        tag.name.toLowerCase().includes(searchTermLower)
+      (event.title && event.title.toLowerCase().includes(searchTermLower)) ||
+      (event.description && event.description.toLowerCase().includes(searchTermLower)) ||
+      // Check both club and clubs for backward compatibility
+      (event.club && event.club.name && event.club.name.toLowerCase().includes(searchTermLower)) ||
+      (event.clubs && event.clubs.name && event.clubs.name.toLowerCase().includes(searchTermLower)) ||
+      // Match for tag name (for tag filtering)
+      (event.tags && Array.isArray(event.tags) && event.tags.some(tag =>
+        tag && tag.name && (
+          tag.name.toLowerCase() === searchTermLower ||
+          tag.name.toLowerCase().includes(searchTermLower)
+        )
       ));
 
     return matchesFilter && matchesSearch;
@@ -182,15 +187,15 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                       gap: '0.5rem'
                     }}>
                       {/* Category */}
-                      {event.categories && (
+                      {(event.category || event.categories) && (
                         <span style={{
                           padding: '0.2rem 0.5rem',
-                          backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                          backgroundColor: `${(event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'}20`,
                           borderRadius: '4px',
                           textTransform: 'capitalize',
-                          color: event.categories.color || 'var(--primary)'
+                          color: (event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'
                         }}>
-                          {event.categories.name}
+                          {(event.category && event.category.name) || (event.categories && event.categories.name) || 'Uncategorized'}
                         </span>
                       )}
 
@@ -237,9 +242,9 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                       )}
 
                       {/* Club name */}
-                      {event.clubs && (
+                      {(event.club || event.clubs) && (
                         <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                          {event.clubs.name}
+                          {(event.club && event.club.name) || (event.clubs && event.clubs.name) || 'Unknown Club'}
                         </span>
                       )}
                     </div>

@@ -83,13 +83,16 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
 
   // Filter events based on category and tags
   const filteredEvents = events.filter(event => {
-    // First apply category filter
+    // First apply category filter - check both category and categories for backward compatibility
     const passesCategory = filter === 'all' ||
-      (event.categories && event.categories.name.toLowerCase() === filter.toLowerCase());
+      (event.category && event.category.name && event.category.name.toLowerCase() === filter.toLowerCase()) ||
+      (event.categories && event.categories.name && event.categories.name.toLowerCase() === filter.toLowerCase());
 
     // Then apply tag filter if it exists
     const passesTag = !tagFilter ||
-      (event.tags && event.tags.some(tag => tag.name.toLowerCase() === tagFilter.toLowerCase()));
+      (event.tags && Array.isArray(event.tags) && event.tags.some(tag =>
+        tag && tag.name && tag.name.toLowerCase() === tagFilter.toLowerCase()
+      ));
 
     return passesCategory && passesTag;
   });
@@ -262,15 +265,15 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                     gap: '0.5rem'
                   }}>
                     {/* Category */}
-                    {event.categories && (
+                    {(event.category || event.categories) && (
                       <span style={{
                         padding: '0.2rem 0.5rem',
-                        backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                        backgroundColor: `${(event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'}20`,
                         borderRadius: '4px',
                         textTransform: 'capitalize',
-                        color: event.categories.color || 'var(--primary)'
+                        color: (event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'
                       }}>
-                        {event.categories.name}
+                        {(event.category && event.category.name) || (event.categories && event.categories.name) || 'Uncategorized'}
                       </span>
                     )}
 
@@ -315,9 +318,9 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                     )}
 
                     {/* Club name */}
-                    {event.clubs && (
+                    {(event.club || event.clubs) && (
                       <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                        {event.clubs.name}
+                        {(event.club && event.club.name) || (event.clubs && event.clubs.name) || 'Unknown Club'}
                       </span>
                     )}
                   </div>

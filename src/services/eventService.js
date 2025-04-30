@@ -92,16 +92,99 @@ const eventService = {
         return [];
       }
 
+      // Get all categories for lookup
+      const categoriesRef = ref(database, 'categories');
+      const categoriesSnapshot = await get(categoriesRef);
+      const categoriesMap = {};
+
+      if (categoriesSnapshot.exists()) {
+        categoriesSnapshot.forEach((childSnapshot) => {
+          categoriesMap[childSnapshot.key] = {
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          };
+        });
+      }
+
+      // Get all clubs for lookup
+      const clubsRef = ref(database, 'clubs');
+      const clubsSnapshot = await get(clubsRef);
+      const clubsMap = {};
+
+      if (clubsSnapshot.exists()) {
+        clubsSnapshot.forEach((childSnapshot) => {
+          clubsMap[childSnapshot.key] = {
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          };
+        });
+      }
+
+      // Get all tags for lookup
+      const tagsRef = ref(database, 'tags');
+      const tagsSnapshot = await get(tagsRef);
+      const tagsMap = {};
+
+      if (tagsSnapshot.exists()) {
+        tagsSnapshot.forEach((childSnapshot) => {
+          tagsMap[childSnapshot.key] = {
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          };
+        });
+      }
+
+      // Get all event tags relationships
+      const eventTagsRef = ref(database, 'event_tags');
+      const eventTagsSnapshot = await get(eventTagsRef);
+      const eventTagsMap = {};
+
+      if (eventTagsSnapshot.exists()) {
+        eventTagsSnapshot.forEach((childSnapshot) => {
+          const eventId = childSnapshot.key;
+          const tagIds = Object.keys(childSnapshot.val());
+          eventTagsMap[eventId] = tagIds;
+        });
+      }
+
+      // Process events with related data
       const events = [];
       snapshot.forEach((childSnapshot) => {
+        const eventId = childSnapshot.key;
         const eventData = childSnapshot.val();
+
+        // Add category data if available
+        let categoryData = null;
+        if (eventData.category_id && categoriesMap[eventData.category_id]) {
+          categoryData = categoriesMap[eventData.category_id];
+        }
+
+        // Add club data if available
+        let clubData = null;
+        if (eventData.club_id && clubsMap[eventData.club_id]) {
+          clubData = clubsMap[eventData.club_id];
+        }
+
+        // Add tags if available
+        let tags = [];
+        if (eventTagsMap[eventId]) {
+          tags = eventTagsMap[eventId]
+            .map(tagId => tagsMap[tagId])
+            .filter(tag => tag !== undefined);
+        }
+
         events.push({
-          id: childSnapshot.key,
-          ...eventData
+          id: eventId,
+          ...eventData,
+          category: categoryData,
+          categories: categoryData, // For backward compatibility
+          club: clubData,
+          clubs: clubData, // For backward compatibility
+          tags
         });
       });
 
-      console.log(`Found ${events.length} events`);
+      console.log(`Found and processed ${events.length} events with related data`);
 
       // Sort by start_date descending
       return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
@@ -115,36 +198,20 @@ const eventService = {
   getUpcomingEvents: async (limit = 10) => {
     try {
       console.log(`Getting upcoming events (limit: ${limit})`);
-      const eventsRef = ref(database, 'events');
-      const snapshot = await get(eventsRef);
 
-      if (!snapshot.exists()) {
-        console.log('No events found');
-        return [];
-      }
+      // Get all events first
+      const allEvents = await eventService.getAllEvents();
 
+      // Filter for upcoming events
       const now = new Date();
-      const events = [];
+      const upcomingEvents = allEvents.filter(event =>
+        event.status === 'upcoming' && new Date(event.start_date) >= now
+      );
 
-      snapshot.forEach((childSnapshot) => {
-        const eventData = childSnapshot.val();
-
-        // Check if event is upcoming and start date is in the future
-        if (
-          eventData.status === 'upcoming' &&
-          new Date(eventData.start_date) >= now
-        ) {
-          events.push({
-            id: childSnapshot.key,
-            ...eventData
-          });
-        }
-      });
-
-      console.log(`Found ${events.length} upcoming events`);
+      console.log(`Found ${upcomingEvents.length} upcoming events`);
 
       // Sort by start_date ascending and limit
-      return events
+      return upcomingEvents
         .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
         .slice(0, limit);
     } catch (error) {
@@ -200,42 +267,47 @@ const eventService = {
             id: categorySnapshot.key,
             ...categorySnapshot.val()
           };
+          console.log('Found category data for event:', categoryData.name);
+        } else {
+          console.log('Category not found for ID:', eventData.category_id);
         }
       }
 
-      // Get tags if available
+      // Get tags from event_tags collection
       let tags = [];
-      if (eventData.tags) {
-        // If tags are stored as an array of IDs, fetch each tag
-        if (Array.isArray(eventData.tags)) {
-          const tagPromises = eventData.tags.map(async (tagId) => {
-            const tagRef = ref(database, `tags/${tagId}`);
-            const tagSnapshot = await get(tagRef);
-            if (tagSnapshot.exists()) {
-              return {
-                id: tagSnapshot.key,
-                ...tagSnapshot.val()
-              };
-            }
-            return null;
-          });
+      const eventTagsRef = ref(database, `event_tags/${id}`);
+      const eventTagsSnapshot = await get(eventTagsRef);
 
-          tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
-        }
-        // If tags are stored as an object with tag IDs as keys
-        else if (typeof eventData.tags === 'object') {
-          tags = Object.keys(eventData.tags).map(tagId => ({
-            id: tagId,
-            ...eventData.tags[tagId]
-          }));
-        }
+      if (eventTagsSnapshot.exists()) {
+        console.log('Found event tags relationship');
+        const tagIds = Object.keys(eventTagsSnapshot.val());
+
+        // Fetch each tag by ID
+        const tagPromises = tagIds.map(async (tagId) => {
+          const tagRef = ref(database, `tags/${tagId}`);
+          const tagSnapshot = await get(tagRef);
+          if (tagSnapshot.exists()) {
+            return {
+              id: tagSnapshot.key,
+              ...tagSnapshot.val()
+            };
+          }
+          return null;
+        });
+
+        tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
+        console.log(`Found ${tags.length} tags for event`);
+      } else {
+        console.log('No tags found for event');
       }
 
-      // Return event with related data
+      // Return event with related data - use consistent naming
       return {
         ...eventData,
-        clubs: clubData,
-        categories: categoryData,
+        club: clubData,         // Singular for consistency
+        category: categoryData, // Singular for consistency
+        categories: categoryData, // Keep plural for backward compatibility
+        clubs: clubData,        // Keep plural for backward compatibility
         tags
       };
     } catch (error) {
@@ -337,32 +409,17 @@ const eventService = {
   getClubEvents: async (clubId) => {
     try {
       console.log(`Getting events for club ID: ${clubId}`);
-      const eventsRef = ref(database, 'events');
-      const clubEventsQuery = query(
-        eventsRef,
-        orderByChild('club_id'),
-        equalTo(clubId)
-      );
 
-      const snapshot = await get(clubEventsQuery);
+      // Get all events first (which includes categories and tags)
+      const allEvents = await eventService.getAllEvents();
 
-      if (!snapshot.exists()) {
-        console.log('No events found for this club');
-        return [];
-      }
+      // Filter for events belonging to the specified club
+      const clubEvents = allEvents.filter(event => event.club_id === clubId);
 
-      const events = [];
-      snapshot.forEach((childSnapshot) => {
-        events.push({
-          id: childSnapshot.key,
-          ...childSnapshot.val()
-        });
-      });
-
-      console.log(`Found ${events.length} events for club`);
+      console.log(`Found ${clubEvents.length} events for club ID: ${clubId}`);
 
       // Sort by start_date descending
-      return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+      return clubEvents.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
     } catch (error) {
       console.error('Error getting club events:', error);
       throw error;
@@ -373,31 +430,17 @@ const eventService = {
   getFeaturedEvents: async (limit = 5) => {
     try {
       console.log(`Getting featured events (limit: ${limit})`);
-      const eventsRef = ref(database, 'events');
-      const snapshot = await get(eventsRef);
 
-      if (!snapshot.exists()) {
-        console.log('No events found');
-        return [];
-      }
+      // Get all events first
+      const allEvents = await eventService.getAllEvents();
 
-      const events = [];
-      snapshot.forEach((childSnapshot) => {
-        const eventData = childSnapshot.val();
+      // Filter for featured events
+      const featuredEvents = allEvents.filter(event => event.is_featured);
 
-        // Check if event is featured
-        if (eventData.is_featured) {
-          events.push({
-            id: childSnapshot.key,
-            ...eventData
-          });
-        }
-      });
-
-      console.log(`Found ${events.length} featured events`);
+      console.log(`Found ${featuredEvents.length} featured events`);
 
       // Sort by start_date and limit
-      return events
+      return featuredEvents
         .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
         .slice(0, limit);
     } catch (error) {
@@ -418,7 +461,18 @@ const eventService = {
       });
 
       console.log('Event status updated successfully');
-      return true;
+
+      // Get the updated event
+      const snapshot = await get(eventRef);
+
+      if (!snapshot.exists()) {
+        throw new Error('Event not found after update');
+      }
+
+      return {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
     } catch (error) {
       console.error('Error updating event status:', error);
       throw error;
