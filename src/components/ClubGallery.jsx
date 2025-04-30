@@ -6,13 +6,10 @@ const ClubGallery = ({ gallery = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [isZoomed, setIsZoomed] = useState(false);
 
-  // Create a masonry-style layout with different sized images
+  // Simple grid layout without forcing specific spans
   const getGridSpan = (index) => {
-    // Create a pattern of different sized images
-    const pattern = index % 10;
-    if (pattern === 0 || pattern === 7) return { gridColumn: 'span 2' };
-    if (pattern === 3 || pattern === 8) return { gridColumn: 'span 2' };
     return { gridColumn: 'span 1' };
   };
 
@@ -41,7 +38,7 @@ const ClubGallery = ({ gallery = [] }) => {
     setSelectedImage(gallery[newIndex]);
   };
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation and zoom
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!selectedImage) return;
@@ -51,13 +48,19 @@ const ClubGallery = ({ gallery = [] }) => {
       } else if (e.key === 'ArrowLeft') {
         navigateImage(-1);
       } else if (e.key === 'Escape') {
-        setSelectedImage(null);
+        if (isZoomed) {
+          setIsZoomed(false);
+        } else {
+          setSelectedImage(null);
+        }
+      } else if (e.key === 'z' || e.key === 'Z') {
+        setIsZoomed(!isZoomed);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, currentIndex, gallery]);
+  }, [selectedImage, currentIndex, gallery, isZoomed]);
 
   // If no gallery images, show a placeholder with animation
   if (!gallery || gallery.length === 0) {
@@ -157,16 +160,15 @@ const ClubGallery = ({ gallery = [] }) => {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            gap: '1rem',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '1.5rem',
             marginBottom: '1rem'
           }}>
             {gallery.map((imageUrl, index) => {
-              const { gridColumn } = getGridSpan(index);
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   style={{
@@ -175,10 +177,11 @@ const ClubGallery = ({ gallery = [] }) => {
                     overflow: 'hidden',
                     backgroundColor: 'rgba(0, 0, 0, 0.2)',
                     cursor: 'pointer',
-                    gridColumn,
                     boxShadow: hoveredIndex === index ? '0 10px 25px rgba(0, 0, 0, 0.3)' : '0 5px 15px rgba(0, 0, 0, 0.1)',
                     transition: 'box-shadow 0.3s ease',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onClick={() => setSelectedImage(imageUrl)}
                   onMouseEnter={() => setHoveredIndex(index)}
@@ -218,38 +221,21 @@ const ClubGallery = ({ gallery = [] }) => {
                       </motion.div>
                     )}
                   </div>
-                  <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    paddingBottom: '66.67%', /* Default 3:2 aspect ratio as fallback */
-                    overflow: 'hidden'
-                  }}>
-                    <img
-                      src={imageUrl}
-                      alt={`Gallery image ${index + 1}`}
-                      style={{
-                        position: 'absolute',
-                        width: '100%',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        transition: 'transform 0.5s ease'
-                      }}
-                      onLoad={(e) => {
-                        // Once image loads, adjust container to match actual aspect ratio
-                        const img = e.target;
-                        const container = img.parentElement;
-                        if (img.naturalWidth && img.naturalHeight) {
-                          const aspectRatio = (img.naturalHeight / img.naturalWidth) * 100;
-                          container.style.paddingBottom = `${aspectRatio}%`;
-                          // Set object-fit to cover for better visual appearance
-                          img.style.height = '100%';
-                          img.style.objectFit = 'cover';
-                        }
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                      onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    />
-                  </div>
+                  <img
+                    src={imageUrl}
+                    alt={`Gallery image ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      transition: 'transform 0.5s ease',
+                      maxHeight: '300px',
+                      objectFit: 'contain',
+                      backgroundColor: 'rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
                 </motion.div>
               );
             })}
@@ -269,14 +255,15 @@ const ClubGallery = ({ gallery = [] }) => {
               position: 'fixed',
               top: 0,
               left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.95)',
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0, 0, 0, 0.92)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               zIndex: 1000,
-              backdropFilter: 'blur(5px)'
+              backdropFilter: 'blur(5px)',
+              overflow: 'hidden'
             }}
             onClick={() => setSelectedImage(null)}
           >
@@ -398,34 +385,79 @@ const ClubGallery = ({ gallery = [] }) => {
             {/* Main image */}
             <motion.div
               key={selectedImage}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               style={{
-                maxWidth: '90%',
-                maxHeight: '85%',
+                width: '90%',
+                height: '90%',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-                backgroundColor: 'rgba(0, 0, 0, 0.3)'
+                position: 'relative'
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedImage}
-                alt="Gallery image full view"
+              <div
                 style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  display: 'block'
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  overflow: isZoomed ? 'auto' : 'hidden'
                 }}
-                onClick={(e) => e.stopPropagation()}
-              />
+              >
+                <img
+                  src={selectedImage}
+                  alt="Gallery image full view"
+                  style={{
+                    maxWidth: isZoomed ? 'none' : '100%',
+                    maxHeight: isZoomed ? 'none' : '100%',
+                    width: isZoomed ? 'auto' : null,
+                    height: isZoomed ? 'auto' : null,
+                    objectFit: 'contain',
+                    display: 'block',
+                    borderRadius: '4px',
+                    cursor: isZoomed ? 'zoom-out' : 'zoom-in',
+                    transition: 'transform 0.2s ease'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsZoomed(!isZoomed);
+                  }}
+                />
+              </div>
+
+              {/* Zoom button */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  right: '20px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '20px',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  zIndex: 1002,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsZoomed(!isZoomed);
+                }}
+              >
+                {isZoomed ? '🔍 Zoom Out' : '🔍 Zoom In'}
+                <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>(Press Z)</span>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
