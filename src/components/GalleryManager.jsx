@@ -25,38 +25,38 @@ const GalleryManager = () => {
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
-      // Check file size (limit to 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image must be less than 5MB');
+
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image must be less than 10MB');
         e.target.value = ''; // Reset the input
         return;
       }
-      
+
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
       setError(''); // Clear any previous errors
     }
   };
-  
+
   // Upload image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     try {
       setUploadProgress(0);
-      
+
       // Update progress callback function
       const updateProgress = (progress) => {
         console.log(`Upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
-      
+
       // Upload to Cloudinary with progress tracking
       const result = await uploadImage(file, 'club-gallery', updateProgress);
-      
+
       if (!result || !result.url) {
         throw new Error('Image upload failed: No URL returned from Cloudinary');
       }
-      
+
       setUploadProgress(100);
       return result.url;
     } catch (err) {
@@ -68,38 +68,38 @@ const GalleryManager = () => {
   // Handle image upload
   const handleUpload = async (e) => {
     e.preventDefault();
-    
+
     if (!imageFile) {
       setError('Please select an image to upload');
       return;
     }
-    
+
     if (gallery.length >= 15) {
       setError('Gallery limit reached (maximum 15 images)');
       return;
     }
-    
+
     setIsUploading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       // Upload image to Cloudinary
       const imageUrl = await uploadImageToCloudinary(imageFile);
-      
+
       // Add image to gallery in database
       const updatedGallery = await clubService.addGalleryImage(club.id, imageUrl);
-      
+
       // Update local state
       setGallery(updatedGallery);
-      
+
       // Reset form
       setImageFile(null);
       setImagePreview('');
-      
+
       // Show success message
       setSuccess('Image uploaded successfully');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccess('');
@@ -116,20 +116,20 @@ const GalleryManager = () => {
     if (!window.confirm('Are you sure you want to remove this image?')) {
       return;
     }
-    
+
     setIsUploading(true);
     setError('');
-    
+
     try {
       // Remove image from gallery in database
       const updatedGallery = await clubService.removeGalleryImage(club.id, imageUrl);
-      
+
       // Update local state
       setGallery(updatedGallery);
-      
+
       // Show success message
       setSuccess('Image removed successfully');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccess('');
@@ -165,7 +165,7 @@ const GalleryManager = () => {
       >
         <h3 style={headingStyle}>Club Gallery</h3>
         <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-          Upload images to showcase your club's activities and events. Maximum 15 images allowed, each under 5MB.
+          Upload images to showcase your club's activities and events. Maximum 15 images allowed, each under 10MB.
         </p>
 
         {/* Error and success messages */}
@@ -201,10 +201,10 @@ const GalleryManager = () => {
 
         {/* Upload form */}
         <form onSubmit={handleUpload} style={{ marginBottom: '2rem' }}>
-          <div style={{ 
-            border: '2px dashed rgba(255, 255, 255, 0.2)', 
-            borderRadius: '8px', 
-            padding: '1rem', 
+          <div style={{
+            border: '2px dashed rgba(255, 255, 255, 0.2)',
+            borderRadius: '8px',
+            padding: '1rem',
             textAlign: 'center',
             marginBottom: '1rem',
             cursor: 'pointer',
@@ -213,22 +213,22 @@ const GalleryManager = () => {
           onClick={() => document.getElementById('gallery-image-upload').click()}
           >
             {imagePreview ? (
-              <img 
-                src={imagePreview} 
-                alt="Gallery Preview" 
-                style={{ 
-                  maxWidth: '100%', 
-                  maxHeight: '250px', 
+              <img
+                src={imagePreview}
+                alt="Gallery Preview"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '250px',
                   borderRadius: '8px',
                   marginBottom: '0.5rem'
-                }} 
+                }}
               />
             ) : (
-              <div style={{ 
-                width: '100%', 
-                height: '200px', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                width: '100%',
+                height: '200px',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--text-secondary)'
               }}>
@@ -246,32 +246,32 @@ const GalleryManager = () => {
               style={{ display: 'none' }}
             />
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Recommended: High quality images, max 5MB
+              Recommended: High quality images, max 10MB
             </div>
           </div>
-          
+
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
                 Uploading image... {uploadProgress}%
               </div>
-              <div style={{ 
-                width: '100%', 
-                height: '8px', 
+              <div style={{
+                width: '100%',
+                height: '8px',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '4px',
                 overflow: 'hidden'
               }}>
-                <div style={{ 
-                  width: `${uploadProgress}%`, 
-                  height: '100%', 
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
                   backgroundColor: 'var(--primary)',
                   transition: 'width 0.3s ease'
                 }} />
               </div>
             </div>
           )}
-          
+
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               type="submit"
@@ -295,19 +295,19 @@ const GalleryManager = () => {
         {/* Gallery images */}
         <div>
           <h4 style={{ marginBottom: '1rem' }}>Gallery Images ({gallery.length}/15)</h4>
-          
+
           {gallery.length === 0 ? (
             <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>
               No images in gallery yet. Upload some images to showcase your club!
             </p>
           ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-              gap: '1rem' 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '1rem'
             }}>
               {gallery.map((imageUrl, index) => (
-                <div 
+                <div
                   key={index}
                   style={{
                     position: 'relative',
@@ -317,9 +317,9 @@ const GalleryManager = () => {
                     backgroundColor: 'rgba(0, 0, 0, 0.2)'
                   }}
                 >
-                  <img 
-                    src={imageUrl} 
-                    alt={`Gallery image ${index + 1}`} 
+                  <img
+                    src={imageUrl}
+                    alt={`Gallery image ${index + 1}`}
                     style={{
                       width: '100%',
                       height: '100%',
