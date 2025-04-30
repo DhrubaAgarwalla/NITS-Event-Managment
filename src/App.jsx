@@ -255,7 +255,7 @@ function App() {
                   <Hero setCurrentPage={setCurrentPage} />
                   <Events setCurrentPage={setCurrentPage} setSelectedEventId={setSelectedEventId} />
                   <Clubs setCurrentPage={setCurrentPage} setSelectedClubId={setSelectedClubId} />
-                  <Footer />
+                  <Footer setCurrentPage={setCurrentPage} />
                 </div>
               </div>
             )}

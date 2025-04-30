@@ -83,9 +83,26 @@
   }
 
   .mobile-menu-link:hover,
-  .mobile-menu-link:active {
+  .mobile-menu-link:active,
+  .mobile-menu-link.active {
     color: var(--primary);
     padding-left: 0.5rem;
+  }
+
+  .mobile-menu-link.active {
+    font-weight: 600;
+    position: relative;
+  }
+
+  .mobile-menu-link.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 0 3px 3px 0;
   }
 
   .mobile-menu .btn {

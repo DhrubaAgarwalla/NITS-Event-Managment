@@ -13,7 +13,6 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     contact_phone: '',
     website: '',
     logo_url: '',
-    banner_url: '',
     established_date: '',
     member_count: '',
     achievements: '',
@@ -27,9 +26,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     }
   });
   const [logoFile, setLogoFile] = useState(null);
-  const [bannerFile, setBannerFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
-  const [bannerPreview, setBannerPreview] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +42,6 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         contact_phone: club.contact_phone || '',
         website: club.website || '',
         logo_url: club.logo_url || '',
-        banner_url: club.banner_url || '',
         established_date: club.established_date || '',
         member_count: club.member_count?.toString() || '',
         achievements: club.achievements || '',
@@ -59,13 +55,9 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         }
       });
 
-      // Set preview images if URLs exist
+      // Set preview image if URL exists
       if (club.logo_url) {
         setLogoPreview(club.logo_url);
-      }
-
-      if (club.banner_url) {
-        setBannerPreview(club.banner_url);
       }
     }
   }, [club]);
@@ -105,21 +97,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
     }
   };
 
-  // Handle banner file selection
-  const handleBannerChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
 
-      // Check file size (limit to 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Banner image must be less than 10MB');
-        return;
-      }
-
-      setBannerFile(file);
-      setBannerPreview(URL.createObjectURL(file));
-    }
-  };
 
   // Upload image to Cloudinary
   const uploadImageToCloudinary = async (file, folder) => {
@@ -170,17 +148,6 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         }
       }
 
-      // Upload banner if a new one is selected
-      let bannerUrl = formData.banner_url;
-      if (bannerFile) {
-        try {
-          setError('Uploading banner...');
-          bannerUrl = await uploadImageToCloudinary(bannerFile, 'club-banners');
-        } catch (uploadError) {
-          throw new Error(`Error uploading banner: ${uploadError.message}`);
-        }
-      }
-
       // Prepare update data
       const updateData = {
         name: formData.name,
@@ -189,7 +156,6 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         contact_phone: formData.contact_phone,
         website: formData.website,
         logo_url: logoUrl,
-        banner_url: bannerUrl,
         established_date: formData.established_date,
         member_count: formData.member_count ? parseInt(formData.member_count) : null,
         achievements: formData.achievements,
@@ -456,112 +422,56 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 300px' }}>
-              <label style={labelStyle}>
-                Club Logo
-              </label>
-              <div style={{
-                border: '2px dashed rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '1rem',
-                textAlign: 'center',
-                marginBottom: '0.5rem',
-                cursor: 'pointer',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)'
-              }}
-              onClick={() => document.getElementById('logo-upload').click()}
-              >
-                {logoPreview ? (
-                  <img
-                    src={logoPreview}
-                    alt="Logo Preview"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '150px',
-                      borderRadius: '8px',
-                      marginBottom: '0.5rem'
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    height: '150px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)'
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
-                      <div>Click to upload logo</div>
-                    </div>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  id="logo-upload"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  style={{ display: 'none' }}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={labelStyle}>
+              Club Logo
+            </label>
+            <div style={{
+              border: '2px dashed rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1rem',
+              textAlign: 'center',
+              marginBottom: '0.5rem',
+              cursor: 'pointer',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)'
+            }}
+            onClick={() => document.getElementById('logo-upload').click()}
+            >
+              {logoPreview ? (
+                <img
+                  src={logoPreview}
+                  alt="Logo Preview"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '150px',
+                    borderRadius: '8px',
+                    marginBottom: '0.5rem'
+                  }}
                 />
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Recommended: Square image, max 5MB
-                </div>
-              </div>
-            </div>
-
-            <div style={{ flex: '1 1 300px' }}>
-              <label style={labelStyle}>
-                Club Banner
-              </label>
-              <div style={{
-                border: '2px dashed rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '1rem',
-                textAlign: 'center',
-                marginBottom: '0.5rem',
-                cursor: 'pointer',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)'
-              }}
-              onClick={() => document.getElementById('banner-upload').click()}
-              >
-                {bannerPreview ? (
-                  <img
-                    src={bannerPreview}
-                    alt="Banner Preview"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '150px',
-                      borderRadius: '8px',
-                      marginBottom: '0.5rem'
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    height: '150px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)'
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
-                      <div>Click to upload banner</div>
-                    </div>
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '150px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                    <div>Click to upload logo</div>
                   </div>
-                )}
-                <input
-                  type="file"
-                  id="banner-upload"
-                  accept="image/*"
-                  onChange={handleBannerChange}
-                  style={{ display: 'none' }}
-                />
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Recommended: 1200x400px, max 10MB
                 </div>
+              )}
+              <input
+                type="file"
+                id="logo-upload"
+                accept="image/*"
+                onChange={handleLogoChange}
+                style={{ display: 'none' }}
+              />
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Recommended: Square image, max 5MB
               </div>
             </div>
           </div>

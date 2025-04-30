@@ -86,11 +86,11 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
             ) : (
               // Not logged in
               <>
-                <a href="#" className="navbar-link active" onClick={(e) => { e.preventDefault(); navigateToHome(setCurrentPage); }}>Home</a>
-                <a href="#events" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('events-page'); }}>Events</a>
-                <a href="#clubs" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); }}>Clubs</a>
-                <a href="#about" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('about'); }}>About</a>
-                <a href="#request" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); }}>Request Club</a>
+                <a href="#" className={`navbar-link ${currentPage === 'home' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigateToHome(setCurrentPage); }}>Home</a>
+                <a href="#events" className={`navbar-link ${currentPage === 'events-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('events-page'); }}>Events</a>
+                <a href="#clubs" className={`navbar-link ${currentPage === 'clubs-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); }}>Clubs</a>
+                <a href="#about" className={`navbar-link ${currentPage === 'about' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('about'); }}>About</a>
+                <a href="#request" className={`navbar-link ${currentPage === 'club-request' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); }}>Request Club</a>
                 <a href="#login" className="btn" onClick={(e) => { e.preventDefault(); setCurrentPage('login'); }}>Login</a>
               </>
             )}
@@ -136,11 +136,11 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
           ) : (
             // Not logged in
             <>
-              <a href="#" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); toggleMobileMenu(); navigateToHome(setCurrentPage); }}>Home</a>
-              <a href="#events" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('events-page'); toggleMobileMenu(); }}>Events</a>
-              <a href="#clubs" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); toggleMobileMenu(); }}>Clubs</a>
-              <a href="#about" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('about'); toggleMobileMenu(); }}>About</a>
-              <a href="#request" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); toggleMobileMenu(); }}>Request Club</a>
+              <a href="#" className={`mobile-menu-link ${currentPage === 'home' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); toggleMobileMenu(); navigateToHome(setCurrentPage); }}>Home</a>
+              <a href="#events" className={`mobile-menu-link ${currentPage === 'events-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('events-page'); toggleMobileMenu(); }}>Events</a>
+              <a href="#clubs" className={`mobile-menu-link ${currentPage === 'clubs-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); toggleMobileMenu(); }}>Clubs</a>
+              <a href="#about" className={`mobile-menu-link ${currentPage === 'about' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('about'); toggleMobileMenu(); }}>About</a>
+              <a href="#request" className={`mobile-menu-link ${currentPage === 'club-request' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); toggleMobileMenu(); }}>Request Club</a>
               <a href="#login" className="btn btn-primary" onClick={(e) => { e.preventDefault(); setCurrentPage('login'); toggleMobileMenu(); }}>Login</a>
             </>
           )}
