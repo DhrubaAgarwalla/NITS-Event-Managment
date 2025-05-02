@@ -27,7 +27,7 @@ const initializeGoogleClient = () => {
 
     // Initialize the Sheets API
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     // Initialize the Drive API
     const drive = google.drive({ version: 'v3', auth });
 
@@ -44,31 +44,48 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   // Handle OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
-  
+
   try {
+    console.log('API request received:', req.method);
+
+    // Check if credentials are properly set
+    const credentialsCheck = {
+      type: process.env.GOOGLE_CREDENTIALS_TYPE ? 'Set' : 'Missing',
+      project_id: process.env.GOOGLE_CREDENTIALS_PROJECT_ID ? 'Set' : 'Missing',
+      private_key_id: process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY_ID ? 'Set' : 'Missing',
+      private_key: process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY ? 'Set' : 'Missing',
+      client_email: process.env.GOOGLE_CREDENTIALS_CLIENT_EMAIL ? 'Set' : 'Missing',
+      client_id: process.env.GOOGLE_CREDENTIALS_CLIENT_ID ? 'Set' : 'Missing'
+    };
+
+    console.log('Credentials check:', credentialsCheck);
+
     // Initialize Google API client
     const { sheets, drive } = initializeGoogleClient();
-    
+    console.log('Google API client initialized successfully');
+
     // Get request data
     const { eventTitle, registrations } = req.body;
-    
+    console.log('Request data:', { eventTitle, registrationsCount: registrations?.length || 0 });
+
     if (!eventTitle || !registrations || !Array.isArray(registrations)) {
+      console.log('Invalid request data');
       return res.status(400).json({
         success: false,
         message: 'Invalid request data. Event title and registrations array are required.'
       });
     }
-    
+
     // Create a new spreadsheet
     const spreadsheet = await sheets.spreadsheets.create({
       requestBody: {
@@ -93,10 +110,10 @@ export default async function handler(req, res) {
 
     const spreadsheetId = spreadsheet.data.spreadsheetId;
     const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
-    
+
     // Get the sheet ID
     const registrationsSheetId = spreadsheet.data.sheets[0].properties.sheetId;
-    
+
     // Prepare data for the spreadsheet
     const headerData = [
       ['NIT SILCHAR EVENT REGISTRATION DATA'],
@@ -321,13 +338,13 @@ export default async function handler(req, res) {
     if (teamRegistrations > 0) {
       // Extract team members data
       const teamMembersData = [];
-      
+
       // Add header rows
       teamMembersData.push(['TEAM MEMBERS DETAILS']);
       teamMembersData.push([`Event: ${eventTitle}`]);
       teamMembersData.push([`Generated: ${new Date().toLocaleString()}`]);
       teamMembersData.push(['']);
-      
+
       // Add column headers
       teamMembersData.push([
         'Serial No.',
@@ -340,7 +357,7 @@ export default async function handler(req, res) {
         'Status',
         'Notes'
       ]);
-      
+
       // Add team members data
       let serialNo = 1;
       registrations.forEach(reg => {
@@ -360,7 +377,7 @@ export default async function handler(req, res) {
           });
         }
       });
-      
+
       // Add a new sheet for team members
       const teamSheetResponse = await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
@@ -376,10 +393,10 @@ export default async function handler(req, res) {
           ],
         },
       });
-      
+
       // Get the sheet ID of the newly created Team Members sheet
       const teamMembersSheetId = teamSheetResponse.data.replies[0].addSheet.properties.sheetId;
-      
+
       // Update the team members sheet with data
       await sheets.spreadsheets.values.update({
         spreadsheetId,
@@ -389,7 +406,7 @@ export default async function handler(req, res) {
           values: teamMembersData,
         },
       });
-      
+
       // Format the team members sheet
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
@@ -538,7 +555,7 @@ export default async function handler(req, res) {
         },
       });
     }
-    
+
     // Set permissions to anyone with the link can edit
     await drive.permissions.create({
       fileId: spreadsheetId,
@@ -548,7 +565,7 @@ export default async function handler(req, res) {
       },
       fields: 'id',
     });
-    
+
     return res.status(200).json({
       success: true,
       message: 'Google Sheet created successfully',
@@ -557,10 +574,22 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error creating Google Sheet:', error);
+
+    // Log detailed error information
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+
+    // Return a more detailed error response
     return res.status(500).json({
       success: false,
       message: 'Error creating Google Sheet',
-      error: error.message
+      error: error.message,
+      errorType: error.name,
+      errorCode: error.code || 'unknown'
     });
   }
 }

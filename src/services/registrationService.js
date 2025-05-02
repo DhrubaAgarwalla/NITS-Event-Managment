@@ -587,16 +587,54 @@ const registrationService = {
             }))
           };
 
-          // Call the Vercel serverless function
-          const response = await fetch('/api/sheets', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(sheetsData)
-          });
+          // Try the Vercel serverless function first
+          console.log('Calling Google Sheets API with data:', sheetsData);
 
-          const result = await response.json();
+          let result;
+          try {
+            // First try the serverless function
+            const response = await fetch('/api/sheets', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(sheetsData)
+            });
+
+            console.log('API Response status:', response.status);
+
+            // Check if the response is valid JSON
+            const responseText = await response.text();
+            console.log('API Response text:', responseText);
+
+            if (responseText) {
+              result = JSON.parse(responseText);
+            } else {
+              throw new Error('Empty response from server');
+            }
+          } catch (error) {
+            console.error('Error with serverless function, trying fallback server:', error);
+
+            // If serverless function fails, try the original server as fallback
+            const fallbackResponse = await fetch('http://localhost:3001/api/sheets/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(sheetsData)
+            });
+
+            console.log('Fallback API Response status:', fallbackResponse.status);
+
+            const fallbackText = await fallbackResponse.text();
+            console.log('Fallback API Response text:', fallbackText);
+
+            if (fallbackText) {
+              result = JSON.parse(fallbackText);
+            } else {
+              throw new Error('Empty response from fallback server');
+            }
+          }
 
           if (!result.success) {
             throw new Error(result.message || 'Failed to create Google Sheet');
