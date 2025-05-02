@@ -214,7 +214,7 @@ const registrationService = {
     }
   },
 
-  // Export registrations as Excel or PDF
+  // Export registrations as Excel, PDF, or Google Sheets
   exportRegistrationsAsCSV: async (eventId, eventTitle, format = 'excel') => {
     try {
       console.log(`Exporting registrations for event ID: ${eventId} as ${format}`);
@@ -556,6 +556,66 @@ const registrationService = {
         const filename = `${eventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_registrations.pdf`;
 
         return { success: true, url, filename, type: 'pdf' };
+      } else if (format === 'sheets') {
+        // Export to Google Sheets using our API server
+        try {
+          console.log('Exporting to Google Sheets');
+
+          // Prepare the data for the API request
+          const sheetsData = {
+            eventTitle,
+            registrations: exportData.map((reg, index) => ({
+              name: reg['Name'],
+              email: reg['Email'],
+              phone: reg['Phone'],
+              student_id: reg['Student ID'],
+              department: reg['Department'],
+              year: reg['Year'],
+              registration_type: reg['Registration Type'],
+              registration_date: reg['Registration Date'],
+              status: reg['Status'],
+              team_members: reg['Team Members'],
+              // Add team members details if available
+              team_members_details: reg['Registration Type'] === 'Team' &&
+                registrations[index].additional_info?.team_members ?
+                registrations[index].additional_info.team_members.map(member => ({
+                  name: member.name || 'N/A',
+                  scholar_id: member.rollNumber || 'N/A',
+                  department: member.department || 'N/A',
+                  year: member.year || 'N/A'
+                })) : []
+            }))
+          };
+
+          // Call the Vercel serverless function
+          const response = await fetch('/api/sheets', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sheetsData)
+          });
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(result.message || 'Failed to create Google Sheet');
+          }
+
+          return {
+            success: true,
+            url: result.url,
+            filename: `${eventTitle} - Google Sheet`,
+            type: 'sheets',
+            message: 'Google Sheet created successfully. Click to open.'
+          };
+        } catch (error) {
+          console.error('Error creating Google Sheet:', error);
+          return {
+            success: false,
+            message: `Failed to create Google Sheet: ${error.message}`
+          };
+        }
       }
 
       return { success: false, message: 'Invalid export format' };

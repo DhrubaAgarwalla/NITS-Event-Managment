@@ -1815,64 +1815,29 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                   </h3>
                   <div className="export-buttons" style={{ display: 'flex', gap: '0.75rem' }}>
                     <button
-                      className="btn export-excel-btn"
-                      onClick={async () => {
-                        try {
-                          // Export registrations as Excel
-                          const result = await registrationService.exportRegistrationsAsCSV(
-                            selectedEvent.id,
-                            selectedEvent.title,
-                            'excel'
-                          );
-
-                          if (!result.success) {
-                            alert(result.message || 'Failed to export registrations');
-                            return;
-                          }
-
-                          // Download the Excel file
-                          if (result.url && result.filename) {
-                            const link = document.createElement('a');
-                            link.href = result.url;
-                            link.download = result.filename;
-                            link.style.display = 'none';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }
-                        } catch (err) {
-                          console.error('Error exporting registrations:', err);
-                          alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
-                        }
-                      }}
-                      style={{
-                        backgroundColor: 'rgba(68, 255, 210, 0.15)',
-                        color: 'var(--accent)',
-                        padding: '0.75rem 1.25rem',
-                        borderRadius: '4px',
-                        border: '1px solid rgba(68, 255, 210, 0.3)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        whiteSpace: 'nowrap',
-                        fontWeight: '500',
-                        fontSize: '0.95rem'
-                      }}
-                    >
-                      <span style={{ fontSize: '1.2rem' }}>📊</span> Excel
-                    </button>
-
-                    <button
                       className="btn export-pdf-btn"
                       onClick={async () => {
                         try {
+                          // Set loading state
+                          const button = document.querySelector('.export-pdf-btn');
+                          const originalContent = button.innerHTML;
+                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Exporting...';
+                          button.disabled = true;
+                          button.style.opacity = '0.7';
+                          button.style.cursor = 'wait';
+
                           // Export registrations as PDF
                           const result = await registrationService.exportRegistrationsAsCSV(
                             selectedEvent.id,
                             selectedEvent.title,
                             'pdf'
                           );
+
+                          // Reset button state
+                          button.innerHTML = originalContent;
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
 
                           if (!result.success) {
                             alert(result.message || 'Failed to export registrations');
@@ -1890,6 +1855,13 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                             document.body.removeChild(link);
                           }
                         } catch (err) {
+                          // Reset button state on error
+                          const button = document.querySelector('.export-pdf-btn');
+                          button.innerHTML = '<span style="font-size: 1.2rem">📄</span> PDF';
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
+
                           console.error('Error exporting registrations:', err);
                           alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
@@ -1910,6 +1882,70 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       }}
                     >
                       <span style={{ fontSize: '1.2rem' }}>📄</span> PDF
+                    </button>
+
+                    <button
+                      className="btn export-sheets-btn"
+                      onClick={async () => {
+                        try {
+                          // Set loading state
+                          const button = document.querySelector('.export-sheets-btn');
+                          const originalContent = button.innerHTML;
+                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Exporting...';
+                          button.disabled = true;
+                          button.style.opacity = '0.7';
+                          button.style.cursor = 'wait';
+
+                          // Export registrations as Google Sheets
+                          const result = await registrationService.exportRegistrationsAsCSV(
+                            selectedEvent.id,
+                            selectedEvent.title,
+                            'sheets'
+                          );
+
+                          // Reset button state
+                          button.innerHTML = originalContent;
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
+
+                          if (!result.success) {
+                            alert(result.message || 'Failed to export registrations');
+                            return;
+                          }
+
+                          // Open the Google Sheet in a new tab
+                          if (result.url) {
+                            window.open(result.url, '_blank');
+                          }
+                        } catch (err) {
+                          // Reset button state on error
+                          const button = document.querySelector('.export-sheets-btn');
+                          button.innerHTML = '<span style="font-size: 1.2rem">📝</span> Google Sheets';
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
+
+                          console.error('Error exporting registrations to Google Sheets:', err);
+                          alert('Failed to export registrations to Google Sheets: ' + (err.message || 'Unknown error'));
+                        }
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(52, 168, 83, 0.15)',
+                        color: '#34A853',
+                        padding: '0.75rem 1.25rem',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(52, 168, 83, 0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '500',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.2rem' }}>📝</span> Google Sheets
                     </button>
                   </div>
                 </div>

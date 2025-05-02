@@ -1,5 +1,17 @@
 /* Mobile styles for Club Dashboard */
 
+/* Loading animation for export buttons */
+@keyframes loadingPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.export-buttons button[disabled] span {
+  animation: loadingPulse 1s ease-in-out infinite;
+  display: inline-block;
+}
+
 /* General mobile adjustments */
 @media (max-width: 768px) {
   .club-dashboard .container {
@@ -143,8 +155,8 @@
       margin-top: 0.5rem;
     }
 
-    .export-excel-btn,
-    .export-pdf-btn {
+    .export-pdf-btn,
+    .export-sheets-btn {
       margin-top: 0.5rem;
       width: 100%;
       justify-content: center;
@@ -197,6 +209,17 @@
       50% { transform: translateX(0); }
       75% { transform: translateX(10px); }
       100% { transform: translateX(0); }
+    }
+
+    /* Add loading animation for export buttons */
+    @keyframes loadingPulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    button[disabled] span {
+      animation: loadingPulse 1s ease-in-out infinite;
     }
 
     .scroll-indicator span {
