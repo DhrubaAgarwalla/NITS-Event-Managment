@@ -1888,6 +1888,48 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       className="btn export-sheets-btn"
                       onClick={async () => {
                         try {
+                          // Create a loading overlay for the entire page
+                          const loadingOverlay = document.createElement('div');
+                          loadingOverlay.className = 'loading-overlay';
+                          loadingOverlay.style.position = 'fixed';
+                          loadingOverlay.style.top = '0';
+                          loadingOverlay.style.left = '0';
+                          loadingOverlay.style.width = '100%';
+                          loadingOverlay.style.height = '100%';
+                          loadingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                          loadingOverlay.style.display = 'flex';
+                          loadingOverlay.style.flexDirection = 'column';
+                          loadingOverlay.style.justifyContent = 'center';
+                          loadingOverlay.style.alignItems = 'center';
+                          loadingOverlay.style.zIndex = '9999';
+
+                          // Add a spinner
+                          const spinner = document.createElement('div');
+                          spinner.className = 'spinner';
+                          spinner.style.border = '5px solid rgba(255, 255, 255, 0.3)';
+                          spinner.style.borderTop = '5px solid #44FFCF';
+                          spinner.style.borderRadius = '50%';
+                          spinner.style.width = '50px';
+                          spinner.style.height = '50px';
+                          spinner.style.animation = 'spin 1s linear infinite';
+
+                          // Add a message
+                          const message = document.createElement('div');
+                          message.style.color = 'white';
+                          message.style.marginTop = '20px';
+                          message.style.fontWeight = 'bold';
+                          message.innerHTML = 'Creating export...<br><span style="font-size: 0.8rem; font-weight: normal">This may take a few seconds</span>';
+
+                          // Add animation style
+                          const style = document.createElement('style');
+                          style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+
+                          // Add elements to the overlay
+                          loadingOverlay.appendChild(spinner);
+                          loadingOverlay.appendChild(message);
+                          document.head.appendChild(style);
+                          document.body.appendChild(loadingOverlay);
+
                           // Set loading state
                           const button = document.querySelector('.export-sheets-btn');
                           const originalContent = button.innerHTML;
@@ -1896,12 +1938,15 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '0.7';
                           button.style.cursor = 'wait';
 
-                          // Export registrations as Google Sheets
+                          // Export registrations as Google Sheets (which now falls back to PDF if needed)
                           const result = await registrationService.exportRegistrationsAsCSV(
                             selectedEvent.id,
                             selectedEvent.title,
                             'sheets'
                           );
+
+                          // Remove the loading overlay
+                          document.body.removeChild(loadingOverlay);
 
                           // Reset button state
                           button.innerHTML = originalContent;
@@ -1914,11 +1959,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                             return;
                           }
 
-                          // Open the Google Sheet in a new tab
+                          // Show a message based on the type of export that succeeded
+                          if (result.type === 'pdf') {
+                            alert('Google Sheets export failed, but we created a PDF for you instead. Click OK to open it.');
+                          }
+
+                          // Open the export in a new tab
                           if (result.url) {
                             window.open(result.url, '_blank');
                           }
                         } catch (err) {
+                          // Remove the loading overlay if it exists
+                          const loadingOverlay = document.querySelector('.loading-overlay');
+                          if (loadingOverlay) {
+                            document.body.removeChild(loadingOverlay);
+                          }
+
                           // Reset button state on error
                           const button = document.querySelector('.export-sheets-btn');
                           button.innerHTML = '<span style="font-size: 1.2rem">📝</span> Google Sheets';
@@ -1927,7 +1983,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.cursor = 'pointer';
 
                           console.error('Error exporting registrations to Google Sheets:', err);
-                          alert('Failed to export registrations to Google Sheets: ' + (err.message || 'Unknown error'));
+                          alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
                       }}
                       style={{

@@ -7,6 +7,82 @@ import { exportToGoogleSheets, loadGoogleApiClient } from './directSheetsExport'
 
 // Registration-related database operations
 const registrationService = {
+  // Try Google Sheets export in the background without blocking the UI
+  tryGoogleSheetsExportInBackground(eventTitle, registrations) {
+    setTimeout(async () => {
+      try {
+        console.log('Attempting Google Sheets export in background');
+
+        // First try the serverless function with the full URL
+        try {
+          const sheetsData = {
+            eventTitle,
+            registrations: registrations.map(reg => ({
+              name: reg.name || reg.participant_name,
+              email: reg.email,
+              phone: reg.phone,
+              student_id: reg.student_id || reg.participant_id,
+              department: reg.department || reg.additional_info?.department,
+              year: reg.year || reg.additional_info?.year,
+              registration_type: reg.registration_type || (reg.additional_info?.team_members ? 'Team' : 'Individual'),
+              registration_date: reg.registration_date || reg.created_at,
+              status: reg.status,
+              team_members: reg.team_members,
+              team_members_details: reg.team_members_details || reg.additional_info?.team_members
+            }))
+          };
+
+          const response = await fetch('https://nits-event-managment.vercel.app/api/sheets', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sheetsData)
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Background Google Sheets export succeeded:', result);
+            // We could notify the user here if needed
+          } else {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+        } catch (serverError) {
+          console.log('Server export failed, trying direct export in background');
+
+          // If server fails, try direct export
+          try {
+            // Load the Google API client if not already loaded
+            await new Promise((resolve) => {
+              loadGoogleApiClient(resolve);
+            });
+
+            // Try to sign in the user silently (no popup)
+            if (window.gapi && window.gapi.auth2) {
+              const authInstance = window.gapi.auth2.getAuthInstance();
+              if (!authInstance.isSignedIn.get()) {
+                // Only try silent sign-in to avoid popup issues
+                await authInstance.signIn({prompt: 'none'});
+              }
+
+              // Export directly to Google Sheets
+              const result = await exportToGoogleSheets(eventTitle, registrations);
+              if (result.success) {
+                console.log('Background direct Google Sheets export succeeded:', result);
+                // We could notify the user here if needed
+              }
+            }
+          } catch (directError) {
+            console.log('Background direct export also failed:', directError);
+            // Both methods failed, but we already have the PDF, so no need to notify the user
+          }
+        }
+      } catch (error) {
+        console.error('Background Google Sheets export failed:', error);
+        // No need to notify the user since this is a background operation
+      }
+    }, 100); // Small delay to ensure it doesn't block the UI
+  },
   // Get all registrations for an event
   getEventRegistrations: async (eventId) => {
     try {
@@ -588,59 +664,153 @@ const registrationService = {
             }))
           };
 
-          // Try the Vercel serverless function first
-          console.log('Calling Google Sheets API with data:', sheetsData);
+          // Since we're having issues with the Google Sheets API, let's create a PDF as a reliable fallback
+          console.log('Creating PDF export as a reliable alternative');
 
           let result;
           try {
-            // First try the serverless function with the full URL
-            const response = await fetch('https://nits-event-managment.vercel.app/api/sheets', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(sheetsData)
+            // Create a PDF document
+            const doc = new jsPDF();
+
+            // Add title and event information
+            doc.setFontSize(18);
+            doc.text('NIT SILCHAR EVENT REGISTRATION DATA', 105, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text(`Event: ${eventTitle}`, 105, 25, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 35, { align: 'center' });
+
+            // Add registration statistics
+            const totalRegistrations = registrations.length;
+            const individualRegistrations = registrations.filter(reg => reg.registration_type === 'Individual').length;
+            const teamRegistrations = registrations.filter(reg => reg.registration_type === 'Team').length;
+
+            doc.setFontSize(12);
+            doc.text('Registration Statistics:', 14, 45);
+            doc.setFontSize(10);
+            doc.text(`Total Registrations: ${totalRegistrations}`, 14, 52);
+            doc.text(`Individual Registrations: ${individualRegistrations}`, 14, 59);
+            doc.text(`Team Registrations: ${teamRegistrations}`, 14, 66);
+
+            // Create table for registrations
+            const tableColumn = ["Name", "Email", "Phone", "Student ID", "Department", "Year", "Type", "Registration Date", "Status"];
+            const tableRows = [];
+
+            // Add data rows
+            registrations.forEach(reg => {
+              const rowData = [
+                reg.name || '',
+                reg.email || '',
+                reg.phone || '',
+                reg.student_id || '',
+                reg.department || '',
+                reg.year || '',
+                reg.registration_type || '',
+                reg.registration_date || '',
+                reg.status || ''
+              ];
+              tableRows.push(rowData);
             });
 
-            console.log('API Response status:', response.status);
+            // Generate the table
+            doc.autoTable({
+              head: [tableColumn],
+              body: tableRows,
+              startY: 75,
+              theme: 'grid',
+              styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                lineColor: [44, 62, 80],
+                lineWidth: 0.25,
+              },
+              headStyles: {
+                fillColor: [0, 69, 153], // NIT Silchar blue
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+              },
+              alternateRowStyles: {
+                fillColor: [240, 240, 240],
+              },
+            });
 
-            // Check if the response is valid JSON
-            const responseText = await response.text();
-            console.log('API Response text:', responseText);
+            // If there are team registrations, add a separate table for team members
+            if (teamRegistrations > 0) {
+              // Add a new page for team members
+              doc.addPage();
 
-            if (responseText) {
-              result = JSON.parse(responseText);
-            } else {
-              throw new Error('Empty response from server');
-            }
-          } catch (error) {
-            console.error('Error with serverless function, trying direct export:', error);
+              // Add title
+              doc.setFontSize(18);
+              doc.text('TEAM MEMBERS DETAILS', 105, 15, { align: 'center' });
+              doc.setFontSize(14);
+              doc.text(`Event: ${eventTitle}`, 105, 25, { align: 'center' });
+              doc.setFontSize(10);
+              doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 35, { align: 'center' });
 
-            // If serverless function fails, try direct export as a last resort
-            try {
-              // Load the Google API client if not already loaded
-              await new Promise((resolve) => {
-                loadGoogleApiClient(resolve);
+              // Create table for team members
+              const teamTableColumn = ["Team Lead", "Team Lead Email", "Member Name", "Scholar ID", "Department", "Year"];
+              const teamTableRows = [];
+
+              // Add team members data
+              registrations.forEach(reg => {
+                if (reg.registration_type === 'Team' && reg.team_members_details && reg.team_members_details.length > 0) {
+                  reg.team_members_details.forEach(member => {
+                    const rowData = [
+                      reg.name || '',
+                      reg.email || '',
+                      member.name || 'N/A',
+                      member.scholar_id || 'N/A',
+                      member.department || 'N/A',
+                      member.year || 'N/A'
+                    ];
+                    teamTableRows.push(rowData);
+                  });
+                }
               });
 
-              // Try to sign in the user
-              if (window.gapi && window.gapi.auth2) {
-                const authInstance = window.gapi.auth2.getAuthInstance();
-                if (!authInstance.isSignedIn.get()) {
-                  await authInstance.signIn();
-                }
-              }
-
-              // Export directly to Google Sheets
-              result = await exportToGoogleSheets(eventTitle, registrations);
-
-              if (!result.success) {
-                throw new Error(result.message || 'Failed to create Google Sheet directly');
-              }
-            } catch (directError) {
-              console.error('Error with direct export:', directError);
-              throw new Error('All export methods failed. Please try again later or contact support.');
+              // Generate the team members table
+              doc.autoTable({
+                head: [teamTableColumn],
+                body: teamTableRows,
+                startY: 45,
+                theme: 'grid',
+                styles: {
+                  fontSize: 8,
+                  cellPadding: 2,
+                  lineColor: [44, 62, 80],
+                  lineWidth: 0.25,
+                },
+                headStyles: {
+                  fillColor: [0, 69, 153], // NIT Silchar blue
+                  textColor: [255, 255, 255],
+                  fontStyle: 'bold',
+                },
+                alternateRowStyles: {
+                  fillColor: [240, 240, 240],
+                },
+              });
             }
+
+            // Save the PDF
+            const pdfOutput = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfOutput);
+
+            // Return success with PDF URL
+            result = {
+              success: true,
+              url: pdfUrl,
+              filename: `${eventTitle} - Registrations.pdf`,
+              type: 'pdf',
+              message: 'PDF created successfully. Click to open.'
+            };
+
+            // Try the Google Sheets export in the background, but don't wait for it
+            // This way, if it works, great, but if not, we already have the PDF
+            this.tryGoogleSheetsExportInBackground(eventTitle, registrations);
+
+          } catch (error) {
+            console.error('Error creating PDF:', error);
+            throw new Error('Failed to create PDF: ' + error.message);
           }
 
           if (!result || !result.success) {

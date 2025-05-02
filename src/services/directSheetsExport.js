@@ -141,10 +141,12 @@ export const loadGoogleApiClient = (callback) => {
       window.gapi.client.init({
         // IMPORTANT: Replace these with your actual Google API credentials
         // Get these from Google Cloud Console: https://console.cloud.google.com/apis/credentials
-        apiKey: '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDfUCwmKxnOCMv0\n5rpCM3sA7W0HqqL26jOEQXYk3gINV2G597pat1F7lvYheHzZWg5bzUOIpqMgNHjS\nG6wp+eawgyz/TqwuGEUBgLftf7gEj/XYEy0V1AeahcflLWwwho32ooaEKJ96kPhw\nVQrttQpHl5NBpIPhLHhoNTwBbAzVCZ5aGLnJ4eM6n8CE7mIsb7rn+pE1UTDMA25d\nNQiOuQoMqriB6HSOzau8K8EXkVEcFc4hX+vWqFFMu2M28U/oNjZo7A4qTy3FY2No\nhP/VVJZn0yyf4UXMbAFkEQN+ICbSN+3pin/1Dprg5f0t6hpB5EYD2CSmVnQgfhZq\ni2FPumJdAgMBAAECggEADoxyQ+OnoQ+w/KSSL+vwsI/HUao2nHAyU68mxkzHGh1o\n8C0JMWMjZjI17i+jr/ljrsFsYUO8pEV8NZwN7FzWlbCwxsqrrFkdGHWisKYTKWDu\nUFnMzyZAKeYGBD1LAMz+BLpz7w+XzEFo83s8OgkDFsTzmAw4IfxmtSClZyZQnl8M\ngO7744/swYYpzrPJT07kp8LMLnT1Ucu5K3cg+BhAyAgtZ6BAb0ztk98oBYGW81Pi\ne8hWP32s5Ym07o56pudxe/MLfiLjs6EJ/h/KNHk1N6QJMbT4O8MVhIBLH9ShF/Hp\n3MZri9PEhlXlERVp8MdwJlRJ0CK6GUFheuN6CP2tgQKBgQD+T/oqWzOqopTexhVq\neAo7wpfH5HcwFK5TRCXdjcVJWW9fDdjFNj2j5lHCJJ5hiVSfbC6AkL/CIgUhSNku\nlK8JsEYny3kOxUdWlV1UHU0Q00JzTK6a1v1wTGTNzgj//mHDkT3YmzpEjKQuivCx\nBa6cGObb5TxB8/kURLsgMkvO4QKBgQDgy4i8fObXmF37xndveYuxJtFVBbdM9REE\nCvOFd3m52Qw3Y50KuoMRKSs+w69+7/qdB7nNInU8sSlEu3cXRTZeQ0x/CEEdlx5z\ne5wMmE6SBUp2llxhzmZ5xhTWr+zizQVdIL3VuTQb2BRGaefSbf3tXUF/z2ZeTc6x\nRLbgdHKu/QKBgFh0YvQWksr4D8XIqixFInIUxgw9+ALePqAxpOYB6KwRkn5CZ7J4\nokn+01Muv3P3e1qUGzyWnEwe3x/robbk+ljpWg1/ZVTw41ZHT5XxNxvyDzvhYR30\nR2Sm/azjzBeWWFTYkOVlYIf1TyntI7i+3DPpKWs0uZfLD0iwe1HAjMOhAoGBAIuc\n/YSLUleucxiPL9iVNbRFtpdGoIx0XCgVoR9Qj9JkQlkYTg2+vu5mkkw9/v4oj479\noGEOOKAEK+xbPeC/BMBQre7rsn1tQOVabRXJdmrsTE4QnrnEFhMlegXIZ6iIyv8G\n+cAGcZ2lexosZmVkGORWGfsGVb7WNjwUwDvxNtUFAoGALvOPPjxkOuaFI9Vov+xm\nZbBFuTDjfx9L5Qc1Tv87W2/IbvWC2PVOf9t5Q3YRiIlw9+Z9V0dmhnGu3DGmfh9E\n42x3dNfpnj4q+NGbNWdeA/vEe6k6Fzryakhi4azwNV94HkXbQhr2OO63Mq6dcBP/\nZSi+xHDAxau4gIIitRgNXhg=\n-----END PRIVATE KEY-----\n', // The API key from Google Cloud Console
-        clientId: '107173753714311583013', // The OAuth client ID from Google Cloud Console
+        apiKey: import.meta.env.GOOGLE_CREDENTIALS_PRIVATE_KEY,
+        clientId: import.meta.env.GOOGLE_CREDENTIALS_CLIENT_ID,
         discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
-        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file'
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+        // Add redirect URI that matches your deployment
+        redirect_uri: 'https://nits-event-managment.vercel.app'
       }).then(() => {
         if (callback) callback();
       }).catch(error => {
