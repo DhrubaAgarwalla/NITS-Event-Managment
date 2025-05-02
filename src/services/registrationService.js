@@ -3,6 +3,7 @@ import { database } from '../lib/firebase';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { exportToGoogleSheets, loadGoogleApiClient } from './directSheetsExport';
 
 // Registration-related database operations
 const registrationService = {
@@ -592,8 +593,8 @@ const registrationService = {
 
           let result;
           try {
-            // First try the serverless function
-            const response = await fetch('/api/sheets', {
+            // First try the serverless function with the full URL
+            const response = await fetch('https://nits-event-managment.vercel.app/api/sheets', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -613,31 +614,37 @@ const registrationService = {
               throw new Error('Empty response from server');
             }
           } catch (error) {
-            console.error('Error with serverless function, trying fallback server:', error);
+            console.error('Error with serverless function, trying direct export:', error);
 
-            // If serverless function fails, try the original server as fallback
-            const fallbackResponse = await fetch('http://localhost:3001/api/sheets/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(sheetsData)
-            });
+            // If serverless function fails, try direct export as a last resort
+            try {
+              // Load the Google API client if not already loaded
+              await new Promise((resolve) => {
+                loadGoogleApiClient(resolve);
+              });
 
-            console.log('Fallback API Response status:', fallbackResponse.status);
+              // Try to sign in the user
+              if (window.gapi && window.gapi.auth2) {
+                const authInstance = window.gapi.auth2.getAuthInstance();
+                if (!authInstance.isSignedIn.get()) {
+                  await authInstance.signIn();
+                }
+              }
 
-            const fallbackText = await fallbackResponse.text();
-            console.log('Fallback API Response text:', fallbackText);
+              // Export directly to Google Sheets
+              result = await exportToGoogleSheets(eventTitle, registrations);
 
-            if (fallbackText) {
-              result = JSON.parse(fallbackText);
-            } else {
-              throw new Error('Empty response from fallback server');
+              if (!result.success) {
+                throw new Error(result.message || 'Failed to create Google Sheet directly');
+              }
+            } catch (directError) {
+              console.error('Error with direct export:', directError);
+              throw new Error('All export methods failed. Please try again later or contact support.');
             }
           }
 
-          if (!result.success) {
-            throw new Error(result.message || 'Failed to create Google Sheet');
+          if (!result || !result.success) {
+            throw new Error((result && result.message) || 'Failed to create Google Sheet');
           }
 
           return {
