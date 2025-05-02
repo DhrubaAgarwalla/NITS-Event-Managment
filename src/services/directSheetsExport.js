@@ -141,8 +141,8 @@ export const loadGoogleApiClient = (callback) => {
       window.gapi.client.init({
         // IMPORTANT: Replace these with your actual Google API credentials
         // Get these from Google Cloud Console: https://console.cloud.google.com/apis/credentials
-        apiKey: import.meta.env.GOOGLE_CREDENTIALS_PRIVATE_KEY,
-        clientId: import.meta.env.GOOGLE_CREDENTIALS_CLIENT_ID,
+        apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+        clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
         // Add redirect URI that matches your deployment

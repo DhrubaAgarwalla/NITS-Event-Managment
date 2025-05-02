@@ -23,5 +23,17 @@
     },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  ],
+  "env": {
+    "GOOGLE_CREDENTIALS_TYPE": "@google_credentials_type",
+    "GOOGLE_CREDENTIALS_PROJECT_ID": "@google_credentials_project_id",
+    "GOOGLE_CREDENTIALS_PRIVATE_KEY_ID": "@google_credentials_private_key_id",
+    "GOOGLE_CREDENTIALS_PRIVATE_KEY": "@google_credentials_private_key",
+    "GOOGLE_CREDENTIALS_CLIENT_EMAIL": "@google_credentials_client_email",
+    "GOOGLE_CREDENTIALS_CLIENT_ID": "@google_credentials_client_id",
+    "GOOGLE_CREDENTIALS_AUTH_URI": "@google_credentials_auth_uri",
+    "GOOGLE_CREDENTIALS_TOKEN_URI": "@google_credentials_token_uri",
+    "GOOGLE_CREDENTIALS_AUTH_PROVIDER_CERT_URL": "@google_credentials_auth_provider_cert_url",
+    "GOOGLE_CREDENTIALS_CLIENT_CERT_URL": "@google_credentials_client_cert_url"
+  }
 }

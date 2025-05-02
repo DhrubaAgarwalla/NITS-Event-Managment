@@ -32,7 +32,7 @@ const registrationService = {
             }))
           };
 
-          const response = await fetch('https://nits-event-managment.vercel.app/api/sheets', {
+          const response = await fetch('/api/sheets', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
