@@ -230,71 +230,211 @@ const registrationService = {
       const exportData = registrations.map(reg => {
         // Format team members if present
         let teamMembersInfo = '';
+
         if (reg.additional_info && reg.additional_info.team_members && reg.additional_info.team_members.length > 0) {
-          // Create a more structured format for team members
+          // Create a more structured format for team members that works well in Excel
           teamMembersInfo = reg.additional_info.team_members.map((member, index) => {
-            return [
-              `Member ${index + 1}: ${member.name}`,
-              `Scholar ID: ${member.rollNumber || 'N/A'}`,
-              `Department: ${member.department || 'N/A'}`,
-              `Year: ${member.year || 'N/A'}`
-            ].join('\n');
-          }).join('\n\n');
+            return `Member ${index + 1}: ${member.name || 'N/A'}, Scholar ID: ${member.rollNumber || 'N/A'}, Dept: ${member.department || 'N/A'}, Year: ${member.year || 'N/A'}`;
+          }).join('\n');
+        }
+
+        // Format registration date
+        let formattedDate = 'N/A';
+        try {
+          formattedDate = new Date(reg.registration_date).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (e) {
+          console.error('Error formatting date:', e);
         }
 
         return {
-          'Name': reg.participant_name,
-          'Email': reg.participant_email,
+          'Name': reg.participant_name || 'N/A',
+          'Email': reg.participant_email || 'N/A',
           'Phone': reg.participant_phone || 'N/A',
           'Student ID': reg.participant_id || 'N/A',
           'Department': reg.additional_info?.department || 'N/A',
           'Year': reg.additional_info?.year || 'N/A',
           'Registration Type': reg.additional_info?.team_members ? 'Team' : 'Individual',
-          'Registration Date': new Date(reg.registration_date).toLocaleString(),
-          'Status': reg.status.charAt(0).toUpperCase() + reg.status.slice(1),
+          'Registration Date': formattedDate,
+          'Status': reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
           'Team Members': teamMembersInfo || 'N/A'
         };
       });
 
       if (format === 'excel') {
-        // Create Excel workbook
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        // Create a new workbook
         const workbook = XLSX.utils.book_new();
 
-        // Add event information as a header
-        XLSX.utils.sheet_add_aoa(worksheet, [
-          [`Event: ${eventTitle}`],
-          [`Generated on: ${new Date().toLocaleString()}`],
-          [''] // Empty row for spacing
-        ], { origin: 'A1' });
+        // Create a simple, clean, and editable format
 
-        // Adjust column widths for better readability
+        // First, create a header row with event information
+        const headerData = [
+          ['NIT SILCHAR EVENT REGISTRATION DATA'],
+          [`Event: ${eventTitle}`],
+          [`Generated: ${new Date().toLocaleString()}`],
+          ['']
+        ];
+
+        // Calculate registration statistics
+        const totalRegistrations = exportData.length;
+        const individualRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Individual').length;
+        const teamRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Team').length;
+
+        // Add statistics
+        headerData.push(['Registration Statistics:']);
+        headerData.push(['Total Registrations:', totalRegistrations]);
+        headerData.push(['Individual Registrations:', individualRegistrations]);
+        headerData.push(['Team Registrations:', teamRegistrations]);
+        headerData.push(['']);
+        headerData.push(['']);
+
+        // Create a clean, flat structure for the main data that's easy to edit
+        const flatData = [];
+
+        // Add header row
+        flatData.push([
+          'Serial No.',
+          'Name',
+          'Email',
+          'Phone',
+          'Student ID',
+          'Department',
+          'Year',
+          'Type',
+          'Registration Date',
+          'Status',
+          'Team Members',
+          'Notes'
+        ]);
+
+        // Add data rows
+        exportData.forEach((reg, index) => {
+          flatData.push([
+            index + 1, // Serial number
+            reg['Name'],
+            reg['Email'],
+            reg['Phone'],
+            reg['Student ID'],
+            reg['Department'],
+            reg['Year'],
+            reg['Registration Type'],
+            reg['Registration Date'],
+            reg['Status'],
+            reg['Team Members'], // Include team members information
+            '' // Empty notes column for clubs to add comments
+          ]);
+        });
+
+        // Combine header and data
+        const allData = [...headerData, ...flatData];
+
+        // Create worksheet from the combined data
+        const worksheet = XLSX.utils.aoa_to_sheet(allData);
+
+        // Set column widths for better readability and editing
         const columnWidths = [
+          { wch: 10 }, // Serial No.
           { wch: 25 }, // Name
           { wch: 30 }, // Email
           { wch: 15 }, // Phone
           { wch: 15 }, // Student ID
           { wch: 15 }, // Department
           { wch: 10 }, // Year
-          { wch: 15 }, // Registration Type
+          { wch: 15 }, // Type
           { wch: 20 }, // Registration Date
           { wch: 12 }, // Status
-          { wch: 50 }  // Team Members
+          { wch: 50 }, // Team Members
+          { wch: 30 }  // Notes
         ];
         worksheet['!cols'] = columnWidths;
 
-        // Apply styles to header row (A4:J4)
-        // Note: XLSX doesn't support direct styling, but we can prepare the data
-        // for better presentation
-
-        // Append the worksheet to the workbook
+        // Add the main worksheet to the workbook
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrations');
+
+        // Create a separate sheet for team members if needed
+        if (teamRegistrations > 0) {
+          // Create a simple header for team members sheet
+          const teamHeaderData = [
+            ['TEAM MEMBERS DETAILS'],
+            [`Event: ${eventTitle}`],
+            [`Generated: ${new Date().toLocaleString()}`],
+            ['']
+          ];
+
+          // Create a flat structure for team members
+          const teamFlatData = [];
+
+          // Add header row
+          teamFlatData.push([
+            'Serial No.',
+            'Team Lead',
+            'Team Lead Email',
+            'Member Name',
+            'Scholar ID',
+            'Department',
+            'Year',
+            'Status',
+            'Notes'
+          ]);
+
+          // Extract and flatten team member data
+          let serialNo = 1;
+          exportData.forEach(reg => {
+            if (reg['Registration Type'] === 'Team' &&
+                reg.additional_info &&
+                reg.additional_info.team_members &&
+                reg.additional_info.team_members.length > 0) {
+
+              reg.additional_info.team_members.forEach(member => {
+                teamFlatData.push([
+                  serialNo++,
+                  reg['Name'],
+                  reg['Email'],
+                  member.name || 'N/A',
+                  member.rollNumber || 'N/A',
+                  member.department || 'N/A',
+                  member.year || 'N/A',
+                  reg['Status'],
+                  '' // Empty notes column
+                ]);
+              });
+            }
+          });
+
+          // Combine header and data for team members
+          const allTeamData = [...teamHeaderData, ...teamFlatData];
+
+          // Create team members worksheet
+          const teamWorksheet = XLSX.utils.aoa_to_sheet(allTeamData);
+
+          // Set column widths
+          const teamColumnWidths = [
+            { wch: 10 }, // Serial No.
+            { wch: 25 }, // Team Lead
+            { wch: 30 }, // Team Lead Email
+            { wch: 25 }, // Member Name
+            { wch: 15 }, // Scholar ID
+            { wch: 15 }, // Department
+            { wch: 10 }, // Year
+            { wch: 15 }, // Status
+            { wch: 30 }  // Notes
+          ];
+          teamWorksheet['!cols'] = teamColumnWidths;
+
+          // Add team members sheet to workbook
+          XLSX.utils.book_append_sheet(workbook, teamWorksheet, 'Team Members');
+        }
 
         // Generate Excel file
         const excelBuffer = XLSX.write(workbook, {
           bookType: 'xlsx',
           type: 'array',
-          bookSST: false, // Generate Shared String Table for better compatibility
+          bookSST: true, // Generate Shared String Table for better compatibility
           compression: true // Use compression for smaller file size
         });
         const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

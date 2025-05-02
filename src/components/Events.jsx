@@ -95,6 +95,15 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
       ));
 
     return passesCategory && passesTag;
+  })
+  // Sort to ensure featured events appear first
+  .sort((a, b) => {
+    // Featured events first
+    if (a.is_featured && !b.is_featured) return -1;
+    if (!a.is_featured && b.is_featured) return 1;
+
+    // If both are featured or both are not featured, sort by start date
+    return new Date(a.start_date) - new Date(b.start_date);
   });
 
   useEffect(() => {
@@ -253,7 +262,24 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
                   className="event-image"
                 />
                 <div className="event-content">
-                  <span className="event-date">{formatEventDate(event.start_date, event.end_date)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="event-date">{formatEventDate(event.start_date, event.end_date)}</span>
+                    {event.is_featured && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                        color: '#ffd700',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold'
+                      }}>
+                        ⭐ Featured
+                      </span>
+                    )}
+                  </div>
                   <h3 className="event-title">{event.title}</h3>
                   <p className="event-description">{event.description}</p>
                   <div style={{

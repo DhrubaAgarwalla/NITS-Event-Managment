@@ -439,9 +439,17 @@ const eventService = {
 
       console.log(`Found ${featuredEvents.length} featured events`);
 
-      // Sort by start_date and limit
+      // Sort by updated_at (most recently featured first) then by start_date
       return featuredEvents
-        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+        .sort((a, b) => {
+          // First sort by updated_at (most recent first)
+          if (a.updated_at && b.updated_at) {
+            const dateComparison = new Date(b.updated_at) - new Date(a.updated_at);
+            if (dateComparison !== 0) return dateComparison;
+          }
+          // Then sort by start_date (soonest first)
+          return new Date(a.start_date) - new Date(b.start_date);
+        })
         .slice(0, limit);
     } catch (error) {
       console.error('Error getting featured events:', error);
