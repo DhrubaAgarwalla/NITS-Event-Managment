@@ -281,21 +281,20 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           return;
         }
 
-        // Create a more dynamic background
-        // First, fill with a dark gradient base
+        // Create a default background gradient (used if no vertical banner is available)
         const baseGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
         baseGradient.addColorStop(0, '#1a0033');  // Deep purple
         baseGradient.addColorStop(1, '#000033');  // Deep blue
         ctx.fillStyle = baseGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Add decorative elements - diagonal gradient bars
+        // Add decorative elements for the default background
         const barGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
         barGradient.addColorStop(0, 'rgba(131, 58, 180, 0.7)');  // Instagram purple
         barGradient.addColorStop(0.5, 'rgba(253, 29, 29, 0.7)'); // Instagram red
         barGradient.addColorStop(1, 'rgba(252, 176, 69, 0.7)');  // Instagram yellow
 
-        // Draw diagonal bars
+        // Draw diagonal bars for default background
         ctx.fillStyle = barGradient;
         ctx.globalAlpha = 0.6;
 
@@ -310,7 +309,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
         ctx.closePath();
         ctx.fill();
 
-        // Add some circles for visual interest
+        // Add some circles for visual interest in default background
         const circleColors = [
             'rgba(131, 58, 180, 0.4)',  // Purple
             'rgba(253, 29, 29, 0.4)',   // Red
@@ -333,68 +332,106 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
         // Reset alpha
         ctx.globalAlpha = 1.0;
 
-        // Add a semi-transparent overlay for better text readability
-        const overlayGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
-        overlayGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.4)');
-        overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
-        ctx.fillStyle = overlayGradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Check if vertical banner is available
+        if (event?.vertical_image_url) {
+          // Use vertical banner as background
+          const verticalImg = new Image();
+          verticalImg.crossOrigin = 'anonymous';
 
-        // Load event image if available
-        if (event?.image_url) {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
+          verticalImg.onload = () => {
+            // Draw vertical banner to fill the canvas
+            ctx.drawImage(verticalImg, 0, 0, canvas.width, canvas.height);
 
-          img.onload = () => {
-            // Draw image with a bit of transparency
-            ctx.globalAlpha = 0.6;
-
-            // Calculate dimensions to maintain aspect ratio and cover the canvas
-            const imgRatio = img.width / img.height;
-            const canvasRatio = canvas.width / canvas.height;
-
-            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
-
-            if (imgRatio > canvasRatio) {
-              // Image is wider than canvas ratio
-              drawHeight = canvas.height;
-              drawWidth = drawHeight * imgRatio;
-              offsetX = (canvas.width - drawWidth) / 2;
-            } else {
-              // Image is taller than canvas ratio
-              drawWidth = canvas.width;
-              drawHeight = drawWidth / imgRatio;
-              offsetY = (canvas.height - drawHeight) / 2;
-            }
-
-            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-            ctx.globalAlpha = 1.0;
+            // Add a semi-transparent overlay for better text readability
+            const overlayGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+            overlayGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.4)');
+            overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+            ctx.fillStyle = overlayGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Continue with text and other elements
             finishStoryImage();
           };
 
-          img.onerror = () => {
-            console.error('Failed to load event image');
-            // Continue without the image
-            finishStoryImage();
+          verticalImg.onerror = () => {
+            console.error('Failed to load vertical banner');
+            // Fall back to horizontal banner or default background
+            loadHorizontalBanner();
           };
 
-          // Start loading the image
-          img.src = event.image_url;
+          // Start loading the vertical image
+          verticalImg.src = event.vertical_image_url;
         } else {
-          // No image, just continue with text
-          finishStoryImage();
+          // No vertical banner, try horizontal banner
+          loadHorizontalBanner();
+        }
+
+        // Function to load horizontal banner as fallback
+        function loadHorizontalBanner() {
+          // Add a semi-transparent overlay for better text readability on default background
+          const overlayGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+          overlayGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.4)');
+          overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+          ctx.fillStyle = overlayGradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Load horizontal event image if available
+          if (event?.image_url) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+              // Draw image with a bit of transparency
+              ctx.globalAlpha = 0.6;
+
+              // Calculate dimensions to maintain aspect ratio and cover the canvas
+              const imgRatio = img.width / img.height;
+              const canvasRatio = canvas.width / canvas.height;
+
+              let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+              if (imgRatio > canvasRatio) {
+                // Image is wider than canvas ratio
+                drawHeight = canvas.height;
+                drawWidth = drawHeight * imgRatio;
+                offsetX = (canvas.width - drawWidth) / 2;
+              } else {
+                // Image is taller than canvas ratio
+                drawWidth = canvas.width;
+                drawHeight = drawWidth / imgRatio;
+                offsetY = (canvas.height - drawHeight) / 2;
+              }
+
+              ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+              ctx.globalAlpha = 1.0;
+
+              // Continue with text and other elements
+              finishStoryImage();
+            };
+
+            img.onerror = () => {
+              console.error('Failed to load event image');
+              // Continue without the image
+              finishStoryImage();
+            };
+
+            // Start loading the image
+            img.src = event.image_url;
+          } else {
+            // No image, just continue with text
+            finishStoryImage();
+          }
         }
 
         async function finishStoryImage() {
-          // Add a decorative header bar
-          const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-          headerGradient.addColorStop(0, 'rgba(131, 58, 180, 0.9)');
-          headerGradient.addColorStop(1, 'rgba(253, 29, 29, 0.9)');
-          ctx.fillStyle = headerGradient;
-          ctx.fillRect(0, 100, canvas.width, 120);
+          // Add blur box for NIT Silchar text for better visibility
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.filter = 'blur(10px)';
+          ctx.fillRect(canvas.width * 0.1, 100, canvas.width * 0.8, 120);
+          ctx.restore();
 
           // Add NIT Silchar logo/text to header
           ctx.font = 'bold 50px Arial';
@@ -402,16 +439,25 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           ctx.textAlign = 'center';
           ctx.fillText('NIT SILCHAR', canvas.width / 2, 180);
 
+          // Add club name if available (more prominent placement)
+          if (event?.clubs?.name) {
+            // Add blur box for club name
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.filter = 'blur(10px)';
+            ctx.fillRect(canvas.width * 0.15, 200, canvas.width * 0.7, 70);
+            ctx.restore();
+
+            ctx.font = 'bold 40px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Presented by ${event.clubs.name}`, canvas.width / 2, 250);
+          }
+
           // Add event title with a more stylish approach
           ctx.font = 'bold 80px Arial';
           ctx.fillStyle = 'white';
           ctx.textAlign = 'center';
-
-          // Add a subtle shadow to the title
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 15;
-          ctx.shadowOffsetX = 5;
-          ctx.shadowOffsetY = 5;
 
           // Wrap text function for long titles
           const wrapText = (text, maxWidth) => {
@@ -433,35 +479,57 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             return lines;
           };
 
-          // Draw title with wrapping
+          // Calculate title lines for positioning blur box
           const titleLines = wrapText(event?.title || 'Event', canvas.width - 200);
-          titleLines.forEach((line, index) => {
-            ctx.fillText(line, canvas.width / 2, 400 + (index * 90));
-          });
 
-          // Reset shadow
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
+          // Add blur box behind title for better visibility
+          const titleY = 350;
+          const titleHeight = titleLines.length * 90;
+          ctx.save();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.filter = 'blur(10px)';
+          ctx.fillRect(canvas.width * 0.1, titleY - 70, canvas.width * 0.8, titleHeight + 40);
+          ctx.restore();
+
+          // Draw title with wrapping
+          titleLines.forEach((line, index) => {
+            ctx.fillText(line, canvas.width / 2, 350 + (index * 90));
+          });
 
           // Add a decorative divider
           ctx.beginPath();
-          ctx.moveTo(canvas.width * 0.2, 550 + (titleLines.length * 90));
-          ctx.lineTo(canvas.width * 0.8, 550 + (titleLines.length * 90));
+          ctx.moveTo(canvas.width * 0.2, 500 + (titleLines.length * 90));
+          ctx.lineTo(canvas.width * 0.8, 500 + (titleLines.length * 90));
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.lineWidth = 3;
           ctx.stroke();
 
-          // Add event details in a more stylish card
-          const detailsY = 600 + (titleLines.length * 90);
+          // Extract first sentence from description for the about section
+          let aboutText = '';
+          if (event?.description) {
+            // Find the first period that ends a sentence
+            const firstPeriodIndex = event.description.indexOf('.');
+            if (firstPeriodIndex !== -1 && firstPeriodIndex < 150) {
+              // If there's a period and it's not too far in, use the first sentence
+              aboutText = event.description.substring(0, firstPeriodIndex + 1);
+            } else {
+              // Otherwise truncate to a reasonable length
+              aboutText = event.description.substring(0, 150) + '...';
+            }
+          }
+
+          // Add event details in a stylish card
+          const detailsY = 550 + (titleLines.length * 90);
+
+          // Calculate card height based on whether we have about text
+          const detailsCardHeight = aboutText ? 400 : 300;
 
           // Draw a semi-transparent card for details
           ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-          ctx.fillRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, 300);
+          ctx.fillRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, detailsCardHeight);
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
           ctx.lineWidth = 2;
-          ctx.strokeRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, 300);
+          ctx.strokeRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, detailsCardHeight);
 
           // Add event details with icons
           ctx.font = 'bold 45px Arial';
@@ -480,24 +548,44 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             ctx.fillText(`📍  ${event.location}`, detailsX, detailsY + 160);
           }
 
-          // Organizer
+          // Organizer (moved to top, but keep here as well for details section)
           if (event?.clubs?.name) {
             ctx.fillText(`👥  ${event.clubs.name}`, detailsX, detailsY + 240);
           }
 
-          // Add a dedicated space for the link with instructions
-          const linkY = detailsY + 400;
+          // Add about section within the details box
+          if (aboutText) {
+            // Add a subtle divider between details and about
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.2, detailsY + 290);
+            ctx.lineTo(canvas.width * 0.8, detailsY + 290);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
-          // Draw a special box for the link
-          const linkBoxGradient = ctx.createLinearGradient(0, linkY, 0, linkY + 200);
+            // Add description text with wrapping (no "About" header)
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'left';
+            const aboutLines = wrapText(aboutText, canvas.width * 0.6);
+            aboutLines.forEach((line, index) => {
+              ctx.fillText(line, detailsX, detailsY + 340 + (index * 40));
+            });
+          }
+
+          // Add a dedicated space for the link with instructions
+          const linkY = detailsY + detailsCardHeight + 50;
+
+          // Draw a special box for the link (even smaller size)
+          const linkBoxGradient = ctx.createLinearGradient(0, linkY, 0, linkY + 100);
           linkBoxGradient.addColorStop(0, 'rgba(253, 29, 29, 0.2)');
           linkBoxGradient.addColorStop(1, 'rgba(252, 176, 69, 0.2)');
           ctx.fillStyle = linkBoxGradient;
 
-          // Draw rounded rectangle for link box
-          const linkBoxX = canvas.width * 0.1;
-          const linkBoxWidth = canvas.width * 0.8;
-          const linkBoxHeight = 200;
+          // Draw rounded rectangle for link box (smaller size)
+          const linkBoxX = canvas.width * 0.25;
+          const linkBoxWidth = canvas.width * 0.5;
+          const linkBoxHeight = 100;
           const linkBoxRadius = 20;
 
           ctx.beginPath();
@@ -521,17 +609,17 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           ctx.setLineDash([]);
 
           // Add link instructions
-          ctx.font = 'bold 40px Arial';
+          ctx.font = 'bold 30px Arial';
           ctx.fillStyle = 'white';
           ctx.textAlign = 'center';
-          ctx.fillText('Paste your copied link here', canvas.width / 2, linkY + 100);
+          ctx.fillText('Paste your copied link here', canvas.width / 2, linkY + 55);
 
           // Generate a QR code for the event URL
           try {
             // Create a QR code using the library
             const qrSize = 200;
             const qrX = canvas.width - qrSize - 50;
-            const qrY = linkY - 250;
+            const qrY = detailsY + 50; // Position QR code next to the details box
 
             // Create a temporary canvas for the QR code
             const qrCanvas = document.createElement('canvas');
@@ -547,6 +635,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 light: '#FFFFFF'
               }
             });
+
+            // Add a white background for the QR code for better scanning
+            ctx.fillStyle = 'white';
+            ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
 
             // Draw the QR code onto the main canvas
             ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
@@ -566,7 +658,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             ctx.fillText('QR code generation failed', canvas.width / 2, linkY - 150);
           }
 
-          // Add a footer
+          // Add a footer with event info
           ctx.font = 'bold 40px Arial';
           ctx.fillStyle = 'white';
           ctx.textAlign = 'center';
