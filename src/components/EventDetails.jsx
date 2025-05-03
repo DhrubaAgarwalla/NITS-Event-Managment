@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import EventRegistration from './EventRegistration';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
+import QRCode from 'qrcode';
 import './MobileTabs.css';
 import './EventDetails.css';
 
@@ -148,34 +149,436 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     window.open(url, '_blank');
   };
 
+  // State for tracking Instagram Story generation
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+
   const shareOnInstagram = () => {
-    // For Instagram Stories, we need to use the Instagram app's URL scheme
-    // Since direct sharing to Instagram Stories via URL is limited, we'll create a shareable image
-    // and prompt the user to share it on Instagram
+    setIsGeneratingStory(true);
 
-    // First, copy the URL to clipboard
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      // Create a message to guide the user
-      const message = `Event URL copied to clipboard!\n\nTo share on Instagram Stories:\n1. Open Instagram app\n2. Create a new Story\n3. Paste the URL as a sticker\n4. Add the event banner image from your gallery`;
+    // First, copy the event URL to clipboard
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        console.log('Event URL copied to clipboard successfully');
 
-      // Alert the user with instructions
-      alert(message);
+        // Generate Instagram Story image
+        return generateInstagramStory();
+      })
+      .then(imageUrl => {
+        // Create a download link
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `${event?.title || 'event'}-instagram-story.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-      // Try to open Instagram app if on mobile
-      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      if (/android/i.test(userAgent)) {
-        // For Android
-        window.location.href = 'intent://instagram.com/_n/mainfeed/#Intent;package=com.instagram.android;scheme=https;end';
-      } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        // For iOS
-        window.location.href = 'instagram://';
-      } else {
-        // For desktop, open Instagram website
-        window.open('https://www.instagram.com', '_blank');
+        // Reset the loading state
+        setIsGeneratingStory(false);
+
+        // Show instructions with confirmation that link was copied
+        setTimeout(() => {
+          // Show a more detailed confirmation message
+          const confirmResult = confirm('✅ Event link copied to clipboard!\n📱 Instagram Story image downloaded.\n\nClick OK to open Instagram and share your story.');
+
+          // If user clicked OK, redirect to Instagram
+          if (confirmResult) {
+            // Try to open Instagram app based on device
+            const userAgent = navigator.userAgent;
+
+            try {
+              if (/android/i.test(userAgent)) {
+                // For Android - use a more reliable approach
+                window.location.href = 'intent://instagram.com/_n/camera/#Intent;package=com.instagram.android;scheme=https;end';
+
+                // Fallback if the intent URL doesn't work
+                setTimeout(() => {
+                  window.open('https://www.instagram.com', '_blank');
+                }, 2000);
+              } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                // For iOS - try the app URL scheme
+                window.location.href = 'instagram://camera';
+
+                // Fallback if the app URL doesn't work
+                setTimeout(() => {
+                  window.open('https://www.instagram.com', '_blank');
+                }, 2000);
+              } else {
+                // For desktop, open Instagram website
+                window.open('https://www.instagram.com', '_blank');
+              }
+            } catch (e) {
+              console.error('Failed to open Instagram:', e);
+              // Fallback to opening the website
+              window.open('https://www.instagram.com', '_blank');
+            }
+          }
+        }, 500);
+      })
+      .catch(err => {
+        console.error('Error in Instagram sharing process:', err);
+        setIsGeneratingStory(false);
+        alert('There was an error creating your Instagram story. Please try again.');
+
+        // Fallback to simpler sharing method
+        const fallbackMessage = 'Could not generate Instagram Story. Using simple sharing instead.';
+        console.warn(fallbackMessage);
+
+        // Copy the URL to clipboard
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          // Create a message to guide the user
+          const message = `Event URL copied to clipboard!\n\nTo share on Instagram:\n1. Open Instagram app\n2. Create a new Story\n3. Use the "Link" sticker to add the URL\n4. Add text about the event: "${event?.title || 'Event'}" at NIT Silchar`;
+
+          // Alert the user with instructions
+          alert(message);
+
+          // Try to open Instagram app if on mobile
+          try {
+            const userAgent = navigator.userAgent;
+            if (/android/i.test(userAgent)) {
+              // For Android
+              window.location.href = 'intent://instagram.com/_n/camera/#Intent;package=com.instagram.android;scheme=https;end';
+
+              // Fallback if the intent URL doesn't work
+              setTimeout(() => {
+                window.open('https://www.instagram.com', '_blank');
+              }, 2000);
+            } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+              // For iOS
+              window.location.href = 'instagram://camera';
+
+              // Fallback if the app URL doesn't work
+              setTimeout(() => {
+                window.open('https://www.instagram.com', '_blank');
+              }, 2000);
+            } else {
+              // For desktop, open Instagram website
+              window.open('https://www.instagram.com', '_blank');
+            }
+          } catch (e) {
+            console.error('Failed to open Instagram:', e);
+            // Fallback to opening the website
+            window.open('https://www.instagram.com', '_blank');
+          }
+        }).catch(clipboardErr => {
+          console.error('Failed to copy URL for Instagram sharing:', clipboardErr);
+          alert('Failed to share. Please try again or use another sharing method.');
+        });
+      });
+  };
+
+  // Generate Instagram Story image with event details
+  const generateInstagramStory = async () => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create canvas for Instagram Story (1080x1920 is standard Instagram Story size)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1920;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('Could not get canvas context');
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        // Create a more dynamic background
+        // First, fill with a dark gradient base
+        const baseGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        baseGradient.addColorStop(0, '#1a0033');  // Deep purple
+        baseGradient.addColorStop(1, '#000033');  // Deep blue
+        ctx.fillStyle = baseGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Add decorative elements - diagonal gradient bars
+        const barGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        barGradient.addColorStop(0, 'rgba(131, 58, 180, 0.7)');  // Instagram purple
+        barGradient.addColorStop(0.5, 'rgba(253, 29, 29, 0.7)'); // Instagram red
+        barGradient.addColorStop(1, 'rgba(252, 176, 69, 0.7)');  // Instagram yellow
+
+        // Draw diagonal bars
+        ctx.fillStyle = barGradient;
+        ctx.globalAlpha = 0.6;
+
+        // Top-left to bottom-right diagonal
+        ctx.beginPath();
+        ctx.moveTo(-100, -100);
+        ctx.lineTo(canvas.width * 0.3, -100);
+        ctx.lineTo(canvas.width + 100, canvas.height * 0.7);
+        ctx.lineTo(canvas.width + 100, canvas.height + 100);
+        ctx.lineTo(canvas.width * 0.7, canvas.height + 100);
+        ctx.lineTo(-100, canvas.height * 0.3);
+        ctx.closePath();
+        ctx.fill();
+
+        // Add some circles for visual interest
+        const circleColors = [
+            'rgba(131, 58, 180, 0.4)',  // Purple
+            'rgba(253, 29, 29, 0.4)',   // Red
+            'rgba(252, 176, 69, 0.4)',  // Yellow
+            'rgba(64, 93, 230, 0.4)'    // Blue
+        ];
+
+        // Draw circles of different sizes and positions
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const radius = 50 + Math.random() * 150;
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = circleColors[i % circleColors.length];
+            ctx.fill();
+        }
+
+        // Reset alpha
+        ctx.globalAlpha = 1.0;
+
+        // Add a semi-transparent overlay for better text readability
+        const overlayGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        overlayGradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+        overlayGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.4)');
+        overlayGradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+        ctx.fillStyle = overlayGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Load event image if available
+        if (event?.image_url) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+
+          img.onload = () => {
+            // Draw image with a bit of transparency
+            ctx.globalAlpha = 0.6;
+
+            // Calculate dimensions to maintain aspect ratio and cover the canvas
+            const imgRatio = img.width / img.height;
+            const canvasRatio = canvas.width / canvas.height;
+
+            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+
+            if (imgRatio > canvasRatio) {
+              // Image is wider than canvas ratio
+              drawHeight = canvas.height;
+              drawWidth = drawHeight * imgRatio;
+              offsetX = (canvas.width - drawWidth) / 2;
+            } else {
+              // Image is taller than canvas ratio
+              drawWidth = canvas.width;
+              drawHeight = drawWidth / imgRatio;
+              offsetY = (canvas.height - drawHeight) / 2;
+            }
+
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            ctx.globalAlpha = 1.0;
+
+            // Continue with text and other elements
+            finishStoryImage();
+          };
+
+          img.onerror = () => {
+            console.error('Failed to load event image');
+            // Continue without the image
+            finishStoryImage();
+          };
+
+          // Start loading the image
+          img.src = event.image_url;
+        } else {
+          // No image, just continue with text
+          finishStoryImage();
+        }
+
+        async function finishStoryImage() {
+          // Add a decorative header bar
+          const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          headerGradient.addColorStop(0, 'rgba(131, 58, 180, 0.9)');
+          headerGradient.addColorStop(1, 'rgba(253, 29, 29, 0.9)');
+          ctx.fillStyle = headerGradient;
+          ctx.fillRect(0, 100, canvas.width, 120);
+
+          // Add NIT Silchar logo/text to header
+          ctx.font = 'bold 50px Arial';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'center';
+          ctx.fillText('NIT SILCHAR', canvas.width / 2, 180);
+
+          // Add event title with a more stylish approach
+          ctx.font = 'bold 80px Arial';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'center';
+
+          // Add a subtle shadow to the title
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 15;
+          ctx.shadowOffsetX = 5;
+          ctx.shadowOffsetY = 5;
+
+          // Wrap text function for long titles
+          const wrapText = (text, maxWidth) => {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+              const word = words[i];
+              const width = ctx.measureText(currentLine + ' ' + word).width;
+              if (width < maxWidth) {
+                currentLine += ' ' + word;
+              } else {
+                lines.push(currentLine);
+                currentLine = word;
+              }
+            }
+            lines.push(currentLine);
+            return lines;
+          };
+
+          // Draw title with wrapping
+          const titleLines = wrapText(event?.title || 'Event', canvas.width - 200);
+          titleLines.forEach((line, index) => {
+            ctx.fillText(line, canvas.width / 2, 400 + (index * 90));
+          });
+
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+
+          // Add a decorative divider
+          ctx.beginPath();
+          ctx.moveTo(canvas.width * 0.2, 550 + (titleLines.length * 90));
+          ctx.lineTo(canvas.width * 0.8, 550 + (titleLines.length * 90));
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // Add event details in a more stylish card
+          const detailsY = 600 + (titleLines.length * 90);
+
+          // Draw a semi-transparent card for details
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.fillRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, 300);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(canvas.width * 0.15, detailsY, canvas.width * 0.7, 300);
+
+          // Add event details with icons
+          ctx.font = 'bold 45px Arial';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'left';
+          const detailsX = canvas.width * 0.2;
+
+          // Date
+          if (event?.start_date) {
+            const dateText = formatEventDate(event.start_date, event.end_date);
+            ctx.fillText(`📅  ${dateText}`, detailsX, detailsY + 80);
+          }
+
+          // Location
+          if (event?.location) {
+            ctx.fillText(`📍  ${event.location}`, detailsX, detailsY + 160);
+          }
+
+          // Organizer
+          if (event?.clubs?.name) {
+            ctx.fillText(`👥  ${event.clubs.name}`, detailsX, detailsY + 240);
+          }
+
+          // Add a dedicated space for the link with instructions
+          const linkY = detailsY + 400;
+
+          // Draw a special box for the link
+          const linkBoxGradient = ctx.createLinearGradient(0, linkY, 0, linkY + 200);
+          linkBoxGradient.addColorStop(0, 'rgba(253, 29, 29, 0.2)');
+          linkBoxGradient.addColorStop(1, 'rgba(252, 176, 69, 0.2)');
+          ctx.fillStyle = linkBoxGradient;
+
+          // Draw rounded rectangle for link box
+          const linkBoxX = canvas.width * 0.1;
+          const linkBoxWidth = canvas.width * 0.8;
+          const linkBoxHeight = 200;
+          const linkBoxRadius = 20;
+
+          ctx.beginPath();
+          ctx.moveTo(linkBoxX + linkBoxRadius, linkY);
+          ctx.lineTo(linkBoxX + linkBoxWidth - linkBoxRadius, linkY);
+          ctx.quadraticCurveTo(linkBoxX + linkBoxWidth, linkY, linkBoxX + linkBoxWidth, linkY + linkBoxRadius);
+          ctx.lineTo(linkBoxX + linkBoxWidth, linkY + linkBoxHeight - linkBoxRadius);
+          ctx.quadraticCurveTo(linkBoxX + linkBoxWidth, linkY + linkBoxHeight, linkBoxX + linkBoxWidth - linkBoxRadius, linkY + linkBoxHeight);
+          ctx.lineTo(linkBoxX + linkBoxRadius, linkY + linkBoxHeight);
+          ctx.quadraticCurveTo(linkBoxX, linkY + linkBoxHeight, linkBoxX, linkY + linkBoxHeight - linkBoxRadius);
+          ctx.lineTo(linkBoxX, linkY + linkBoxRadius);
+          ctx.quadraticCurveTo(linkBoxX, linkY, linkBoxX + linkBoxRadius, linkY);
+          ctx.closePath();
+          ctx.fill();
+
+          // Add a dashed border
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([10, 5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Add link instructions
+          ctx.font = 'bold 40px Arial';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'center';
+          ctx.fillText('Paste your copied link here', canvas.width / 2, linkY + 100);
+
+          // Generate a QR code for the event URL
+          try {
+            // Create a QR code using the library
+            const qrSize = 200;
+            const qrX = canvas.width - qrSize - 50;
+            const qrY = linkY - 250;
+
+            // Create a temporary canvas for the QR code
+            const qrCanvas = document.createElement('canvas');
+            qrCanvas.width = qrSize;
+            qrCanvas.height = qrSize;
+
+            // Generate QR code on the temporary canvas
+            await QRCode.toCanvas(qrCanvas, shareUrl, {
+              width: qrSize,
+              margin: 1,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+
+            // Draw the QR code onto the main canvas
+            ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+            // Add "Scan to register" text
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText('Scan to register', qrX + qrSize/2, qrY + qrSize + 30);
+          } catch (err) {
+            console.error('Failed to generate QR code:', err);
+
+            // Fallback to a message if QR code generation fails
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText('QR code generation failed', canvas.width / 2, linkY - 150);
+          }
+
+          // Add a footer
+          ctx.font = 'bold 40px Arial';
+          ctx.fillStyle = 'white';
+          ctx.textAlign = 'center';
+          ctx.fillText('NIT Silchar Events', canvas.width / 2, canvas.height - 100);
+
+          // Convert canvas to image URL
+          const imageUrl = canvas.toDataURL('image/png');
+          resolve(imageUrl);
+        }
+      } catch (err) {
+        reject(err);
       }
-    }).catch(err => {
-      console.error('Failed to copy URL for Instagram sharing: ', err);
-      alert('Failed to copy URL. Please try again.');
     });
   };
 
@@ -233,6 +636,40 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
   return (
     <section className="section" id="event-details">
+      {/* Loading indicator for Instagram Story generation */}
+      {isGeneratingStory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid rgba(255, 255, 255, 0.3)',
+            borderTop: '5px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '20px'
+          }} />
+          <p style={{ color: 'white', fontSize: '1.2rem' }}>Creating Instagram Story...</p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
+
       <div className="container">
         {/* Back Button */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -638,13 +1075,32 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                     className="social-share-button"
                     style={{
                       background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                      color: 'white'
+                      color: 'white',
+                      position: 'relative',
+                      overflow: 'visible'
                     }}
                     onClick={shareOnInstagram}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                     </svg>
+
+                    {/* Story indicator */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      backgroundColor: '#fff',
+                      color: '#dc2743',
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      padding: '2px 4px',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      textTransform: 'uppercase'
+                    }}>
+                      Story
+                    </div>
                   </button>
 
                   <button
@@ -1201,10 +1657,12 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                   className="social-share-button"
                   style={{
                     background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                    color: 'white'
+                    color: 'white',
+                    position: 'relative',
+                    overflow: 'visible'
                   }}
                   onClick={shareOnInstagram}
-                  title="Share on Instagram"
+                  title="Create Instagram Story"
                   onMouseOver={(e) => {
                     e.currentTarget.style.transform = 'translateY(-3px)';
                     e.currentTarget.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.3)';
@@ -1217,6 +1675,23 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                   </svg>
+
+                  {/* Story indicator */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#fff',
+                    color: '#dc2743',
+                    fontSize: '9px',
+                    fontWeight: 'bold',
+                    padding: '2px 4px',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    textTransform: 'uppercase'
+                  }}>
+                    Story
+                  </div>
                 </button>
 
                 {/* Copy Link */}

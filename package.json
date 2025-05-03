@@ -29,6 +29,7 @@
     "jspdf-autotable": "^5.0.2",
     "node-fetch": "^3.3.2",
     "prisma": "^6.6.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-lazy-load-image-component": "^1.6.3",
