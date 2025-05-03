@@ -329,27 +329,37 @@ const eventService = {
   },
 
   // Create a new event
-  createEvent: async (eventData, imageFile = null) => {
+  createEvent: async (eventData, imageFile = null, verticalImageFile = null) => {
     try {
       console.log('Creating new event:', eventData.title);
 
-      // Upload image if provided
-      let imageUrl = null;
+      // Upload horizontal banner if provided
+      let imageUrl = eventData.image_url || null;
       if (imageFile) {
-        console.log('Uploading event image to Cloudinary');
+        console.log('Uploading horizontal banner to Cloudinary');
         const uploadResult = await uploadImage(imageFile, 'event-images');
         imageUrl = uploadResult.url;
-        console.log('Image uploaded successfully:', imageUrl);
+        console.log('Horizontal banner uploaded successfully:', imageUrl);
       }
 
-      // Create event with image URL
+      // Upload vertical banner if provided
+      let verticalImageUrl = eventData.vertical_image_url || null;
+      if (verticalImageFile) {
+        console.log('Uploading vertical banner to Cloudinary');
+        const uploadResult = await uploadImage(verticalImageFile, 'event-images-vertical');
+        verticalImageUrl = uploadResult.url;
+        console.log('Vertical banner uploaded successfully:', verticalImageUrl);
+      }
+
+      // Create event with image URLs
       const eventsRef = ref(database, 'events');
       const newEventRef = push(eventsRef);
 
-      // Prepare event data with image URL and timestamps
+      // Prepare event data with image URLs and timestamps
       const newEvent = {
         ...eventData,
         image_url: imageUrl,
+        vertical_image_url: verticalImageUrl,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -369,16 +379,24 @@ const eventService = {
   },
 
   // Update an event
-  updateEvent: async (id, updates, imageFile = null) => {
+  updateEvent: async (id, updates, imageFile = null, verticalImageFile = null) => {
     try {
       console.log(`Updating event with ID: ${id}`);
 
-      // Upload new image if provided
+      // Upload new horizontal banner if provided
       if (imageFile) {
-        console.log('Uploading new event image to Cloudinary');
+        console.log('Uploading new horizontal banner to Cloudinary');
         const uploadResult = await uploadImage(imageFile, 'event-images');
         updates.image_url = uploadResult.url;
-        console.log('New image uploaded successfully:', updates.image_url);
+        console.log('New horizontal banner uploaded successfully:', updates.image_url);
+      }
+
+      // Upload new vertical banner if provided
+      if (verticalImageFile) {
+        console.log('Uploading new vertical banner to Cloudinary');
+        const uploadResult = await uploadImage(verticalImageFile, 'event-images-vertical');
+        updates.vertical_image_url = uploadResult.url;
+        console.log('New vertical banner uploaded successfully:', updates.vertical_image_url);
       }
 
       // Update the event

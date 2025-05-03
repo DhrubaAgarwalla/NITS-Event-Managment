@@ -20,9 +20,15 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Horizontal banner (main event banner)
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Vertical banner (for sharing)
+  const [verticalImageFile, setVerticalImageFile] = useState(null);
+  const [verticalImagePreview, setVerticalImagePreview] = useState('');
+  const [verticalUploadProgress, setVerticalUploadProgress] = useState(0);
 
   // Form state
   const [creationStep, setCreationStep] = useState('');
@@ -204,7 +210,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     });
   };
 
-  // Handle image file selection
+  // Handle image file selection for horizontal banner
   const handleImageChange = (e) => {
     setError(''); // Clear any previous errors
     const file = e.target.files[0];
@@ -218,8 +224,8 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       return;
     }
 
-    // Check file size (max 5MB)
-    const maxSizeMB = 5;
+    // Check file size (max 10MB)
+    const maxSizeMB = 10;
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > maxSizeMB) {
       setError(`Image is too large (${fileSizeMB.toFixed(2)}MB). Maximum size is ${maxSizeMB}MB.`);
@@ -227,7 +233,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       return;
     }
 
-    console.log(`Selected image: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+    console.log(`Selected horizontal banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
 
     // Preview the selected image
     const reader = new FileReader();
@@ -241,6 +247,45 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     reader.readAsDataURL(file);
 
     setImageFile(file);
+  };
+
+  // Handle image file selection for vertical banner
+  const handleVerticalImageChange = (e) => {
+    setError(''); // Clear any previous errors
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file type
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(file.type)) {
+      setError(`Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.`);
+      e.target.value = ''; // Reset the input
+      return;
+    }
+
+    // Check file size (max 10MB)
+    const maxSizeMB = 10;
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > maxSizeMB) {
+      setError(`Vertical image is too large (${fileSizeMB.toFixed(2)}MB). Maximum size is ${maxSizeMB}MB.`);
+      e.target.value = ''; // Reset the input
+      return;
+    }
+
+    console.log(`Selected vertical banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+
+    // Preview the selected image
+    const reader = new FileReader();
+    reader.onload = () => {
+      setVerticalImagePreview(reader.result);
+    };
+    reader.onerror = () => {
+      setError('Failed to read the selected vertical image. Please try another file.');
+      e.target.value = ''; // Reset the input
+    };
+    reader.readAsDataURL(file);
+
+    setVerticalImageFile(file);
   };
 
   // Handle schedule changes
@@ -317,7 +362,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     }));
   };
 
-  // Upload image to Cloudinary - this is now only used for preview and progress tracking
+  // Upload horizontal image to Cloudinary - this is now only used for preview and progress tracking
   // The actual upload is handled by eventService.createEvent
   const handleImageUpload = async () => {
     if (!imageFile) return null;
@@ -325,11 +370,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     try {
       // Set initial upload progress
       setUploadProgress(0);
-      console.log('Starting image upload process to Cloudinary...');
+      console.log('Starting horizontal banner upload process to Cloudinary...');
 
       // Check file size
       const fileSizeMB = imageFile.size / (1024 * 1024);
-      console.log(`File size: ${fileSizeMB.toFixed(2)} MB`);
+      console.log(`Horizontal banner file size: ${fileSizeMB.toFixed(2)} MB`);
 
       if (fileSizeMB > 10) {
         throw new Error(`File size (${fileSizeMB.toFixed(2)} MB) exceeds the 10 MB limit`);
@@ -337,7 +382,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Upload progress: ${progress}%`);
+        console.log(`Horizontal banner upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -345,19 +390,63 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       const result = await uploadImage(imageFile, 'event-images', updateProgress);
 
       if (!result || !result.url) {
-        throw new Error('Image upload failed: No URL returned from Cloudinary');
+        throw new Error('Horizontal banner upload failed: No URL returned from Cloudinary');
       }
 
-      console.log('Upload successful, URL:', result.url);
+      console.log('Horizontal banner upload successful, URL:', result.url);
       setUploadProgress(100);
 
       // Return the public URL
       return result.url;
     } catch (err) {
-      console.error('Error uploading image to Cloudinary:', err);
+      console.error('Error uploading horizontal banner to Cloudinary:', err);
       // Return null instead of throwing to allow event creation to continue
-      setError(`Image upload failed: ${err.message}. Event will be created without an image.`);
+      setError(`Horizontal banner upload failed: ${err.message}. Event will be created without a horizontal banner.`);
       setUploadProgress(0); // Reset progress
+      return null;
+    }
+  };
+
+  // Upload vertical image to Cloudinary
+  const handleVerticalImageUpload = async () => {
+    if (!verticalImageFile) return null;
+
+    try {
+      // Set initial upload progress
+      setVerticalUploadProgress(0);
+      console.log('Starting vertical banner upload process to Cloudinary...');
+
+      // Check file size
+      const fileSizeMB = verticalImageFile.size / (1024 * 1024);
+      console.log(`Vertical banner file size: ${fileSizeMB.toFixed(2)} MB`);
+
+      if (fileSizeMB > 10) {
+        throw new Error(`Vertical banner file size (${fileSizeMB.toFixed(2)} MB) exceeds the 10 MB limit`);
+      }
+
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Vertical banner upload progress: ${progress}%`);
+        setVerticalUploadProgress(progress);
+      };
+
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(verticalImageFile, 'event-images-vertical', updateProgress);
+
+      if (!result || !result.url) {
+        throw new Error('Vertical banner upload failed: No URL returned from Cloudinary');
+      }
+
+      console.log('Vertical banner upload successful, URL:', result.url);
+      setVerticalUploadProgress(100);
+
+      // Return the public URL
+      return result.url;
+    } catch (err) {
+      console.error('Error uploading vertical banner to Cloudinary:', err);
+      // Return null instead of throwing to allow event creation to continue
+      setError(`Vertical banner upload failed: ${err.message}. Event will be created without a vertical banner.`);
+      setVerticalUploadProgress(0); // Reset progress
       return null;
     }
   };
@@ -392,20 +481,37 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         throw new Error('End date must be after start date');
       }
 
-      // Upload image if selected
+      // Upload horizontal banner if selected
       let imageUrl = null;
       if (imageFile) {
         try {
-          setCreationStep('uploading_image');
+          setCreationStep('uploading_horizontal_image');
           imageUrl = await handleImageUpload();
           // If upload failed but didn't throw (returned null), we can continue without an image
           if (!imageUrl) {
-            console.warn('Image upload returned null, continuing without image');
+            console.warn('Horizontal banner upload returned null, continuing without horizontal banner');
           }
         } catch (uploadErr) {
           // Log the error but continue with event creation
-          console.error('Image upload error (continuing without image):', uploadErr);
-          setError(`Image upload failed: ${uploadErr.message}. Continuing without image.`);
+          console.error('Horizontal banner upload error (continuing without image):', uploadErr);
+          setError(`Horizontal banner upload failed: ${uploadErr.message}. Continuing without horizontal banner.`);
+        }
+      }
+
+      // Upload vertical banner if selected
+      let verticalImageUrl = null;
+      if (verticalImageFile) {
+        try {
+          setCreationStep('uploading_vertical_image');
+          verticalImageUrl = await handleVerticalImageUpload();
+          // If upload failed but didn't throw (returned null), we can continue without a vertical image
+          if (!verticalImageUrl) {
+            console.warn('Vertical banner upload returned null, continuing without vertical banner');
+          }
+        } catch (uploadErr) {
+          // Log the error but continue with event creation
+          console.error('Vertical banner upload error (continuing without image):', uploadErr);
+          setError(`Vertical banner upload failed: ${uploadErr.message}. Continuing without vertical banner.`);
         }
       }
 
@@ -426,6 +532,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         registration_method: formData.registration_method || 'internal',
         external_form_url: formData.external_form_url || null,
         image_url: imageUrl || null,
+        vertical_image_url: verticalImageUrl || null, // Add vertical banner URL
         registration_open: formData.registration_open
       };
 
@@ -496,9 +603,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       // Race between the event creation and the timeout
       const createdEvent = await Promise.race([
         (async () => {
-          // First create the event - pass both eventData and imageFile
-          // This ensures the image is uploaded directly by the service
-          const newEvent = await eventService.createEvent(eventData, imageFile);
+          // First create the event - pass eventData, imageFile, and verticalImageFile
+          // This ensures the images are uploaded directly by the service
+          const newEvent = await eventService.createEvent(eventData, imageFile, verticalImageFile);
 
           // Then add tags if any are selected
           if (formData.selectedTags && formData.selectedTags.length > 0) {
@@ -576,6 +683,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         setImageFile(null);
         setImagePreview('');
         setUploadProgress(0);
+        setVerticalImageFile(null);
+        setVerticalImagePreview('');
+        setVerticalUploadProgress(0);
 
         // Notify parent component only if we have a real event ID
         if (createdEvent.id !== 'pending' && onEventCreated) {
@@ -855,86 +965,185 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label
-                  htmlFor="image"
-                  style={{
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-secondary)'
-                  }}
-                >
-                  Event Banner Image
-                </label>
-                <input
-                  type="file"
-                  id="image"
-                  name="image"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{
-                    width: '100%',
-                    padding: '0.8rem 1rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '4px',
-                    color: 'var(--text-primary)',
-                    fontSize: '1rem'
-                  }}
-                />
+                <h4 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                  Event Banners
+                </h4>
 
-                {imagePreview && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Preview:</p>
-                    <img
-                      src={imagePreview}
-                      alt="Event banner preview"
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '200px',
-                        borderRadius: '4px',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {uploadProgress > 0 && (
-                  <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: uploadProgress === 100 ? '#2ecc71' : 'var(--primary)' }}>
-                        {uploadProgress === 100 ? 'Upload Complete!' : `Uploading Image: ${uploadProgress}%`}
-                      </p>
-                      {uploadProgress === 100 && (
-                        <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
-                      )}
-                    </div>
-
-                    <div style={{
+                {/* Horizontal Banner */}
+                <div style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+                  <label
+                    htmlFor="image"
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    Horizontal Banner (Main Event Banner)
+                  </label>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                    This banner will be used as the main event image. Recommended size: 1200×600px (2:1 ratio).
+                  </p>
+                  <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{
                       width: '100%',
-                      height: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      padding: '0.8rem 1rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${uploadProgress}%`,
-                        height: '100%',
-                        backgroundColor: uploadProgress === 100 ? '#2ecc71' : 'var(--primary)',
-                        transition: 'width 0.3s ease',
-                        boxShadow: '0 0 5px rgba(0, 0, 0, 0.3)'
-                      }} />
-                    </div>
+                      color: 'var(--text-primary)',
+                      fontSize: '1rem'
+                    }}
+                  />
 
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
-                      {uploadProgress < 30 && 'Reading file...'}
-                      {uploadProgress >= 30 && uploadProgress < 50 && 'Processing image...'}
-                      {uploadProgress >= 50 && uploadProgress < 90 && 'Uploading to server...'}
-                      {uploadProgress >= 90 && uploadProgress < 100 && 'Finalizing...'}
-                      {uploadProgress === 100 && 'Image uploaded successfully!'}
-                    </p>
-                  </div>
-                )}
+                  {imagePreview && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Preview:</p>
+                      <img
+                        src={imagePreview}
+                        alt="Horizontal banner preview"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: '200px',
+                          borderRadius: '4px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {uploadProgress > 0 && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: uploadProgress === 100 ? '#2ecc71' : 'var(--primary)' }}>
+                          {uploadProgress === 100 ? 'Upload Complete!' : `Uploading Horizontal Banner: ${uploadProgress}%`}
+                        </p>
+                        {uploadProgress === 100 && (
+                          <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
+                        )}
+                      </div>
+
+                      <div style={{
+                        width: '100%',
+                        height: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${uploadProgress}%`,
+                          height: '100%',
+                          backgroundColor: uploadProgress === 100 ? '#2ecc71' : 'var(--primary)',
+                          transition: 'width 0.3s ease',
+                          boxShadow: '0 0 5px rgba(0, 0, 0, 0.3)'
+                        }} />
+                      </div>
+
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                        {uploadProgress < 30 && 'Reading file...'}
+                        {uploadProgress >= 30 && uploadProgress < 50 && 'Processing image...'}
+                        {uploadProgress >= 50 && uploadProgress < 90 && 'Uploading to server...'}
+                        {uploadProgress >= 90 && uploadProgress < 100 && 'Finalizing...'}
+                        {uploadProgress === 100 && 'Image uploaded successfully!'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vertical Banner */}
+                <div style={{ marginBottom: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+                  <label
+                    htmlFor="verticalImage"
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    Vertical Banner (For Sharing on Social Media)
+                  </label>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                    This banner will be used for Instagram stories and other vertical formats. Recommended size: 1080×1920px (9:16 ratio).
+                  </p>
+                  <input
+                    type="file"
+                    id="verticalImage"
+                    name="verticalImage"
+                    accept="image/*"
+                    onChange={handleVerticalImageChange}
+                    style={{
+                      width: '100%',
+                      padding: '0.8rem 1rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '4px',
+                      color: 'var(--text-primary)',
+                      fontSize: '1rem'
+                    }}
+                  />
+
+                  {verticalImagePreview && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Preview:</p>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <img
+                          src={verticalImagePreview}
+                          alt="Vertical banner preview"
+                          style={{
+                            maxWidth: '200px',
+                            maxHeight: '356px', // Maintain 9:16 aspect ratio
+                            borderRadius: '4px',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {verticalUploadProgress > 0 && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: verticalUploadProgress === 100 ? '#2ecc71' : 'var(--primary)' }}>
+                          {verticalUploadProgress === 100 ? 'Upload Complete!' : `Uploading Vertical Banner: ${verticalUploadProgress}%`}
+                        </p>
+                        {verticalUploadProgress === 100 && (
+                          <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
+                        )}
+                      </div>
+
+                      <div style={{
+                        width: '100%',
+                        height: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${verticalUploadProgress}%`,
+                          height: '100%',
+                          backgroundColor: verticalUploadProgress === 100 ? '#2ecc71' : 'var(--primary)',
+                          transition: 'width 0.3s ease',
+                          boxShadow: '0 0 5px rgba(0, 0, 0, 0.3)'
+                        }} />
+                      </div>
+
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                        {verticalUploadProgress < 30 && 'Reading file...'}
+                        {verticalUploadProgress >= 30 && verticalUploadProgress < 50 && 'Processing image...'}
+                        {verticalUploadProgress >= 50 && verticalUploadProgress < 90 && 'Uploading to server...'}
+                        {verticalUploadProgress >= 90 && verticalUploadProgress < 100 && 'Finalizing...'}
+                        {verticalUploadProgress === 100 && 'Image uploaded successfully!'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -26,6 +26,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     registration_method: 'internal',
     external_form_url: '',
     image_url: '',
+    vertical_image_url: '', // Added vertical banner URL
     registration_open: true,
     selectedTags: [],
     // Schedule data
@@ -38,9 +39,15 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       }
     ]
   });
+  // Horizontal banner (main event banner)
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Vertical banner (for sharing)
+  const [verticalImageFile, setVerticalImageFile] = useState(null);
+  const [verticalImagePreview, setVerticalImagePreview] = useState('');
+  const [verticalUploadProgress, setVerticalUploadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -117,9 +124,13 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         schedule: scheduleData
       });
 
-      // Set image preview if URL exists
+      // Set image previews if URLs exist
       if (event.image_url) {
         setImagePreview(event.image_url);
+      }
+
+      if (event.vertical_image_url) {
+        setVerticalImagePreview(event.vertical_image_url);
       }
     }
   }, [event]);
@@ -228,14 +239,14 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }));
   };
 
-  // Handle image file selection
+  // Handle horizontal image file selection
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
 
       // Check file size (limit to 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        setError('Image must be less than 10MB');
+        setError('Horizontal banner must be less than 10MB');
         return;
       }
 
@@ -244,14 +255,30 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }
   };
 
-  // Upload image to Cloudinary
+  // Handle vertical image file selection
+  const handleVerticalImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Vertical banner must be less than 10MB');
+        return;
+      }
+
+      setVerticalImageFile(file);
+      setVerticalImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Upload horizontal image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     try {
       setUploadProgress(0);
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Upload progress: ${progress}%`);
+        console.log(`Horizontal banner upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -259,13 +286,39 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       const result = await uploadImage(file, 'event-images', updateProgress);
 
       if (!result || !result.url) {
-        throw new Error('Image upload failed: No URL returned from Cloudinary');
+        throw new Error('Horizontal banner upload failed: No URL returned from Cloudinary');
       }
 
       setUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading image to Cloudinary:', err);
+      console.error('Error uploading horizontal banner to Cloudinary:', err);
+      throw err;
+    }
+  };
+
+  // Upload vertical image to Cloudinary
+  const uploadVerticalImageToCloudinary = async (file) => {
+    try {
+      setVerticalUploadProgress(0);
+
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Vertical banner upload progress: ${progress}%`);
+        setVerticalUploadProgress(progress);
+      };
+
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(file, 'event-images-vertical', updateProgress);
+
+      if (!result || !result.url) {
+        throw new Error('Vertical banner upload failed: No URL returned from Cloudinary');
+      }
+
+      setVerticalUploadProgress(100);
+      return result.url;
+    } catch (err) {
+      console.error('Error uploading vertical banner to Cloudinary:', err);
       throw err;
     }
   };
@@ -306,14 +359,25 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         throw new Error('End date/time must be after start date/time');
       }
 
-      // Upload image if a new one is selected
+      // Upload horizontal banner if a new one is selected
       let imageUrl = formData.image_url;
       if (imageFile) {
         try {
-          setError('Uploading image...');
+          setError('Uploading horizontal banner...');
           imageUrl = await uploadImageToCloudinary(imageFile);
         } catch (uploadError) {
-          throw new Error(`Error uploading image: ${uploadError.message}`);
+          throw new Error(`Error uploading horizontal banner: ${uploadError.message}`);
+        }
+      }
+
+      // Upload vertical banner if a new one is selected
+      let verticalImageUrl = formData.vertical_image_url;
+      if (verticalImageFile) {
+        try {
+          setError('Uploading vertical banner...');
+          verticalImageUrl = await uploadVerticalImageToCloudinary(verticalImageFile);
+        } catch (uploadError) {
+          throw new Error(`Error uploading vertical banner: ${uploadError.message}`);
         }
       }
 
@@ -336,14 +400,15 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         registration_method: formData.registration_method,
         external_form_url: formData.external_form_url || null,
         image_url: imageUrl,
+        vertical_image_url: verticalImageUrl, // Add vertical banner URL
         registration_open: formData.registration_open,
         additional_info: {
           schedule: formData.schedule
         }
       };
 
-      // Update event
-      const updatedEvent = await eventService.updateEvent(event.id, eventData);
+      // Update event - pass both image files
+      const updatedEvent = await eventService.updateEvent(event.id, eventData, imageFile, verticalImageFile);
 
       // Handle tags separately
       if (formData.selectedTags && Array.isArray(formData.selectedTags)) {
@@ -1051,97 +1116,200 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Media</h3>
+          <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Event Banners</h3>
 
-          <div style={{
-            border: '2px dashed rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            padding: '1rem',
-            textAlign: 'center',
-            marginBottom: '1rem',
-            cursor: 'pointer',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)'
-          }}
-          onClick={() => document.getElementById('event-image-upload').click()}
-          >
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Event Preview"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '250px',
-                  borderRadius: '8px',
-                  marginBottom: '0.5rem'
-                }}
+          {/* Horizontal Banner */}
+          <div style={{ marginBottom: '1.5rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+            <h4 style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '1rem' }}>Horizontal Banner (Main Event Banner)</h4>
+
+            <div style={{
+              border: '2px dashed rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1rem',
+              textAlign: 'center',
+              marginBottom: '1rem',
+              cursor: 'pointer',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)'
+            }}
+            onClick={() => document.getElementById('event-image-upload').click()}
+            >
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Horizontal Banner Preview"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '250px',
+                    borderRadius: '8px',
+                    marginBottom: '0.5rem'
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '200px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                    <div>Click to upload horizontal banner</div>
+                  </div>
+                </div>
+              )}
+              <input
+                type="file"
+                id="event-image-upload"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
               />
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '200px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)'
-              }}>
-                <div>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
-                  <div>Click to upload event banner</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Recommended: 1200x600px (2:1 ratio), max 10MB
+              </div>
+            </div>
+
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                  Uploading horizontal banner... {uploadProgress}%
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${uploadProgress}%`,
+                    height: '100%',
+                    backgroundColor: 'var(--primary)',
+                    transition: 'width 0.3s ease'
+                  }} />
                 </div>
               </div>
             )}
-            <input
-              type="file"
-              id="event-image-upload"
-              accept="image/*"
-              onChange={handleImageChange}
-              style={{ display: 'none' }}
-            />
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Recommended: 1200x600px, max 10MB
+
+            <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+              <label htmlFor="image_url" style={labelStyle}>
+                Horizontal Banner URL (Optional - Upload above or enter URL)
+              </label>
+              <input
+                type="url"
+                id="image_url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (e.target.value) {
+                    setImagePreview(e.target.value);
+                  }
+                }}
+                style={inputStyle}
+                placeholder="https://example.com/horizontal-banner.jpg"
+              />
             </div>
           </div>
 
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                Uploading image... {uploadProgress}%
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
+          {/* Vertical Banner */}
+          <div style={{ marginBottom: '1rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '1rem', borderRadius: '8px' }}>
+            <h4 style={{ marginTop: 0, marginBottom: '0.75rem', fontSize: '1rem' }}>Vertical Banner (For Sharing on Social Media)</h4>
+
+            <div style={{
+              border: '2px dashed rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1rem',
+              textAlign: 'center',
+              marginBottom: '1rem',
+              cursor: 'pointer',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)'
+            }}
+            onClick={() => document.getElementById('vertical-image-upload').click()}
+            >
+              {verticalImagePreview ? (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <img
+                    src={verticalImagePreview}
+                    alt="Vertical Banner Preview"
+                    style={{
+                      maxWidth: '200px',
+                      maxHeight: '356px', // Maintain 9:16 aspect ratio
+                      borderRadius: '8px',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                </div>
+              ) : (
                 <div style={{
-                  width: `${uploadProgress}%`,
-                  height: '100%',
-                  backgroundColor: 'var(--primary)',
-                  transition: 'width 0.3s ease'
-                }} />
+                  width: '100%',
+                  height: '200px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>➕</div>
+                    <div>Click to upload vertical banner</div>
+                  </div>
+                </div>
+              )}
+              <input
+                type="file"
+                id="vertical-image-upload"
+                accept="image/*"
+                onChange={handleVerticalImageChange}
+                style={{ display: 'none' }}
+              />
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Recommended: 1080x1920px (9:16 ratio), max 10MB
               </div>
             </div>
-          )}
 
-          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-            <label htmlFor="image_url" style={labelStyle}>
-              Image URL (Optional - Upload above or enter URL)
-            </label>
-            <input
-              type="url"
-              id="image_url"
-              name="image_url"
-              value={formData.image_url}
-              onChange={(e) => {
-                handleChange(e);
-                if (e.target.value) {
-                  setImagePreview(e.target.value);
-                }
-              }}
-              style={inputStyle}
-              placeholder="https://example.com/image.jpg"
-            />
+            {verticalUploadProgress > 0 && verticalUploadProgress < 100 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                  Uploading vertical banner... {verticalUploadProgress}%
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${verticalUploadProgress}%`,
+                    height: '100%',
+                    backgroundColor: 'var(--primary)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+              <label htmlFor="vertical_image_url" style={labelStyle}>
+                Vertical Banner URL (Optional - Upload above or enter URL)
+              </label>
+              <input
+                type="url"
+                id="vertical_image_url"
+                name="vertical_image_url"
+                value={formData.vertical_image_url}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (e.target.value) {
+                    setVerticalImagePreview(e.target.value);
+                  }
+                }}
+                style={inputStyle}
+                placeholder="https://example.com/vertical-banner.jpg"
+              />
+            </div>
           </div>
         </div>
 
