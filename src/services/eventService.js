@@ -44,15 +44,27 @@ const eventService = {
         return [];
       }
 
-      const tags = [];
+      // Use a Map to ensure unique tags by ID
+      const uniqueTagsMap = new Map();
+
       snapshot.forEach((childSnapshot) => {
-        tags.push({
-          id: childSnapshot.key,
-          ...childSnapshot.val()
-        });
+        const tagId = childSnapshot.key;
+        const tagData = childSnapshot.val();
+
+        // Only add if not already in the map
+        if (!uniqueTagsMap.has(tagId)) {
+          uniqueTagsMap.set(tagId, {
+            id: tagId,
+            ...tagData
+          });
+        }
       });
 
-      console.log(`Found ${tags.length} tags`);
+      // Convert Map to array and sort by name
+      const tags = Array.from(uniqueTagsMap.values())
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      console.log(`Found ${tags.length} unique tags`);
       return tags;
     } catch (error) {
       console.error('Error getting tags:', error);

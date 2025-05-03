@@ -229,69 +229,72 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
 
   return (
     <motion.div
-      className="profile-editor"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="profile-editor full-page"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       style={{
-        backgroundColor: 'var(--dark-surface)',
-        borderRadius: '10px',
-        padding: '1.25rem',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        width: '90%',
-        margin: '0 auto',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-        overflowY: 'auto'
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: 'var(--dark-bg)',
+        padding: '2rem 0'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Edit Club Profile</h2>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: '1.5rem',
-            cursor: 'pointer'
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      {error && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: 'rgba(255, 0, 0, 0.1)',
-            borderLeft: '4px solid #ff0033',
-            marginBottom: '1rem',
-            color: '#ff0033',
-            fontSize: '0.9rem'
-          }}
-        >
-          {error}
+      <div className="container" style={{ maxWidth: '900px', margin: '0 auto', padding: '0 1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', backgroundColor: 'var(--dark-surface)', padding: '1rem', borderRadius: '8px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit Club Profile</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: 'var(--text-primary)',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span>Back</span> ↩
+          </button>
         </div>
-      )}
 
-      {success && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: 'rgba(0, 255, 0, 0.1)',
-            borderLeft: '4px solid #00cc00',
-            marginBottom: '1rem',
-            color: '#00cc00',
-            fontSize: '0.9rem'
-          }}
-        >
-          Profile updated successfully!
-        </div>
-      )}
+        <div style={{ backgroundColor: 'var(--dark-surface)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
 
-      <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                borderLeft: '4px solid #ff0033',
+                marginBottom: '1rem',
+                color: '#ff0033',
+                fontSize: '0.9rem'
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                borderLeft: '4px solid #00cc00',
+                marginBottom: '1rem',
+                color: '#00cc00',
+                fontSize: '0.9rem'
+              }}
+            >
+              Profile updated successfully!
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Basic Information</h3>
 
@@ -663,7 +666,9 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
             {isLoading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
-      </form>
+          </form>
+        </div>
+      </div>
     </motion.div>
   );
 };

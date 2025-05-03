@@ -98,16 +98,12 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           }));
         }
 
-        // Fetch tags from the database
+        // Fetch tags from the database - already deduplicated and sorted in the service
         const tagsList = await eventService.getAllTags();
         console.log('Tags loaded:', tagsList);
 
         if (tagsList && tagsList.length > 0) {
-          // Remove duplicate tags by name
-          const uniqueTags = tagsList.filter((tag, index, self) =>
-            index === self.findIndex(t => t.name.toLowerCase() === tag.name.toLowerCase())
-          );
-          setTags(uniqueTags);
+          setTags(tagsList);
         } else {
           console.warn('No tags found in the database');
           // Use hardcoded tags as fallback
@@ -771,7 +767,16 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                     onChange={handleInputChange}
                     required
                     options={categories && categories.length > 0 ?
-                      categories.map(category => ({
+                      Array.from(
+                        // Use a Map to deduplicate categories by name
+                        categories.reduce((map, category) => {
+                          // Only add if this category name isn't already in the map
+                          if (!map.has(category.name.toLowerCase())) {
+                            map.set(category.name.toLowerCase(), category);
+                          }
+                          return map;
+                        }, new Map()).values()
+                      ).map(category => ({
                         value: category.id,
                         label: category.name
                       })) :
@@ -829,7 +834,16 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                       selectedTags: e.target.value
                     }));
                   }}
-                  options={tags.map(tag => ({
+                  options={Array.from(
+                    // Use a Map to deduplicate tags by name
+                    tags.reduce((map, tag) => {
+                      // Only add if this tag name isn't already in the map
+                      if (!map.has(tag.name.toLowerCase())) {
+                        map.set(tag.name.toLowerCase(), tag);
+                      }
+                      return map;
+                    }, new Map()).values()
+                  ).map(tag => ({
                     value: tag.id,
                     label: tag.name
                   }))}

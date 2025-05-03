@@ -11,6 +11,7 @@ import './styles/clubDashboardMobile.css'
 import './styles/eventDetailsMobile.css'
 import './styles/clubDetailsMobile.css'
 import './styles/aboutMobile.css'
+import './styles/modal.css'
 
 // Connection Indicator (hidden)
 // import ConnectionIndicator from './components/ConnectionIndicator'
@@ -263,7 +264,7 @@ function App() {
             {currentPage === 'about' && <About setCurrentPage={setCurrentPage} />}
 
             {currentPage === 'event-details' && <EventDetails setCurrentPage={setCurrentPage} eventId={selectedEventId} />}
-            {currentPage === 'club-details' && <ClubDetails setCurrentPage={setCurrentPage} clubId={selectedClubId} />}
+            {currentPage === 'club-details' && <ClubDetails setCurrentPage={setCurrentPage} clubId={selectedClubId} setSelectedEventId={setSelectedEventId} />}
             {currentPage === 'events-page' && <EventsPage setCurrentPage={setCurrentPage} setSelectedEventId={setSelectedEventId} />}
             {currentPage === 'clubs-page' && <ClubsPage setCurrentPage={setCurrentPage} setSelectedClubId={setSelectedClubId} />}
             {currentPage === 'login' && <Login setCurrentPage={setCurrentPage} setIsClubLoggedIn={setIsClubLoggedIn} />}

@@ -7,7 +7,7 @@ import { navigateTo } from '../utils/navigation';
 import ClubGallery from './ClubGallery';
 import './MobileTabs.css';
 
-const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
+const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId = () => {} }) => {
   const [club, setClub] = useState(null);
   const [clubEvents, setClubEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +98,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
         <div className="container">
           <div style={{ marginBottom: '1.5rem' }}>
             <button
-              onClick={() => setCurrentPage('home')}
+              onClick={() => setCurrentPage('clubs-page')}
               className="btn"
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
@@ -119,7 +119,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
         {/* Back Button */}
         <div style={{ marginBottom: '1.5rem' }}>
           <button
-            onClick={() => setCurrentPage('home')}
+            onClick={() => setCurrentPage('clubs-page')}
             className="btn"
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
@@ -297,29 +297,63 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                         }}
                         onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                         onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        onClick={() => {
+                        onClick={(e) => {
+                          // Set the selected event ID
                           setSelectedEventId(event.id);
-                          navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
+
+                          // Navigate to the event details page directly
+                          setCurrentPage('event-details');
+
+                          // Update the URL for shareable links
+                          window.history.pushState({}, '', `/event/${event.id}`);
                         }}
                       >
                         <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
                         <p style={{ margin: '0 0 1rem', color: 'var(--accent)' }}>
                           {formatEventDate(event.start_date, event.end_date)}
                         </p>
-                        <p style={{ margin: 0 }}>{event.description}</p>
-                        {event.categories && (
-                          <div style={{
-                            marginTop: '1rem',
-                            display: 'inline-block',
-                            padding: '0.2rem 0.5rem',
-                            backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
-                            borderRadius: '4px',
-                            color: event.categories.color || 'var(--primary)',
-                            fontSize: '0.8rem'
-                          }}>
-                            {event.categories.name}
-                          </div>
-                        )}
+                        <p style={{ margin: '0 0 1rem' }}>{event.description}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                          {event.categories && (
+                            <div style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                              borderRadius: '4px',
+                              color: event.categories.color || 'var(--primary)',
+                              fontSize: '0.8rem'
+                            }}>
+                              {event.categories.name}
+                            </div>
+                          )}
+                          <button
+                            className="btn"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.9rem',
+                              backgroundColor: 'var(--primary)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent the parent div's onClick from firing
+
+                              // First set the selected event ID
+                              setSelectedEventId(event.id);
+
+                              // Then navigate to the event details page
+                              // We need to make sure setCurrentPage is called directly
+                              setCurrentPage('event-details');
+
+                              // Update the URL for shareable links
+                              window.history.pushState({}, '', `/event/${event.id}`);
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -867,29 +901,63 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId }) => {
                         }}
                         onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                         onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        onClick={() => {
+                        onClick={(e) => {
+                          // Set the selected event ID
                           setSelectedEventId(event.id);
-                          navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
+
+                          // Navigate to the event details page directly
+                          setCurrentPage('event-details');
+
+                          // Update the URL for shareable links
+                          window.history.pushState({}, '', `/event/${event.id}`);
                         }}
                       >
                         <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
                         <p style={{ margin: '0 0 1rem', color: 'var(--accent)' }}>
                           {formatEventDate(event.start_date, event.end_date)}
                         </p>
-                        <p style={{ margin: 0 }}>{event.description}</p>
-                        {event.categories && (
-                          <div style={{
-                            marginTop: '1rem',
-                            display: 'inline-block',
-                            padding: '0.2rem 0.5rem',
-                            backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
-                            borderRadius: '4px',
-                            color: event.categories.color || 'var(--primary)',
-                            fontSize: '0.8rem'
-                          }}>
-                            {event.categories.name}
-                          </div>
-                        )}
+                        <p style={{ margin: '0 0 1rem' }}>{event.description}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                          {event.categories && (
+                            <div style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                              borderRadius: '4px',
+                              color: event.categories.color || 'var(--primary)',
+                              fontSize: '0.8rem'
+                            }}>
+                              {event.categories.name}
+                            </div>
+                          )}
+                          <button
+                            className="btn"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.9rem',
+                              backgroundColor: 'var(--primary)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent the parent div's onClick from firing
+
+                              // First set the selected event ID
+                              setSelectedEventId(event.id);
+
+                              // Then navigate to the event details page
+                              // We need to make sure setCurrentPage is called directly
+                              setCurrentPage('event-details');
+
+                              // Update the URL for shareable links
+                              window.history.pushState({}, '', `/event/${event.id}`);
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

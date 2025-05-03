@@ -158,6 +158,17 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
     );
   }
 
+  // If editing, show only the editor
+  if (isEditing && event) {
+    return (
+      <AdminEventEditor
+        event={event}
+        onClose={() => setIsEditing(false)}
+        onUpdate={handleEventUpdate}
+      />
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -647,26 +658,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       </div>
 
       {/* Edit Modal */}
-      {isEditing && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <AdminEventEditor
-            event={event}
-            onClose={() => setIsEditing(false)}
-            onUpdate={handleEventUpdate}
-          />
-        </div>
-      )}
+      {/* AdminEventEditor is now rendered as a full page component */}
     </motion.div>
   );
 };

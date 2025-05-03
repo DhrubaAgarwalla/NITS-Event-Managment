@@ -177,113 +177,139 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%'
+                  }}
                 >
                   <img
                     src={event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3'}
                     alt={event.title}
                     className="event-image"
                   />
-                  <div className="event-content">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="event-date">{formatEventDate(event.start_date, event.end_date)}</span>
-                      {event.is_featured && (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                          color: '#ffd700',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold'
-                        }}>
-                          ⭐ Featured
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="event-title">{event.title}</h3>
-                    <p className="event-description">{event.description}</p>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginTop: '0.5rem',
-                      fontSize: '0.8rem',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem'
-                    }}>
-                      {/* Category */}
-                      {(event.category || event.categories) && (
-                        <span style={{
-                          padding: '0.2rem 0.5rem',
-                          backgroundColor: `${(event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'}20`,
-                          borderRadius: '4px',
-                          textTransform: 'capitalize',
-                          color: (event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'
-                        }}>
-                          {(event.category && event.category.name) || (event.categories && event.categories.name) || 'Uncategorized'}
-                        </span>
-                      )}
-
-                      {/* Tags - Show limited tags (max 6) */}
-                      {event.tags && event.tags.slice(0, 6).map((tag, idx) => (
-                        <span
-                          key={idx}
-                          style={{
+                  <div className="event-content" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    justifyContent: 'space-between'
+                  }}>
+                    <div className="event-content-top">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="event-date">{formatEventDate(event.start_date, event.end_date)}</span>
+                        {event.is_featured && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                            color: '#ffd700',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}>
+                            ⭐ Featured
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="event-title">{event.title}</h3>
+                      <p className="event-description">{event.description}</p>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginTop: '0.5rem',
+                        fontSize: '0.8rem',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem'
+                      }}>
+                        {/* Category */}
+                        {(event.category || event.categories) && (
+                          <span style={{
                             padding: '0.2rem 0.5rem',
-                            backgroundColor: `${tag.color || '#6c5ce7'}15`,
+                            backgroundColor: `${(event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'}20`,
                             borderRadius: '4px',
                             textTransform: 'capitalize',
-                            color: tag.color || '#6c5ce7',
+                            color: (event.category && event.category.color) || (event.categories && event.categories.color) || 'var(--primary)'
+                          }}>
+                            {(event.category && event.category.name) || (event.categories && event.categories.name) || 'Uncategorized'}
+                          </span>
+                        )}
+
+                        {/* Tags - Show limited tags (max 6) */}
+                        {event.tags && event.tags.slice(0, 6).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: `${tag.color || '#6c5ce7'}15`,
+                              borderRadius: '4px',
+                              textTransform: 'capitalize',
+                              color: tag.color || '#6c5ce7',
+                              cursor: 'pointer'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Filter by tag name
+                              setSearchTerm(tag.name);
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+
+                        {/* Show +X more if there are more tags */}
+                        {event.tags && event.tags.length > 6 && (
+                          <span style={{
+                            padding: '0.2rem 0.5rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '4px',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.7rem',
                             cursor: 'pointer'
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Filter by tag name
-                            setSearchTerm(tag.name);
+                            setSelectedEventId(event.id);
+                            navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
                           }}
-                        >
-                          {tag.name}
-                        </span>
-                      ))}
+                          >
+                            +{event.tags.length - 6} more
+                          </span>
+                        )}
 
-                      {/* Show +X more if there are more tags */}
-                      {event.tags && event.tags.length > 6 && (
-                        <span style={{
-                          padding: '0.2rem 0.5rem',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: '4px',
-                          color: 'var(--text-secondary)',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        {/* Club name */}
+                        {(event.club || event.clubs) && (
+                          <span style={{
+                            marginLeft: 'auto',
+                            color: 'var(--primary)',
+                            fontWeight: '600',
+                            backgroundColor: 'rgba(var(--primary-rgb), 0.1)',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span style={{ fontSize: '0.9rem' }}>🏢</span>
+                            {(event.club && event.club.name) || (event.clubs && event.clubs.name) || 'Unknown Club'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="event-content-bottom" style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+                      <button
+                        onClick={() => {
                           setSelectedEventId(event.id);
                           navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
                         }}
-                        >
-                          +{event.tags.length - 6} more
-                        </span>
-                      )}
-
-                      {/* Club name */}
-                      {(event.club || event.clubs) && (
-                        <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                          {(event.club && event.club.name) || (event.clubs && event.clubs.name) || 'Unknown Club'}
-                        </span>
-                      )}
+                        className="btn"
+                        style={{ width: '100%' }}
+                      >
+                        View Details
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setSelectedEventId(event.id);
-                        navigateTo(setCurrentPage, 'event-details', { eventId: event.id });
-                      }}
-                      className="btn"
-                      style={{ marginTop: '1rem' }}
-                    >
-                      View Details
-                    </button>
                   </div>
                 </motion.div>
               ))

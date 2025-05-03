@@ -450,6 +450,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
     setIsEditingProfile(false);
   };
 
+  // We're removing the body.modal-open class as it's causing issues
+
   // Format date for display
   const formatDate = (dateString, formatStr = 'MMM d, yyyy h:mm a') => {
     if (!dateString) return 'N/A';
@@ -491,6 +493,46 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
           Return to Home
         </button>
       </div>
+    );
+  }
+
+  // If editing an event, show only the event editor
+  if (isEditingEvent && eventToEdit) {
+    return (
+      <EventEditor
+        event={eventToEdit}
+        onClose={() => {
+          setIsEditingEvent(false);
+          setEventToEdit(null);
+        }}
+        onUpdate={(updatedEvent) => {
+          // Update the event in the events list
+          setEvents(prevEvents =>
+            prevEvents.map(event =>
+              event.id === updatedEvent.id ? updatedEvent : event
+            )
+          );
+
+          // If this is the selected event, update it
+          if (selectedEvent && selectedEvent.id === updatedEvent.id) {
+            setSelectedEvent(updatedEvent);
+          }
+
+          // Close the editor
+          setIsEditingEvent(false);
+          setEventToEdit(null);
+        }}
+      />
+    );
+  }
+
+  // If editing profile, show only the profile editor
+  if (isEditingProfile) {
+    return (
+      <ClubProfileEditor
+        onClose={() => setIsEditingProfile(false)}
+        onUpdate={handleProfileUpdate}
+      />
     );
   }
 
@@ -565,29 +607,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
           </div>
         )}
 
-        {/* Profile Editor Modal */}
-        {isEditingProfile && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.9)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1000,
-              backdropFilter: 'blur(5px)'
-            }}
-          >
-            <ClubProfileEditor
-              onClose={() => setIsEditingProfile(false)}
-              onUpdate={handleProfileUpdate}
-            />
-          </div>
-        )}
+        {/* ClubProfileEditor is now rendered as a full page component */}
 
         {/* Dashboard Header */}
         <div
@@ -842,7 +862,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       className="event-image"
                       style={{
                         width: '200px',
-                        height: '100%',
+                        minWidth: '200px',
+                        height: 'auto',
                         backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80'})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
@@ -856,7 +877,10 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           right: '1rem',
                           display: 'flex',
                           gap: '0.5rem',
-                          zIndex: 5
+                          zIndex: 5,
+                          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                          borderRadius: '4px',
+                          padding: '0.25rem'
                         }}
                       >
                         <button
@@ -890,7 +914,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         </button>
                       </div>
 
-                      <div className="event-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div className="event-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '1.5rem' }}>
                         <div>
                           <h3 className="event-title" style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
                           <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)' }}>
@@ -955,7 +979,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                             'rgba(255, 68, 227, 0.2)',
                             color: event.status === 'upcoming' ? 'var(--primary)' :
                                    event.status === 'ongoing' ? 'var(--accent)' :
-                                   'var(--secondary)'
+                                   'var(--secondary)',
+                            marginRight: '3rem'
                           }}
                         >
                           {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
@@ -2182,8 +2207,18 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
       {/* Modals */}
       {isEditingProfile && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div className="modal-content" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            // Close modal when clicking outside the content
+            if (e.target.className === 'modal-overlay') {
+              setIsEditingProfile(false);
+            }
+          }}
+        >
+          <div
+            className="modal-content"
+          >
             <ClubProfileEditor
               onClose={() => setIsEditingProfile(false)}
               onUpdate={handleProfileUpdate}
@@ -2192,40 +2227,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         </div>
       )}
 
-      {isEditingEvent && eventToEdit && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div className="modal-content" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
-            <EventEditor
-              event={eventToEdit}
-              onClose={() => {
-                setIsEditingEvent(false);
-                setEventToEdit(null);
-              }}
-              onUpdate={(updatedEvent) => {
-                // Update the event in the events list
-                setEvents(prevEvents =>
-                  prevEvents.map(event =>
-                    event.id === updatedEvent.id ? updatedEvent : event
-                  )
-                );
-
-                // If this is the selected event, update it
-                if (selectedEvent && selectedEvent.id === updatedEvent.id) {
-                  setSelectedEvent(updatedEvent);
-                }
-
-                // Close the editor
-                setIsEditingEvent(false);
-                setEventToEdit(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* EventEditor is now rendered as a full page component */}
 
       {selectedRegistration && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div className="modal-content" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            // Close modal when clicking outside the content
+            if (e.target.className === 'modal-overlay') {
+              setSelectedRegistration(null);
+            }
+          }}
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: '600px' }} /* Override the default 800px max-width */
+          >
             <RegistrationDetails
               registration={selectedRegistration}
               onClose={() => setSelectedRegistration(null)}

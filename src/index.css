@@ -15,8 +15,11 @@
   -moz-osx-font-smoothing: grayscale;
 
   --primary: #6e44ff;
+  --primary-rgb: 110, 68, 255;
   --secondary: #ff44e3;
+  --secondary-rgb: 255, 68, 227;
   --accent: #44ffd2;
+  --accent-rgb: 68, 255, 210;
   --dark-bg: #050505;
   --dark-surface: #111111;
   --text-primary: rgba(255, 255, 255, 0.87);

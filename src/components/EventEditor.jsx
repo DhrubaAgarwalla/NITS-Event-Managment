@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+  import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
@@ -27,7 +27,16 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     external_form_url: '',
     image_url: '',
     registration_open: true,
-    selectedTags: []
+    selectedTags: [],
+    // Schedule data
+    schedule: [
+      {
+        day: 'Day 1',
+        events: [
+          { time: '09:00', title: 'Opening Ceremony', location: '' }
+        ]
+      }
+    ]
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -44,9 +53,9 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         const categoriesData = await eventService.getCategories();
         setCategories(categoriesData || []);
 
-        // Load tags
+        // Load tags - already deduplicated and sorted in the service
         const tagsData = await eventService.getAllTags();
-        setTags(tagsData || []);
+        setTags(tagsData);
       } catch (err) {
         console.error('Error loading categories or tags:', err);
         setError('Failed to load categories or tags');
@@ -71,6 +80,21 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         ? event.tags.map(tag => tag.id)
         : [];
 
+      // Get schedule data from event if available
+      let scheduleData = [
+        {
+          day: 'Day 1',
+          events: [
+            { time: '09:00', title: 'Opening Ceremony', location: '' }
+          ]
+        }
+      ];
+
+      // Check if event has additional_info with schedule
+      if (event.additional_info && event.additional_info.schedule && Array.isArray(event.additional_info.schedule)) {
+        scheduleData = event.additional_info.schedule;
+      }
+
       setFormData({
         title: event.title || '',
         description: event.description || '',
@@ -89,7 +113,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         external_form_url: event.external_form_url || '',
         image_url: event.image_url || '',
         registration_open: event.registration_open !== false, // Default to true if not explicitly set to false
-        selectedTags: selectedTagIds
+        selectedTags: selectedTagIds,
+        schedule: scheduleData
       });
 
       // Set image preview if URL exists
@@ -127,6 +152,80 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         };
       }
     });
+  };
+
+  // Handle schedule changes
+  const handleScheduleChange = (dayIndex, eventIndex, field, value) => {
+    const updatedSchedule = [...formData.schedule];
+    updatedSchedule[dayIndex].events[eventIndex][field] = value;
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: updatedSchedule
+    }));
+  };
+
+  // Add a new day to the schedule
+  const addScheduleDay = () => {
+    const dayNumber = formData.schedule.length + 1;
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: [
+        ...prev.schedule,
+        {
+          day: `Day ${dayNumber}`,
+          events: [
+            { time: '09:00', title: '', location: '' }
+          ]
+        }
+      ]
+    }));
+  };
+
+  // Add a new event to a day's schedule
+  const addScheduleEvent = (dayIndex) => {
+    const updatedSchedule = [...formData.schedule];
+    updatedSchedule[dayIndex].events.push({ time: '09:00', title: '', location: '' });
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: updatedSchedule
+    }));
+  };
+
+  // Remove an event from a day's schedule
+  const removeScheduleEvent = (dayIndex, eventIndex) => {
+    const updatedSchedule = [...formData.schedule];
+    updatedSchedule[dayIndex].events.splice(eventIndex, 1);
+
+    // If no events left, add a default one
+    if (updatedSchedule[dayIndex].events.length === 0) {
+      updatedSchedule[dayIndex].events.push({ time: '09:00', title: '', location: '' });
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: updatedSchedule
+    }));
+  };
+
+  // Remove a day from the schedule
+  const removeScheduleDay = (dayIndex) => {
+    if (formData.schedule.length <= 1) return; // Keep at least one day
+
+    const updatedSchedule = [...formData.schedule];
+    updatedSchedule.splice(dayIndex, 1);
+
+    // Rename days to maintain sequence
+    updatedSchedule.forEach((day, index) => {
+      day.day = `Day ${index + 1}`;
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: updatedSchedule
+    }));
   };
 
   // Handle image file selection
@@ -237,7 +336,10 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         registration_method: formData.registration_method,
         external_form_url: formData.external_form_url || null,
         image_url: imageUrl,
-        registration_open: formData.registration_open
+        registration_open: formData.registration_open,
+        additional_info: {
+          schedule: formData.schedule
+        }
       };
 
       // Update event
@@ -291,6 +393,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }
   };
 
+  // No need to handle body scrolling for full page component
+
   // Common styles
   const inputStyle = {
     width: '100%',
@@ -311,69 +415,72 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
 
   return (
     <motion.div
-      className="event-editor"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="event-editor full-page"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       style={{
-        backgroundColor: 'var(--dark-surface)',
-        borderRadius: '10px',
-        padding: '1.25rem',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        width: '90%',
-        margin: '0 auto',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-        overflowY: 'auto'
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: 'var(--dark-bg)',
+        padding: '2rem 0'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Edit Event</h2>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: '1.5rem',
-            cursor: 'pointer'
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      {error && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: 'rgba(255, 0, 0, 0.1)',
-            borderLeft: '4px solid #ff0033',
-            marginBottom: '1rem',
-            color: '#ff0033',
-            fontSize: '0.9rem'
-          }}
-        >
-          {error}
+      <div className="container" style={{ maxWidth: '900px', margin: '0 auto', padding: '0 1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', backgroundColor: 'var(--dark-surface)', padding: '1rem', borderRadius: '8px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit Event</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: 'var(--text-primary)',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span>Back</span> ↩
+          </button>
         </div>
-      )}
 
-      {success && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: 'rgba(0, 255, 0, 0.1)',
-            borderLeft: '4px solid #00cc00',
-            marginBottom: '1rem',
-            color: '#00cc00',
-            fontSize: '0.9rem'
-          }}
-        >
-          Event updated successfully!
-        </div>
-      )}
+        <div style={{ backgroundColor: 'var(--dark-surface)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
 
-      <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                borderLeft: '4px solid #ff0033',
+                marginBottom: '1rem',
+                color: '#ff0033',
+                fontSize: '0.9rem'
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                borderLeft: '4px solid #00cc00',
+                marginBottom: '1rem',
+                color: '#00cc00',
+                fontSize: '0.9rem'
+              }}
+            >
+              Event updated successfully!
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Basic Information</h3>
 
@@ -422,7 +529,16 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               style={inputStyle}
             >
               <option value="">Select a category</option>
-              {categories.map(category => (
+              {Array.from(
+                // Use a Map to deduplicate categories by name
+                categories.reduce((map, category) => {
+                  // Only add if this category name isn't already in the map
+                  if (!map.has(category.name.toLowerCase())) {
+                    map.set(category.name.toLowerCase(), category);
+                  }
+                  return map;
+                }, new Map()).values()
+              ).map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -735,8 +851,23 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             <label style={labelStyle}>
               Event Tags
             </label>
-            <div className="tag-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-              {tags.map(tag => (
+            <div className="tag-container" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: '0.5rem',
+              marginBottom: '1rem'
+            }}>
+              {/* Create a Map to deduplicate tags by name */}
+              {Array.from(
+                // Use a Map to deduplicate tags by name
+                tags.reduce((map, tag) => {
+                  // Only add if this tag name isn't already in the map
+                  if (!map.has(tag.name.toLowerCase())) {
+                    map.set(tag.name.toLowerCase(), tag);
+                  }
+                  return map;
+                }, new Map()).values()
+              ).map(tag => (
                 <div
                   key={tag.id}
                   className="tag-item"
@@ -750,7 +881,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     fontSize: '0.9rem',
-                    fontWeight: formData.selectedTags.includes(tag.id) ? '500' : 'normal'
+                    fontWeight: formData.selectedTags.includes(tag.id) ? '500' : 'normal',
+                    textAlign: 'center'
                   }}
                 >
                   {tag.name}
@@ -761,6 +893,161 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               Click to select multiple tags for your event. Tags help attendees find your event more easily.
             </p>
           </div>
+        </div>
+
+        {/* Event Schedule */}
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Event Schedule</h3>
+            <button
+              type="button"
+              onClick={addScheduleDay}
+              style={{
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                color: '#3498db',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              Add Day
+            </button>
+          </div>
+
+          {formData.schedule.map((day, dayIndex) => (
+            <div
+              key={dayIndex}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1rem'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem' }}>{day.day}</h4>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => addScheduleEvent(dayIndex)}
+                    style={{
+                      backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                      color: '#2ecc71',
+                      border: 'none',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    Add Event
+                  </button>
+
+                  {formData.schedule.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeScheduleDay(dayIndex)}
+                      style={{
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        color: '#e74c3c',
+                        border: 'none',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      Remove Day
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {day.events.map((event, eventIndex) => (
+                <div
+                  key={eventIndex}
+                  style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    marginBottom: eventIndex < day.events.length - 1 ? '1rem' : 0,
+                    alignItems: 'center'
+                  }}
+                >
+                  <div style={{ width: '100px' }}>
+                    <input
+                      type="time"
+                      value={event.time}
+                      onChange={(e) => handleScheduleChange(dayIndex, eventIndex, 'time', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 2 }}>
+                    <input
+                      type="text"
+                      value={event.title}
+                      onChange={(e) => handleScheduleChange(dayIndex, eventIndex, 'title', e.target.value)}
+                      placeholder="Event title"
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      value={event.location}
+                      onChange={(e) => handleScheduleChange(dayIndex, eventIndex, 'location', e.target.value)}
+                      placeholder="Location (optional)"
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeScheduleEvent(dayIndex, eventIndex)}
+                    style={{
+                      backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                      color: '#e74c3c',
+                      border: 'none',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
@@ -893,7 +1180,9 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             {isLoading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
-      </form>
+          </form>
+        </div>
+      </div>
     </motion.div>
   );
 };
