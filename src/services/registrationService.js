@@ -664,6 +664,37 @@ const registrationService = {
             }))
           };
 
+          // Try to use the API server first (this is commented out because we're using the PDF fallback)
+          // Uncomment this section if you want to try the API server first
+          /*
+          try {
+            const response = await fetch('/api/sheets', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(sheetsData)
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log('Google Sheets export succeeded:', result);
+              return {
+                success: true,
+                url: result.url,
+                filename: `${eventTitle} - Google Sheet`,
+                type: 'sheets',
+                message: 'Google Sheet created successfully. Click to open.'
+              };
+            } else {
+              throw new Error(`Server responded with status: ${response.status}`);
+            }
+          } catch (serverError) {
+            console.log('Server export failed, falling back to PDF:', serverError);
+            // Continue with PDF fallback below
+          }
+          */
+
           // Since we're having issues with the Google Sheets API, let's create a PDF as a reliable fallback
           console.log('Creating PDF export as a reliable alternative');
 
@@ -713,7 +744,7 @@ const registrationService = {
             });
 
             // Generate the table
-            doc.autoTable({
+            autoTable(doc, {
               head: [tableColumn],
               body: tableRows,
               startY: 75,
@@ -769,7 +800,7 @@ const registrationService = {
               });
 
               // Generate the team members table
-              doc.autoTable({
+              autoTable(doc, {
                 head: [teamTableColumn],
                 body: teamTableRows,
                 startY: 45,
