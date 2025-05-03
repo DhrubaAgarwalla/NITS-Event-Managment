@@ -1933,7 +1933,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           // Set loading state
                           const button = document.querySelector('.export-sheets-btn');
                           const originalContent = button.innerHTML;
-                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Exporting...';
+                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Creating Excel File...';
                           button.disabled = true;
                           button.style.opacity = '0.7';
                           button.style.cursor = 'wait';
@@ -1959,14 +1959,19 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                             return;
                           }
 
-                          // Show a message based on the type of export that succeeded
+                          // Handle different export types
                           if (result.type === 'pdf') {
-                            alert('Google Sheets export failed, but we created a PDF for you instead. Click OK to open it.');
-                          }
-
-                          // Open the export in a new tab
-                          if (result.url) {
+                            // For PDF, open in new tab
                             window.open(result.url, '_blank');
+                          } else {
+                            // For Excel, create a download link
+                            const link = document.createElement('a');
+                            link.href = result.url;
+                            link.download = result.filename;
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
                           }
                         } catch (err) {
                           // Remove the loading overlay if it exists
@@ -1977,7 +1982,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
                           // Reset button state on error
                           const button = document.querySelector('.export-sheets-btn');
-                          button.innerHTML = '<span style="font-size: 1.2rem">📝</span> Google Sheets';
+                          button.innerHTML = '<span style="font-size: 1.2rem">📊</span> Excel';
                           button.disabled = false;
                           button.style.opacity = '1';
                           button.style.cursor = 'pointer';
@@ -2001,7 +2006,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         fontSize: '0.95rem'
                       }}
                     >
-                      <span style={{ fontSize: '1.2rem' }}>📝</span> Google Sheets
+                      <span style={{ fontSize: '1.2rem' }}>📊</span> Excel
                     </button>
                   </div>
                 </div>
