@@ -703,9 +703,78 @@ const registrationService = {
           // Create worksheet from the combined data
           const mainWorksheet = XLSX.utils.aoa_to_sheet(allMainData);
 
-          // Add some basic styling to make it more colorful
-          // Note: XLSX.js has limited styling capabilities, but we can add some properties
-          // that Excel will recognize when opening the file
+          // Add styling to the main worksheet
+          // Create a style cache to store cell styles
+          if (!mainWorksheet.s) mainWorksheet.s = {};
+
+          // Helper function to apply bold style to a cell
+          const applyMainBoldStyle = (cellRef) => {
+            mainWorksheet.s[cellRef] = {
+              font: { bold: true },
+              alignment: { horizontal: 'center' }
+            };
+          };
+
+          // Helper function to apply header style to a cell
+          const applyMainHeaderStyle = (cellRef) => {
+            mainWorksheet.s[cellRef] = {
+              font: { bold: true, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: "4472C4" } },
+              alignment: { horizontal: 'center' }
+            };
+          };
+
+          // Apply styles to title and headers
+          applyMainHeaderStyle('A1');
+          applyMainBoldStyle('A2');
+          applyMainBoldStyle('A3');
+
+          // Apply styles to the statistics section
+          applyMainBoldStyle('A5');
+          applyMainBoldStyle('A6');
+          applyMainBoldStyle('A7');
+          applyMainBoldStyle('A8');
+
+          // Find the header row index (where "Serial No." is)
+          const headerRowIndex = allMainData.findIndex(row =>
+            row.length > 0 && row[0] === 'Serial No.'
+          );
+
+          if (headerRowIndex > 0) {
+            // Apply header styles to all columns in the header row
+            const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            headerCols.forEach(col => {
+              const cellRef = `${col}${headerRowIndex + 1}`;
+              mainWorksheet.s[cellRef] = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "5B9BD5" } },
+                alignment: { horizontal: 'center' },
+                border: {
+                  top: { style: 'thin', color: { rgb: "000000" } },
+                  bottom: { style: 'thin', color: { rgb: "000000" } },
+                  left: { style: 'thin', color: { rgb: "000000" } },
+                  right: { style: 'thin', color: { rgb: "000000" } }
+                }
+              };
+            });
+
+            // Apply alternating row colors to data rows
+            for (let i = headerRowIndex + 1; i < allMainData.length; i++) {
+              const rowColor = i % 2 === 0 ? "F2F2F2" : "FFFFFF";
+              headerCols.forEach(col => {
+                const cellRef = `${col}${i + 1}`;
+                mainWorksheet.s[cellRef] = {
+                  fill: { fgColor: { rgb: rowColor } },
+                  border: {
+                    top: { style: 'thin', color: { rgb: "D0D0D0" } },
+                    bottom: { style: 'thin', color: { rgb: "D0D0D0" } },
+                    left: { style: 'thin', color: { rgb: "D0D0D0" } },
+                    right: { style: 'thin', color: { rgb: "D0D0D0" } }
+                  }
+                };
+              });
+            }
+          }
 
           // Add a comment to the first cell to make it more noticeable
           if (!mainWorksheet.comments) mainWorksheet.comments = {};
@@ -944,9 +1013,113 @@ const registrationService = {
             // Create team members worksheet
             const teamWorksheet = XLSX.utils.aoa_to_sheet(allTeamData);
 
-            // Add some basic styling to make it more colorful
-            // Note: XLSX.js has limited styling capabilities, but we can add some properties
-            // that Excel will recognize when opening the file
+            // Add styling to the team members worksheet
+            // Create a style cache to store cell styles
+            if (!teamWorksheet.s) teamWorksheet.s = {};
+
+            // Helper function to apply bold style to a cell
+            const applyTeamBoldStyle = (cellRef) => {
+              teamWorksheet.s[cellRef] = {
+                font: { bold: true },
+                alignment: { horizontal: 'center' }
+              };
+            };
+
+            // Helper function to apply header style to a cell
+            const applyTeamHeaderStyle = (cellRef) => {
+              teamWorksheet.s[cellRef] = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4472C4" } },
+                alignment: { horizontal: 'center' }
+              };
+            };
+
+            // Helper function to apply team separator style
+            const applyTeamSeparatorStyle = (cellRef) => {
+              teamWorksheet.s[cellRef] = {
+                fill: { fgColor: { rgb: "E6E6E6" } }
+              };
+            };
+
+            // Helper function to apply team header style
+            const applyTeamNameStyle = (cellRef) => {
+              teamWorksheet.s[cellRef] = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "70AD47" } },
+                alignment: { horizontal: 'center' }
+              };
+            };
+
+            // Apply styles to title and headers
+            applyTeamHeaderStyle('A1');
+            applyTeamBoldStyle('A2');
+            applyTeamBoldStyle('A3');
+
+            // Find the header row index (where "Serial No." is)
+            const teamHeaderRowIndex = allTeamData.findIndex(row =>
+              row.length > 0 && row[0] === 'Serial No.'
+            );
+
+            if (teamHeaderRowIndex > 0) {
+              // Apply header styles to all columns in the header row
+              const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+              headerCols.forEach(col => {
+                const cellRef = `${col}${teamHeaderRowIndex + 1}`;
+                teamWorksheet.s[cellRef] = {
+                  font: { bold: true, color: { rgb: "FFFFFF" } },
+                  fill: { fgColor: { rgb: "5B9BD5" } },
+                  alignment: { horizontal: 'center' },
+                  border: {
+                    top: { style: 'thin', color: { rgb: "000000" } },
+                    bottom: { style: 'thin', color: { rgb: "000000" } },
+                    left: { style: 'thin', color: { rgb: "000000" } },
+                    right: { style: 'thin', color: { rgb: "000000" } }
+                  }
+                };
+              });
+
+              // Apply styles to data rows
+              for (let i = teamHeaderRowIndex + 1; i < allTeamData.length; i++) {
+                const row = allTeamData[i];
+
+                // Check if this is a team header row (starts with "Team X")
+                if (row[0] && typeof row[0] === 'string' && row[0].startsWith('Team ')) {
+                  // Apply team header style
+                  headerCols.forEach(col => {
+                    const cellRef = `${col}${i + 1}`;
+                    applyTeamNameStyle(cellRef);
+                  });
+                }
+                // Check if this is an empty separator row
+                else if (row.length === 0 || (row.length === 1 && row[0] === '')) {
+                  // Apply separator style
+                  headerCols.forEach(col => {
+                    const cellRef = `${col}${i + 1}`;
+                    applyTeamSeparatorStyle(cellRef);
+                  });
+                }
+                // Regular data row
+                else {
+                  // Apply alternating row colors
+                  const rowColor = i % 2 === 0 ? "F2F2F2" : "FFFFFF";
+                  headerCols.forEach(col => {
+                    const cellRef = `${col}${i + 1}`;
+                    teamWorksheet.s[cellRef] = {
+                      fill: { fgColor: { rgb: rowColor } },
+                      border: {
+                        top: { style: 'thin', color: { rgb: "D0D0D0" } },
+                        bottom: { style: 'thin', color: { rgb: "D0D0D0" } },
+                        left: { style: 'thin', color: { rgb: "D0D0D0" } },
+                        right: { style: 'thin', color: { rgb: "D0D0D0" } }
+                      }
+                    };
+                  });
+
+                  // Make serial number bold
+                  applyTeamBoldStyle(`A${i + 1}`);
+                }
+              }
+            }
 
             // Add a comment to the first cell to make it more noticeable
             if (!teamWorksheet.comments) teamWorksheet.comments = {};
@@ -988,13 +1161,13 @@ const registrationService = {
 
           // ===== SUMMARY DASHBOARD SHEET =====
 
-          // Create a dashboard/summary sheet
+          // Create a simplified dashboard/summary sheet with only the requested sections
           const dashboardData = [
             ['EVENT REGISTRATION DASHBOARD'],
             [`Event: ${eventTitle}`],
             [`Generated: ${new Date().toLocaleString()}`],
             [''],
-            ['REGISTRATION SUMMARY'],
+            ['PARTICIPANT SUMMARY'],
             ['']
           ];
 
@@ -1007,19 +1180,7 @@ const registrationService = {
 
           // Process all registrations to count team members - use case-insensitive check
           registrations.forEach(reg => {
-            // Debug each registration
-            console.log(`Processing registration: ${reg.participant_name}, type: ${reg.registration_type}`);
-            console.log(`Has additional_info: ${!!reg.additional_info}`);
-            if (reg.additional_info) {
-              console.log(`Has team_members: ${!!reg.additional_info.team_members}`);
-              if (reg.additional_info.team_members) {
-                console.log(`Team members array length: ${reg.additional_info.team_members.length}`);
-                console.log(`Team members data:`, JSON.stringify(reg.additional_info.team_members));
-              }
-            }
-
             // Check if this is a team registration with members (case-insensitive)
-            // Handle all possible variations of team registration data
             const isTeam =
               // Check registration_type field (case-insensitive)
               (reg.registration_type && typeof reg.registration_type === 'string' &&
@@ -1049,33 +1210,20 @@ const registrationService = {
                 // Count team members
                 const memberCount = reg.additional_info.team_members.length;
                 totalTeamMembers += memberCount;
-                console.log(`Found ${memberCount} team members for ${reg.participant_name || reg.Name || 'Unknown'}`);
 
                 // Count departments and years for team members
                 reg.additional_info.team_members.forEach(member => {
-                  console.log(`Processing team member: ${member.name || 'Unknown'}`);
-
                   // Count department (handle different field names)
                   const dept = member.department || member.dept || 'Unknown';
                   allTeamMemberDepts[dept] = (allTeamMemberDepts[dept] || 0) + 1;
-                  console.log(`Added department: ${dept}`);
 
                   // Count year (handle different field names)
                   const year = member.year || member.yr || 'Unknown';
                   allTeamMemberYears[year] = (allTeamMemberYears[year] || 0) + 1;
-                  console.log(`Added year: ${year}`);
-
-                  // Log scholar ID for debugging
-                  const scholarId = member.rollNumber || member.scholarId || member.scholar_id || 'Unknown';
-                  console.log(`Scholar ID: ${scholarId}`);
                 });
               }
               // Check for team members in Team Members field (string format)
               else if (reg['Team Members'] && typeof reg['Team Members'] === 'string') {
-                console.log(`Found team members in string format: ${reg['Team Members']}`);
-
-                // Try to extract department and year information from the string
-                // Format might be like: "Member 1: John Doe, Scholar ID: 12345, Dept: CSE, Year: 2"
                 const teamMembersStr = reg['Team Members'];
 
                 // Count approximate number of members based on "Member X:" occurrences
@@ -1084,7 +1232,6 @@ const registrationService = {
 
                 if (memberCount > 0) {
                   totalTeamMembers += memberCount;
-                  console.log(`Estimated ${memberCount} team members from string`);
 
                   // Try to extract departments
                   const deptMatches = teamMembersStr.match(/Dept: ([A-Za-z]+)/g);
@@ -1092,7 +1239,6 @@ const registrationService = {
                     deptMatches.forEach(match => {
                       const dept = match.replace('Dept: ', '');
                       allTeamMemberDepts[dept] = (allTeamMemberDepts[dept] || 0) + 1;
-                      console.log(`Added department from string: ${dept}`);
                     });
                   }
 
@@ -1102,7 +1248,6 @@ const registrationService = {
                     yearMatches.forEach(match => {
                       const year = match.replace('Year: ', '');
                       allTeamMemberYears[year] = (allTeamMemberYears[year] || 0) + 1;
-                      console.log(`Added year from string: ${year}`);
                     });
                   }
                 }
@@ -1110,74 +1255,12 @@ const registrationService = {
             }
           });
 
-          console.log(`Total team members counted: ${totalTeamMembers}`);
-          console.log(`Team member departments:`, allTeamMemberDepts);
-          console.log(`Team member years:`, allTeamMemberYears);
-
           // Calculate total participants correctly
           // Total participants = Individual registrations + Team leads + Team members
           const totalParticipants = individualRegistrations + teamRegistrations + totalTeamMembers;
 
-          console.log('Participant counts:');
-          console.log(`Individual registrations: ${individualRegistrations}`);
-          console.log(`Team registrations (leads): ${teamRegistrations}`);
-          console.log(`Team members: ${totalTeamMembers}`);
-          console.log(`Total participants: ${totalParticipants}`);
-
-          // Add comprehensive participant counts to dashboard
-          dashboardData.push(['Total Registrations:', totalRegistrations]);
-          dashboardData.push(['Individual Registrations:', individualRegistrations]);
-          dashboardData.push(['Team Registrations (Leads):', teamRegistrations]);
-          dashboardData.push(['Team Members:', totalTeamMembers]);
+          // Add total participant count to dashboard
           dashboardData.push(['Total Participants:', totalParticipants]);
-
-          // Add percentage breakdown
-          if (totalParticipants > 0) {
-            const individualPercentage = (individualRegistrations / totalParticipants * 100).toFixed(1);
-            const teamLeadPercentage = (teamRegistrations / totalParticipants * 100).toFixed(1);
-            const teamMemberPercentage = (totalTeamMembers / totalParticipants * 100).toFixed(1);
-
-            dashboardData.push(['']);
-            dashboardData.push(['PERCENTAGE BREAKDOWN']);
-            dashboardData.push(['']);
-            dashboardData.push(['Individual Participants:', `${individualPercentage}%`]);
-            dashboardData.push(['Team Leads:', `${teamLeadPercentage}%`]);
-            dashboardData.push(['Team Members:', `${teamMemberPercentage}%`]);
-          }
-          dashboardData.push(['']);
-
-          // Add team breakdown
-          dashboardData.push(['TEAM BREAKDOWN']);
-          dashboardData.push(['']);
-          dashboardData.push(['Number of Teams:', teamRegistrations]);
-          dashboardData.push(['Total Team Members:', totalTeamMembers]);
-          dashboardData.push(['Average Team Size:', teamRegistrations > 0 ? (totalTeamMembers / teamRegistrations).toFixed(1) : 'N/A']);
-
-          // Add team member summary
-          if (totalTeamMembers > 0) {
-            dashboardData.push(['']);
-            dashboardData.push(['TEAM MEMBER SUMMARY']);
-            dashboardData.push(['']);
-
-            // Department summary
-            dashboardData.push(['Department Distribution:']);
-            const deptSummary = Object.entries(allTeamMemberDepts)
-              .map(([dept, count]) => `${dept}: ${count}`)
-              .join(', ');
-            dashboardData.push([deptSummary]);
-
-            // Year summary
-            dashboardData.push(['Year Distribution:']);
-            const yearSummary = Object.entries(allTeamMemberYears)
-              .map(([year, count]) => `Year ${year}: ${count}`)
-              .join(', ');
-            dashboardData.push([yearSummary]);
-          }
-
-          dashboardData.push(['']);
-
-          // Add department distribution section
-          dashboardData.push(['DEPARTMENT DISTRIBUTION (REGISTRANTS)']);
           dashboardData.push(['']);
 
           // Calculate department distribution for registrants
@@ -1186,60 +1269,6 @@ const registrationService = {
             const dept = reg['Department'] || 'Unknown';
             departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
           });
-
-          // Add department distribution to dashboard
-          Object.entries(departmentCounts).forEach(([dept, count]) => {
-            dashboardData.push([dept, count]);
-          });
-
-          // Add department distribution for team members
-          dashboardData.push(['']);
-          dashboardData.push(['DEPARTMENT DISTRIBUTION (TEAM MEMBERS)']);
-          dashboardData.push(['']);
-
-          // Add team member department distribution
-          if (Object.keys(allTeamMemberDepts).length > 0) {
-            Object.entries(allTeamMemberDepts).forEach(([dept, count]) => {
-              dashboardData.push([dept, count]);
-            });
-          } else {
-            dashboardData.push(['No team member data available', '']);
-          }
-
-          // Add year distribution for registrants
-          dashboardData.push(['']);
-          dashboardData.push(['YEAR DISTRIBUTION (REGISTRANTS)']);
-          dashboardData.push(['']);
-
-          const yearCounts = {};
-          exportData.forEach(reg => {
-            const year = reg['Year'] || 'Unknown';
-            yearCounts[year] = (yearCounts[year] || 0) + 1;
-          });
-
-          // Add year distribution to dashboard
-          Object.entries(yearCounts).forEach(([year, count]) => {
-            dashboardData.push([year, count]);
-          });
-
-          // Add year distribution for team members
-          dashboardData.push(['']);
-          dashboardData.push(['YEAR DISTRIBUTION (TEAM MEMBERS)']);
-          dashboardData.push(['']);
-
-          // Add team member year distribution
-          if (Object.keys(allTeamMemberYears).length > 0) {
-            Object.entries(allTeamMemberYears).forEach(([year, count]) => {
-              dashboardData.push([year, count]);
-            });
-          } else {
-            dashboardData.push(['No team member data available', '']);
-          }
-
-          // Add combined statistics (registrants + team members)
-          dashboardData.push(['']);
-          dashboardData.push(['COMBINED STATISTICS (ALL PARTICIPANTS)']);
-          dashboardData.push(['']);
 
           // Combined department distribution
           dashboardData.push(['DEPARTMENT DISTRIBUTION (ALL PARTICIPANTS)']);
@@ -1258,13 +1287,17 @@ const registrationService = {
             dashboardData.push([dept, `${count} (${percentage}%)`]);
           });
 
-          // Log the combined department counts for debugging
-          console.log('Combined department counts:', combinedDeptCounts);
-
           // Combined year distribution
           dashboardData.push(['']);
           dashboardData.push(['YEAR DISTRIBUTION (ALL PARTICIPANTS)']);
           dashboardData.push(['']);
+
+          // Calculate year distribution for registrants
+          const yearCounts = {};
+          exportData.forEach(reg => {
+            const year = reg['Year'] || 'Unknown';
+            yearCounts[year] = (yearCounts[year] || 0) + 1;
+          });
 
           // Combine year counts
           const combinedYearCounts = {...yearCounts};
@@ -1279,11 +1312,52 @@ const registrationService = {
             dashboardData.push([year, `${count} (${percentage}%)`]);
           });
 
-          // Log the combined year counts for debugging
-          console.log('Combined year counts:', combinedYearCounts);
-
           // Create dashboard worksheet
           const dashboardWorksheet = XLSX.utils.aoa_to_sheet(dashboardData);
+
+          // Add cell styling for the dashboard
+          // XLSX.js has limited styling capabilities, but we can define some basic styles
+
+          // Create a style cache to store cell styles
+          if (!dashboardWorksheet.s) dashboardWorksheet.s = {};
+
+          // Helper function to apply bold style to a cell
+          const applyBoldStyle = (cellRef) => {
+            dashboardWorksheet.s[cellRef] = {
+              font: { bold: true },
+              alignment: { horizontal: 'center' }
+            };
+          };
+
+          // Helper function to apply header style to a cell
+          const applyHeaderStyle = (cellRef) => {
+            dashboardWorksheet.s[cellRef] = {
+              font: { bold: true, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: "4472C4" } },
+              alignment: { horizontal: 'center' }
+            };
+          };
+
+          // Helper function to apply section header style
+          const applySectionStyle = (cellRef) => {
+            dashboardWorksheet.s[cellRef] = {
+              font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: "44546A" } },
+              alignment: { horizontal: 'center' }
+            };
+          };
+
+          // Apply styles to title and headers
+          applyHeaderStyle('A1');
+          applyBoldStyle('A2');
+          applyBoldStyle('A3');
+
+          // Apply style to participant summary header
+          applySectionStyle('A5');
+
+          // Apply bold to total participants
+          applyBoldStyle('A7');
+          applyBoldStyle('B7');
 
           // Add some basic styling to make it more colorful
           // Note: XLSX.js has limited styling capabilities, but we can add some properties
@@ -1297,38 +1371,53 @@ const registrationService = {
           };
 
           // Add comments to highlight important statistics
-          dashboardWorksheet.comments['B12'] = {
+          dashboardWorksheet.comments['B7'] = {
             author: 'NIT Silchar',
-            text: 'Total number of participants including team members'
+            text: 'Total number of participants including individual registrants, team leads, and team members'
           };
 
-          // Add comments for percentage breakdown
-          if (totalParticipants > 0) {
-            dashboardWorksheet.comments['B24'] = {
-              author: 'NIT Silchar',
-              text: 'Percentage of total participants who are team members'
-            };
-          }
-
-          // Add comments for team breakdown
-          if (teamRegistrations > 0) {
-            dashboardWorksheet.comments['B29'] = {
-              author: 'NIT Silchar',
-              text: 'Average number of members per team'
-            };
-          }
-
-          // Add comments for combined statistics
-          const combinedStatsRowIndex = dashboardData.findIndex(row =>
-            row.length === 1 && row[0] === 'COMBINED STATISTICS (ALL PARTICIPANTS)'
+          // Add comments and styling for department distribution
+          const deptHeaderIndex = dashboardData.findIndex(row =>
+            row.length === 1 && row[0] === 'DEPARTMENT DISTRIBUTION (ALL PARTICIPANTS)'
           );
 
-          if (combinedStatsRowIndex > 0) {
-            const cellRef = `A${combinedStatsRowIndex + 1}`;
+          if (deptHeaderIndex > 0) {
+            const cellRef = `A${deptHeaderIndex + 1}`;
+            // Add comment
             dashboardWorksheet.comments[cellRef] = {
               author: 'NIT Silchar',
-              text: 'This section includes statistics for both registrants and team members combined'
+              text: 'Distribution of all participants by department'
             };
+            // Apply section header style
+            applySectionStyle(cellRef);
+
+            // Apply bold to department names and counts
+            for (let i = 0; i < Object.keys(combinedDeptCounts).length; i++) {
+              const rowIndex = deptHeaderIndex + 3 + i; // +3 to skip header and empty row
+              applyBoldStyle(`A${rowIndex + 1}`);
+            }
+          }
+
+          // Add comments and styling for year distribution
+          const yearHeaderIndex = dashboardData.findIndex(row =>
+            row.length === 1 && row[0] === 'YEAR DISTRIBUTION (ALL PARTICIPANTS)'
+          );
+
+          if (yearHeaderIndex > 0) {
+            const cellRef = `A${yearHeaderIndex + 1}`;
+            // Add comment
+            dashboardWorksheet.comments[cellRef] = {
+              author: 'NIT Silchar',
+              text: 'Distribution of all participants by year'
+            };
+            // Apply section header style
+            applySectionStyle(cellRef);
+
+            // Apply bold to year numbers and counts
+            for (let i = 0; i < Object.keys(combinedYearCounts).length; i++) {
+              const rowIndex = yearHeaderIndex + 3 + i; // +3 to skip header and empty row
+              applyBoldStyle(`A${rowIndex + 1}`);
+            }
           }
 
           // Set column widths
@@ -1351,7 +1440,7 @@ const registrationService = {
           addMerge(1); // Event name
           addMerge(2); // Generation date
           addMerge(3); // Empty row
-          addMerge(4); // REGISTRATION SUMMARY
+          addMerge(4); // PARTICIPANT SUMMARY
           addMerge(5); // Empty row
 
           // Find and merge all section headers and empty rows
