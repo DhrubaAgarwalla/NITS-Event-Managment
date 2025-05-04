@@ -92,6 +92,76 @@ const eventService = {
       throw error;
     }
   },
+
+  // Get tags for a specific event
+  getEventTags: async (eventId) => {
+    try {
+      console.log(`Getting tags for event ID: ${eventId}`);
+      const eventTagsRef = ref(database, `event_tags/${eventId}`);
+      const eventTagsSnapshot = await get(eventTagsRef);
+
+      if (!eventTagsSnapshot.exists()) {
+        console.log('No tags found for this event');
+        return [];
+      }
+
+      // Get tag IDs from the event_tags relationship
+      const tagIds = Object.keys(eventTagsSnapshot.val());
+
+      // Fetch each tag by ID
+      const tagPromises = tagIds.map(async (tagId) => {
+        const tagRef = ref(database, `tags/${tagId}`);
+        const tagSnapshot = await get(tagRef);
+        if (tagSnapshot.exists()) {
+          return {
+            id: tagSnapshot.key,
+            ...tagSnapshot.val()
+          };
+        }
+        return null;
+      });
+
+      const tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
+      console.log(`Found ${tags.length} tags for event ID: ${eventId}`);
+      return tags;
+    } catch (error) {
+      console.error('Error getting event tags:', error);
+      throw error;
+    }
+  },
+
+  // Remove tags from an event
+  removeTagsFromEvent: async (eventId, tagIds) => {
+    try {
+      console.log(`Removing tags from event ${eventId}:`, tagIds);
+      const eventTagsRef = ref(database, `event_tags/${eventId}`);
+
+      // Get current tags
+      const snapshot = await get(eventTagsRef);
+      if (!snapshot.exists()) {
+        console.log('No tags found for this event');
+        return true;
+      }
+
+      const currentTags = snapshot.val();
+
+      // Create an updated tags object without the removed tags
+      const updatedTags = {};
+      Object.keys(currentTags).forEach(tagId => {
+        if (!tagIds.includes(tagId)) {
+          updatedTags[tagId] = true;
+        }
+      });
+
+      // Update the event_tags node
+      await set(eventTagsRef, updatedTags);
+      console.log('Tags removed successfully');
+      return true;
+    } catch (error) {
+      console.error('Error removing tags from event:', error);
+      throw error;
+    }
+  },
   // Get all events
   getAllEvents: async () => {
     try {

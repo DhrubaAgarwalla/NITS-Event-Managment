@@ -69,10 +69,24 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         ? format(new Date(event.registration_deadline), 'yyyy-MM-dd')
         : '';
 
-      // Get selected tag IDs from event tags
-      const selectedTagIds = event.tags && Array.isArray(event.tags)
-        ? event.tags.map(tag => tag.id)
-        : [];
+      // Load event tags directly from the database
+      const loadEventTags = async () => {
+        try {
+          const eventTags = await eventService.getEventTags(event.id);
+          const selectedTagIds = eventTags.map(tag => tag.id);
+
+          // Update form data with the loaded tags
+          setFormData(prevData => ({
+            ...prevData,
+            selectedTags: selectedTagIds
+          }));
+        } catch (err) {
+          console.error('Error loading event tags:', err);
+        }
+      };
+
+      // Call the function to load event tags
+      loadEventTags();
 
       setFormData({
         title: event.title || '',
@@ -89,8 +103,9 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
         registration_method: event.registration_method || 'internal',
         external_form_url: event.external_form_url || '',
         image_url: event.image_url || '',
+        vertical_image_url: event.vertical_image_url || '',
         is_featured: event.is_featured || false,
-        selectedTags: selectedTagIds
+        selectedTags: [] // Will be populated by loadEventTags function
       });
 
       // Set image previews if URLs exist
