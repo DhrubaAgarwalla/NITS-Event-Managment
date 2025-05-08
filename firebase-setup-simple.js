@@ -2,27 +2,31 @@
 // Run this with: node firebase-setup-simple.js your-email@example.com your-password
 
 import { initializeApp } from 'firebase/app';
-import { 
-  getDatabase, 
-  ref, 
-  set, 
+import {
+  getDatabase,
+  ref,
+  set,
   get,
   child
 } from 'firebase/database';
-import { 
-  getAuth, 
-  signInWithEmailAndPassword 
+import {
+  getAuth,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 
-// Your Firebase configuration (hardcoded from .env)
+// Load environment variables from .env file
+import { config } from 'dotenv';
+config();
+
+// Your Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyDpZtD_EDIEJLqdpvgU0UGSKGCzVB0f7Pw",
-  authDomain: "nits-event.firebaseapp.com",
-  projectId: "nits-event",
-  storageBucket: "nits-event.firebasestorage.app",
-  messagingSenderId: "323777820197",
-  appId: "1:323777820197:web:c446df0f87553ea460f1cc",
-  databaseURL: "https://nits-event-default-rtdb.firebaseio.com"
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+  databaseURL: process.env.VITE_FIREBASE_DATABASE_URL
 };
 
 // Initialize Firebase
@@ -61,7 +65,7 @@ async function initializeDatabase() {
 
     // Create test data
     console.log('Creating test data...');
-    
+
     // Test event
     await set(ref(database, 'events/test-event-1'), {
       title: 'Test Event 1',
@@ -96,25 +100,25 @@ async function initializeDatabase() {
     console.log('Test entry created');
 
     console.log('Database initialization completed successfully!');
-    
+
     // Verify data was written
     console.log('Verifying data...');
     const dbRef = ref(database);
-    
+
     const eventSnapshot = await get(child(dbRef, 'events/test-event-1'));
     if (eventSnapshot.exists()) {
       console.log('Event data verified ✓');
     } else {
       console.log('Event data not found!');
     }
-    
+
     const clubSnapshot = await get(child(dbRef, 'clubs/test-club-1'));
     if (clubSnapshot.exists()) {
       console.log('Club data verified ✓');
     } else {
       console.log('Club data not found!');
     }
-    
+
     const userSnapshot = await get(child(dbRef, `users/${user.uid}`));
     if (userSnapshot.exists()) {
       console.log('User data verified ✓');

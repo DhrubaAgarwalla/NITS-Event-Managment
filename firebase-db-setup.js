@@ -18,15 +18,19 @@ import {
   updateProfile
 } from 'firebase/auth';
 
-// Hardcoded Firebase configuration from .env
+// Load environment variables from .env file
+import { config } from 'dotenv';
+config();
+
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyDpZtD_EDIEJLqdpvgU0UGSKGCzVB0f7Pw",
-  authDomain: "nits-event.firebaseapp.com",
-  projectId: "nits-event",
-  storageBucket: "nits-event.firebasestorage.app",
-  messagingSenderId: "323777820197",
-  appId: "1:323777820197:web:c446df0f87553ea460f1cc",
-  databaseURL: "https://nits-event-default-rtdb.firebaseio.com"
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+  databaseURL: process.env.VITE_FIREBASE_DATABASE_URL
 };
 
 // Initialize Firebase
