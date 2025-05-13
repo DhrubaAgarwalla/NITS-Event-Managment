@@ -5,93 +5,175 @@
   .event-details-container {
     padding: 0 !important;
   }
-  
-  .event-banner {
-    height: 200px !important;
+
+  /* Mobile Event Title Header */
+  .mobile-event-title-header {
+    padding: 0.5rem 0 !important;
+    margin-bottom: 1rem !important;
+    text-align: center !important;
   }
-  
+
+  .mobile-event-title-header h1 {
+    font-size: 2.5rem !important;
+    margin: 0 !important;
+    padding: 0 0.5rem !important;
+    line-height: 1.3 !important;
+    text-align: center !important;
+    background: linear-gradient(90deg, var(--primary), var(--accent)) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    text-fill-color: transparent !important;
+    font-weight: 700 !important;
+  }
+
+  .event-category-badge-mobile {
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  /* Mobile Event Header Styles */
+  .mobile-event-header {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .event-banner-mobile {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .event-banner-mobile img {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    display: block !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Mobile Quick Info */
+  .event-quick-info-mobile {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background-color: var(--dark-surface) !important;
+    padding: 1rem !important;
+    border-radius: 8px !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .quick-info-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.8rem !important;
+    flex: 1 !important;
+  }
+
+  .quick-info-category {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-left: 0.5rem !important;
+  }
+
+  .quick-info-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  .quick-info-icon {
+    color: var(--accent) !important;
+  }
+
   .event-content-wrapper {
     flex-direction: column !important;
     padding: 1rem !important;
   }
-  
+
   .event-main-content {
     width: 100% !important;
     padding-right: 0 !important;
   }
-  
+
   .event-sidebar {
     width: 100% !important;
     margin-top: 2rem !important;
   }
-  
+
   .event-title {
     font-size: 1.5rem !important;
     margin-bottom: 0.5rem !important;
   }
-  
+
   .event-description {
     font-size: 0.95rem !important;
   }
-  
+
   .event-meta {
     flex-wrap: wrap;
     gap: 0.5rem !important;
   }
-  
+
   .event-meta-item {
     font-size: 0.9rem !important;
   }
-  
+
   .event-tags {
     flex-wrap: wrap;
     margin-bottom: 1rem !important;
   }
-  
+
   .event-tag {
     margin-bottom: 0.5rem !important;
   }
-  
+
   .event-schedule {
     padding: 1rem !important;
   }
-  
+
   .event-schedule-day {
     padding: 0.75rem !important;
   }
-  
+
   .event-schedule-item {
     padding: 0.75rem !important;
   }
-  
+
   .registration-form {
     padding: 1rem !important;
   }
-  
+
   .registration-form-title {
     font-size: 1.2rem !important;
   }
-  
+
   .form-group {
     margin-bottom: 1rem !important;
   }
-  
+
   .form-group label {
     font-size: 0.9rem !important;
   }
-  
+
   .form-group input,
   .form-group select,
   .form-group textarea {
     font-size: 16px !important; /* Prevents iOS zoom on focus */
     padding: 0.6rem 0.8rem !important;
   }
-  
+
   .form-buttons {
     flex-direction: column !important;
     gap: 0.75rem !important;
   }
-  
+
   .form-buttons button {
     width: 100% !important;
   }
@@ -99,34 +181,59 @@
 
 /* Small mobile devices */
 @media (max-width: 480px) {
-  .event-banner {
-    height: 150px !important;
+  .mobile-event-title-header h1 {
+    font-size: 2rem !important;
   }
-  
-  .event-title {
-    font-size: 1.3rem !important;
+
+  /* Adjust quick info layout for very small screens */
+  .event-quick-info-mobile {
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
-  
-  .event-description {
+
+  .quick-info-category {
+    align-self: flex-end !important;
+    margin-top: -2.5rem !important;
+    padding-left: 0 !important;
+  }
+
+  .quick-info-category span {
     font-size: 0.9rem !important;
+    padding: 0.4rem 1rem !important;
   }
-  
+
+  .quick-info-item {
+    font-size: 0.85rem !important;
+  }
+
   .event-meta-item {
     font-size: 0.85rem !important;
   }
-  
+
+  .event-title {
+    font-size: 1.3rem !important;
+  }
+
+  .event-description {
+    font-size: 0.9rem !important;
+  }
+
+  .event-meta-item {
+    font-size: 0.85rem !important;
+  }
+
   .event-schedule-day-title {
     font-size: 1rem !important;
   }
-  
+
   .event-schedule-item-time {
     font-size: 0.85rem !important;
   }
-  
+
   .event-schedule-item-title {
     font-size: 0.9rem !important;
   }
-  
+
   .event-schedule-item-location {
     font-size: 0.85rem !important;
   }

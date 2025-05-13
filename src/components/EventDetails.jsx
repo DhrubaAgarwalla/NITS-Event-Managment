@@ -774,102 +774,156 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           </button>
         </div>
 
-        {/* Event Header */}
-        <div
-          className="event-banner"
-          style={{
-            position: 'relative',
-            height: isMobileView ? '300px' : '400px',
-            borderRadius: '10px',
-            overflow: 'hidden',
-            marginBottom: '2rem',
-            width: '100%'
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3'})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'brightness(1)',
-              boxShadow: 'none'
-            }}
-          ></div>
+        {/* Event Title Header - Both Mobile and Desktop */}
+        <div className={isMobileView ? "mobile-event-title-header" : "desktop-event-title-header"}>
+          <h1 className="event-main-title">{event.title}</h1>
+        </div>
 
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              width: '100%',
-              padding: isMobileView ? '1.5rem' : '2rem',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 85%, transparent 100%)'
-            }}
-          >
-            <motion.h1
-              className="event-title"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+        {/* Event Banner - Mobile Version */}
+        {isMobileView ? (
+          <div className="mobile-event-header">
+            <div
+              className="event-banner-mobile"
               style={{
-                marginBottom: '0.5rem',
-                fontSize: isMobileView ? '1.8rem' : '2.5rem',
-                textShadow: '0 2px 5px rgba(0,0,0,0.7)',
-                fontWeight: '700'
+                width: '100%',
+                marginBottom: '1rem'
               }}
             >
-              {event.title}
-            </motion.h1>
+              <img
+                src={event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3'}
+                alt={event.title}
+                style={{
+                  width: '100%',
+                  borderRadius: '8px',
+                  display: 'block'
+                }}
+              />
+            </div>
 
-            <motion.div
-              className="event-meta"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              style={{
-                display: 'flex',
-                gap: isMobileView ? '1rem' : '2rem',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                fontSize: isMobileView ? '0.9rem' : '1rem',
-                textShadow: '0 1px 3px rgba(0,0,0,0.7)'
-              }}
-            >
-              <div className="event-meta-item">
-                <span style={{ color: 'var(--accent)' }}>📅</span>
-                <span>{formatEventDate(event.start_date, event.end_date)}</span>
-              </div>
 
-              <div className="event-meta-item">
-                <span style={{ color: 'var(--accent)' }}>📍</span>
-                <span>{event.location}</span>
-              </div>
 
-              {event.clubs && (
-                <div className="event-meta-item">
-                  <span style={{ color: 'var(--accent)' }}>👥</span>
-                  <span>{event.clubs.name}</span>
+            {/* Event Quick Info - Mobile */}
+            <div className="event-quick-info-mobile">
+              <div className="quick-info-left">
+                <div className="quick-info-item">
+                  <span className="quick-info-icon">📅</span>
+                  <span>{formatEventDate(event.start_date, event.end_date)}</span>
                 </div>
-              )}
 
+                <div className="quick-info-item">
+                  <span className="quick-info-icon">📍</span>
+                  <span>{event.location}</span>
+                </div>
+
+                {event.clubs && (
+                  <div className="quick-info-item">
+                    <span className="quick-info-icon">👥</span>
+                    <span>{event.clubs.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Category Badge - Positioned on the right side */}
               {event.categories && (
-                <div className="event-meta-item">
-                  <span className="event-category-tag" style={{
+                <div className="quick-info-category">
+                  <span style={{
                     color: event.categories.color || 'var(--primary)',
                     backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                    padding: '0.5rem 1.2rem',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    display: 'inline-block',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                   }}>
                     {event.categories.name}
                   </span>
                 </div>
               )}
-            </motion.div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Desktop Event Banner - Clean Version without Text Overlay */
+          <div
+            className="event-banner"
+            style={{
+              position: 'relative',
+              height: '400px',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              marginBottom: '2rem',
+              width: '100%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3'})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'brightness(1)',
+                transition: 'transform 0.5s ease-in-out'
+              }}
+              className="event-banner-image"
+            ></div>
+          </div>
+        )}
+
+        {/* Desktop Quick Info Bar - Only visible on desktop */}
+        {!isMobileView && (
+          <div className="desktop-quick-info-bar">
+            <div className="desktop-quick-info-left">
+              <div className="quick-info-item">
+                <span className="quick-info-icon">📅</span>
+                <span>{formatEventDate(event.start_date, event.end_date)}</span>
+              </div>
+
+              <div className="quick-info-item">
+                <span className="quick-info-icon">📍</span>
+                <span>{event.location}</span>
+              </div>
+
+              {event.clubs && (
+                <div className="quick-info-item">
+                  <span className="quick-info-icon">👥</span>
+                  <span>{event.clubs.name}</span>
+                </div>
+              )}
+
+              {event.registration_deadline && (
+                <div className="quick-info-item">
+                  <span className="quick-info-icon">⏰</span>
+                  <span>Register by: {format(new Date(event.registration_deadline), 'MMM d, yyyy')}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Category Badge - Desktop Version */}
+            {event.categories && (
+              <div className="desktop-quick-info-category">
+                <span style={{
+                  color: event.categories.color || 'var(--primary)',
+                  backgroundColor: `${event.categories.color || 'var(--primary)'}20`,
+                  padding: '0.5rem 1.2rem',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  display: 'inline-block',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                }}>
+                  {event.categories.name}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+
 
         {/* Mobile Tabs - Only visible on mobile */}
         {isMobileView && event && (
@@ -1053,6 +1107,26 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                     </p>
                   </div>
 
+                  {event.clubs && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>ORGANIZED BY</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>👥</span>
+                        <span>{event.clubs.name}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {event.categories && (
+                    <div style={{ marginBottom: '1.2rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>CATEGORY</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>🏷️</span>
+                        <span>{event.categories.name}</span>
+                      </p>
+                    </div>
+                  )}
+
                   {event.participation_type && (
                     <div style={{ marginBottom: '1.2rem' }}>
                       <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>PARTICIPATION</h4>
@@ -1099,12 +1173,32 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                   )}
 
                   {event.contact_info && (
-                    <div>
+                    <div style={{ marginBottom: '1.2rem' }}>
                       <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>CONTACT</h4>
                       <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ color: 'var(--accent)' }}>📞</span>
                         <span>{event.contact_info}</span>
                       </p>
+                    </div>
+                  )}
+
+                  {/* Registration Stats - Only in mobile view */}
+                  {isMobileView && registrations && (
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>REGISTRATION STATUS</h4>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--accent)' }}>📊</span>
+                        <span>
+                          {event.participation_type === 'team'
+                            ? `${registrations.length} teams registered`
+                            : `${registrations.length} participants registered`}
+                        </span>
+                      </p>
+                      {event.max_registrations && (
+                        <p style={{ margin: '0.3rem 0 0 1.8rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          {event.max_registrations - registrations.length} spots remaining
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

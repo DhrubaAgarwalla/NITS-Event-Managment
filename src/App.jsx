@@ -12,6 +12,7 @@ import './styles/eventDetailsMobile.css'
 import './styles/clubDetailsMobile.css'
 import './styles/aboutMobile.css'
 import './styles/modal.css'
+import './styles/mobile3D.css'
 
 // Connection Indicator (hidden)
 // import ConnectionIndicator from './components/ConnectionIndicator'
@@ -45,6 +46,7 @@ import ClubRequestForm from './components/ClubRequestForm';
 import EventCreationForm from './components/EventCreationForm';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import Mobile3DEffects from './components/Mobile3DEffects';
 
 function App() {
   const { user, club, isAdmin, loading: authLoading } = useAuth();
@@ -248,6 +250,7 @@ function App() {
         ) : (
           <div className="app">
             <Cursor />
+            <Mobile3DEffects />
             <Navbar setCurrentPage={setCurrentPage} isClubLoggedIn={isClubLoggedIn} currentPage={currentPage} />
 
             {currentPage === 'home' && (

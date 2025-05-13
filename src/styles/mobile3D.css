@@ -1,0 +1,203 @@
+/* Mobile 3D Effects CSS */
+
+/* Base styles for 3D cards on mobile */
+@media (max-width: 767px) {
+  /* Add perspective to container */
+  .events-grid {
+    perspective: 1000px;
+  }
+  
+  /* Enhanced event card styles for mobile */
+  .event-card {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transform: perspective(1000px) translateZ(0);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: visible !important; /* Allow content to break out of container for 3D effect */
+  }
+  
+  /* Enhance shadows for 3D effect */
+  .event-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: -1;
+    transform: translateZ(-10px);
+  }
+  
+  /* Active state for touch interactions */
+  .event-card.touch-active {
+    z-index: 10;
+  }
+  
+  .event-card.touch-active::after {
+    opacity: 1;
+  }
+  
+  /* Make event image pop out in 3D space */
+  .event-card .event-image {
+    transform: translateZ(0);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform;
+  }
+  
+  /* Make event title pop out slightly */
+  .event-card .event-title {
+    transform: translateZ(5px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  /* Make event date badge pop out more */
+  .event-card .event-date {
+    transform: translateZ(10px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Make button pop out */
+  .event-card .btn {
+    transform: translateZ(15px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease;
+  }
+  
+  /* Add subtle glow effect on active state */
+  .event-card.touch-active {
+    box-shadow: 
+      0 5px 15px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(var(--primary-rgb), 0.4);
+  }
+  
+  /* Enhanced hover effect for mobile */
+  .event-card:hover {
+    transform: perspective(1000px) translateY(-5px) scale(1.02);
+  }
+  
+  /* Add subtle animation for cards when they enter viewport */
+  @keyframes cardEnter {
+    from {
+      opacity: 0;
+      transform: perspective(1000px) translateY(30px) rotateX(10deg);
+    }
+    to {
+      opacity: 1;
+      transform: perspective(1000px) translateY(0) rotateX(0);
+    }
+  }
+  
+  /* Apply animation to cards */
+  .event-card {
+    animation: cardEnter 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+  
+  /* Stagger animation for multiple cards */
+  .event-card:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  
+  .event-card:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+  
+  .event-card:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+  
+  .event-card:nth-child(n+5) {
+    animation-delay: 0.4s;
+  }
+  
+  /* Add subtle floating animation */
+  @keyframes float {
+    0% {
+      transform: perspective(1000px) translateZ(0) translateY(0);
+    }
+    50% {
+      transform: perspective(1000px) translateZ(5px) translateY(-5px);
+    }
+    100% {
+      transform: perspective(1000px) translateZ(0) translateY(0);
+    }
+  }
+  
+  /* Apply floating animation to cards in view */
+  .event-card.in-view {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  /* Enhance club items with similar 3D effects */
+  .club-item {
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  .club-item:hover {
+    transform: perspective(1000px) translateY(-5px) scale(1.02);
+  }
+  
+  /* Add 3D effect to club icon */
+  .club-item .club-icon {
+    transform: translateZ(10px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  /* Add 3D effect to club name */
+  .club-item .club-name {
+    transform: translateZ(5px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  
+  /* Add 3D effect to club button */
+  .club-item .btn {
+    transform: translateZ(15px);
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease;
+  }
+}
+
+/* Specific adjustments for very small screens */
+@media (max-width: 480px) {
+  /* Reduce 3D effect intensity for very small screens */
+  .event-card {
+    transform: perspective(800px) translateZ(0);
+  }
+  
+  .event-card .event-image {
+    transform: translateZ(0);
+  }
+  
+  .event-card .event-title {
+    transform: translateZ(3px);
+  }
+  
+  .event-card .event-date {
+    transform: translateZ(5px);
+  }
+  
+  .event-card .btn {
+    transform: translateZ(8px);
+  }
+  
+  /* Adjust animation for smaller screens */
+  @keyframes float-small {
+    0% {
+      transform: perspective(800px) translateZ(0) translateY(0);
+    }
+    50% {
+      transform: perspective(800px) translateZ(3px) translateY(-3px);
+    }
+    100% {
+      transform: perspective(800px) translateZ(0) translateY(0);
+    }
+  }
+  
+  .event-card.in-view {
+    animation: float-small 5s ease-in-out infinite;
+  }
+}

@@ -11,6 +11,29 @@
     padding: 0 1.25rem;
   }
 
+  /* Ensure event details container has proper padding */
+  #event-details .container {
+    padding: 0 0.75rem;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Ensure mobile event header has proper spacing */
+  .mobile-event-header {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+
+  /* Style the mobile event title */
+  .mobile-event-header h1 {
+    font-size: 1.8rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 1.2rem !important;
+    text-align: center !important;
+    padding: 0 0.5rem !important;
+  }
+
   h1 {
     font-size: clamp(2.5rem, 8vw, 3.5rem);
   }
