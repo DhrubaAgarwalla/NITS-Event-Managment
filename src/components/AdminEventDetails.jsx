@@ -95,22 +95,15 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       }
 
       // Handle different export formats
-      if (format === 'sheets') {
-        // For Google Sheets, open the URL in a new tab
-        if (result.url) {
-          window.open(result.url, '_blank');
-        }
-      } else {
-        // For Excel and PDF, download the file
-        if (result.url && result.filename) {
-          const link = document.createElement('a');
-          link.href = result.url;
-          link.download = result.filename;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
+      // For Excel and PDF, download the file
+      if (result.url && result.filename) {
+        const link = document.createElement('a');
+        link.href = result.url;
+        link.download = result.filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     } catch (err) {
       console.error('Error exporting registrations:', err);
@@ -525,7 +518,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                 </button>
 
                 <button
-                  onClick={() => handleExportRegistrations('sheets')}
+                  onClick={() => handleExportRegistrations('excel_styled')}
                   disabled={exportLoading || registrations.length === 0}
                   style={{
                     backgroundColor: 'rgba(52, 168, 83, 0.15)',
@@ -541,7 +534,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                     gap: '0.5rem'
                   }}
                 >
-                  <span>{exportLoading ? '⏳' : '📝'}</span> {exportLoading ? 'Exporting...' : 'Google Sheets'}
+                  <span>{exportLoading ? '⏳' : '📊'}</span> {exportLoading ? 'Exporting...' : 'Excel (Styled)'}
                 </button>
               </div>
             </div>

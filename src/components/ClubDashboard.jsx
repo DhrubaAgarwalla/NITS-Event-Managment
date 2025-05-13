@@ -1963,11 +1963,11 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '0.7';
                           button.style.cursor = 'wait';
 
-                          // Export registrations as Google Sheets (which now falls back to PDF if needed)
+                          // Export registrations as Excel with advanced styling
                           const result = await registrationService.exportRegistrationsAsCSV(
                             selectedEvent.id,
                             selectedEvent.title,
-                            'sheets'
+                            'excel_styled'
                           );
 
                           // Remove the loading overlay
@@ -2012,7 +2012,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '1';
                           button.style.cursor = 'pointer';
 
-                          console.error('Error exporting registrations to Google Sheets:', err);
+                          console.error('Error exporting registrations to Excel:', err);
                           alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
                       }}
@@ -2031,7 +2031,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         fontSize: '0.95rem'
                       }}
                     >
-                      <span style={{ fontSize: '1.2rem' }}>📊</span> Excel
+                      <span style={{ fontSize: '1.2rem' }}>📊</span> Excel Sheet
                     </button>
                   </div>
                 </div>

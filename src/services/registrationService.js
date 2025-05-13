@@ -3,86 +3,11 @@ import { database } from '../lib/firebase';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { exportToGoogleSheets, loadGoogleApiClient } from './directSheetsExport';
+// Import ExcelJS as a namespace import for ES modules
+import * as ExcelJSModule from 'exceljs';
 
 // Registration-related database operations
 const registrationService = {
-  // Try Google Sheets export in the background without blocking the UI
-  tryGoogleSheetsExportInBackground(eventTitle, registrations) {
-    setTimeout(async () => {
-      try {
-        console.log('Attempting Google Sheets export in background');
-
-        // First try the serverless function with the full URL
-        try {
-          const sheetsData = {
-            eventTitle,
-            registrations: registrations.map(reg => ({
-              name: reg.name || reg.participant_name,
-              email: reg.email,
-              phone: reg.phone,
-              student_id: reg.student_id || reg.participant_id,
-              department: reg.department || reg.additional_info?.department,
-              year: reg.year || reg.additional_info?.year,
-              registration_type: reg.registration_type || (reg.additional_info?.team_members ? 'Team' : 'Individual'),
-              registration_date: reg.registration_date || reg.created_at,
-              status: reg.status,
-              team_members: reg.team_members,
-              team_members_details: reg.team_members_details || reg.additional_info?.team_members
-            }))
-          };
-
-          const response = await fetch('/api/sheets', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(sheetsData)
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            console.log('Background Google Sheets export succeeded:', result);
-            // We could notify the user here if needed
-          } else {
-            throw new Error(`Server responded with status: ${response.status}`);
-          }
-        } catch (serverError) {
-          console.log('Server export failed, trying direct export in background');
-
-          // If server fails, try direct export
-          try {
-            // Load the Google API client if not already loaded
-            await new Promise((resolve) => {
-              loadGoogleApiClient(resolve);
-            });
-
-            // Try to sign in the user silently (no popup)
-            if (window.gapi && window.gapi.auth2) {
-              const authInstance = window.gapi.auth2.getAuthInstance();
-              if (!authInstance.isSignedIn.get()) {
-                // Only try silent sign-in to avoid popup issues
-                await authInstance.signIn({prompt: 'none'});
-              }
-
-              // Export directly to Google Sheets
-              const result = await exportToGoogleSheets(eventTitle, registrations);
-              if (result.success) {
-                console.log('Background direct Google Sheets export succeeded:', result);
-                // We could notify the user here if needed
-              }
-            }
-          } catch (directError) {
-            console.log('Background direct export also failed:', directError);
-            // Both methods failed, but we already have the PDF, so no need to notify the user
-          }
-        }
-      } catch (error) {
-        console.error('Background Google Sheets export failed:', error);
-        // No need to notify the user since this is a background operation
-      }
-    }, 100); // Small delay to ensure it doesn't block the UI
-  },
   // Get all registrations for an event
   getEventRegistrations: async (eventId) => {
     try {
@@ -291,10 +216,722 @@ const registrationService = {
     }
   },
 
-  // Export registrations as Excel, PDF, or Google Sheets
+  // Export registrations as professionally styled Excel using ExcelJS
+  exportStyledExcel: async (eventId, eventTitle) => {
+    try {
+      console.log(`Exporting professionally styled Excel for event ID: ${eventId} using ExcelJS`);
+
+      // Check if ExcelJSModule is properly imported
+      if (!ExcelJSModule) {
+        console.error('ExcelJSModule is not properly imported:', ExcelJSModule);
+        throw new Error('ExcelJS library is not properly imported or initialized');
+      }
+
+      console.log(`ExcelJSModule imported successfully:`, ExcelJSModule); // Log ExcelJSModule
+
+      // Get all registrations for the event
+      const registrations = await registrationService.getEventRegistrations(eventId);
+
+      if (!registrations || registrations.length === 0) {
+        return { success: false, message: 'No registrations found for this event' };
+      }
+
+      // Create a new workbook using the ExcelJSModule
+      const workbook = new ExcelJSModule.Workbook();
+      console.log('Workbook created successfully:', workbook);
+
+      // Set workbook properties
+      workbook.creator = 'NIT Silchar Event Management';
+      workbook.lastModifiedBy = 'NIT Silchar Event Management';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+
+      // Add a worksheet for registrations
+      const mainSheet = workbook.addWorksheet('Registrations', {
+        properties: { tabColor: { argb: '4472C4' } }
+      });
+
+      // Define custom styles
+      const titleStyle = {
+        font: { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+      };
+
+      const subtitleStyle = {
+        font: { name: 'Arial', size: 12, bold: true },
+        alignment: { horizontal: 'center', vertical: 'middle' }
+      };
+
+      const headerStyle = {
+        font: { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '5B9BD5' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        border: {
+          top: { style: 'thin', color: { argb: '000000' } },
+          left: { style: 'thin', color: { argb: '000000' } },
+          bottom: { style: 'thin', color: { argb: '000000' } },
+          right: { style: 'thin', color: { argb: '000000' } }
+        }
+      };
+
+      const evenRowStyle = {
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } }
+      };
+
+      const oddRowStyle = {
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF' } }
+      };
+
+      const borderStyle = {
+        border: {
+          top: { style: 'thin', color: { argb: 'D0D0D0' } },
+          left: { style: 'thin', color: { argb: 'D0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+          right: { style: 'thin', color: { argb: 'D0D0D0' } }
+        }
+      };
+
+      // Add title and subtitle
+      mainSheet.mergeCells('A1:K1');
+      const titleCell = mainSheet.getCell('A1');
+      titleCell.value = 'NIT SILCHAR EVENT REGISTRATION DATA';
+      titleCell.style = titleStyle;
+      mainSheet.getRow(1).height = 30;
+
+      mainSheet.mergeCells('A2:K2');
+      const eventTitleCell = mainSheet.getCell('A2');
+      eventTitleCell.value = `Event: ${eventTitle}`;
+      eventTitleCell.style = subtitleStyle;
+
+      mainSheet.mergeCells('A3:K3');
+      const dateCell = mainSheet.getCell('A3');
+      dateCell.value = `Generated: ${new Date().toLocaleString()}`;
+      dateCell.style = subtitleStyle;
+
+      // Add empty row
+      mainSheet.addRow([]);
+
+      // Calculate registration statistics
+      const totalRegistrations = registrations.length;
+      const individualRegistrations = registrations.filter(r =>
+        !r.additional_info?.team_members ||
+        !Array.isArray(r.additional_info.team_members) ||
+        r.additional_info.team_members.length === 0
+      ).length;
+      const teamRegistrations = totalRegistrations - individualRegistrations;
+
+      // Add statistics section
+      mainSheet.mergeCells('A5:K5');
+      const statsHeaderCell = mainSheet.getCell('A5');
+      statsHeaderCell.value = 'Registration Statistics';
+      statsHeaderCell.style = {
+        font: { name: 'Arial', size: 12, bold: true },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDEBF7' } },
+        alignment: { horizontal: 'center' }
+      };
+
+      const statsRow1 = mainSheet.addRow(['Total Registrations:', totalRegistrations, '', '', '', '', '', '', '', '', '']);
+      statsRow1.getCell(1).style = { font: { bold: true } };
+
+      const statsRow2 = mainSheet.addRow(['Individual Registrations:', individualRegistrations, '', '', '', '', '', '', '', '', '']);
+      statsRow2.getCell(1).style = { font: { bold: true } };
+
+      const statsRow3 = mainSheet.addRow(['Team Registrations:', teamRegistrations, '', '', '', '', '', '', '', '', '']);
+      statsRow3.getCell(1).style = { font: { bold: true } };
+
+      // Add empty row
+      mainSheet.addRow([]);
+
+      // Add header row
+      const headerRow = mainSheet.addRow([
+        'Serial No.',
+        'Name',
+        'Email',
+        'Phone',
+        'Student ID',
+        'Department',
+        'Year',
+        'Type',
+        'Registration Date',
+        'Status',
+        'Notes'
+      ]);
+
+      // Apply header style to each cell in the header row
+      headerRow.eachCell((cell) => {
+        cell.style = headerStyle;
+      });
+
+      // Format data and add rows
+      registrations.forEach((reg, index) => {
+        // Format registration date
+        let formattedDate = 'N/A';
+        try {
+          formattedDate = new Date(reg.registration_date).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (e) {
+          console.error('Error formatting date:', e);
+        }
+
+        // Determine registration type
+        const regType = reg.additional_info?.team_members &&
+                       Array.isArray(reg.additional_info.team_members) &&
+                       reg.additional_info.team_members.length > 0 ? 'Team' : 'Individual';
+
+        // Add data row
+        const dataRow = mainSheet.addRow([
+          index + 1, // Serial number
+          reg.participant_name || 'N/A',
+          reg.participant_email || 'N/A',
+          reg.participant_phone || 'N/A',
+          reg.participant_id || 'N/A',
+          reg.additional_info?.department || 'N/A',
+          reg.additional_info?.year || 'N/A',
+          regType,
+          formattedDate,
+          reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
+          '' // Empty notes column
+        ]);
+
+        // Apply alternating row styles
+        const rowStyle = index % 2 === 0 ? evenRowStyle : oddRowStyle;
+        dataRow.eachCell((cell, colNumber) => {
+          cell.style = { ...rowStyle, ...borderStyle };
+
+          // Ensure phone and student ID are formatted as text
+          if (colNumber === 4 || colNumber === 5) {
+            cell.numFmt = '@';
+          }
+        });
+
+        // Apply special formatting to status cell
+        const statusCell = dataRow.getCell(10);
+        if (reg.status === 'registered') {
+          statusCell.style.font = { color: { argb: '00B050' } }; // Green for registered
+        } else if (reg.status === 'attended') {
+          statusCell.style.font = { color: { argb: '0070C0' } }; // Blue for attended
+        } else if (reg.status === 'cancelled') {
+          statusCell.style.font = { color: { argb: 'FF0000' } }; // Red for cancelled
+        }
+      });
+
+      // Set column widths and formats for better readability
+      mainSheet.columns = [
+        { key: 'serialNo', width: 10 },
+        { key: 'name', width: 25 },
+        { key: 'email', width: 30 },
+        { key: 'phone', width: 15, style: { numFmt: '@' } }, // Text format to prevent number validation
+        { key: 'studentId', width: 15, style: { numFmt: '@' } }, // Text format to prevent number validation
+        { key: 'department', width: 15 },
+        { key: 'year', width: 10 },
+        { key: 'type', width: 15 },
+        { key: 'registrationDate', width: 20 },
+        { key: 'status', width: 12 },
+        { key: 'notes', width: 30 }
+      ];
+
+      // Add Team Members sheet if there are team registrations
+      if (teamRegistrations > 0) {
+        // Add a worksheet for team members with improved styling
+        const teamSheet = workbook.addWorksheet('Team Members', {
+          properties: { tabColor: { argb: '4472C4' } } // Changed to match the primary color theme
+        });
+
+        // Define enhanced styles for team members sheet
+        const teamTitleStyle = {
+          font: { name: 'Arial', size: 18, bold: true, color: { argb: 'FFFFFF' } },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } }, // Primary blue color
+          alignment: { horizontal: 'center', vertical: 'middle' },
+          border: {
+            top: { style: 'thin', color: { argb: '000000' } },
+            left: { style: 'thin', color: { argb: '000000' } },
+            bottom: { style: 'thin', color: { argb: '000000' } },
+            right: { style: 'thin', color: { argb: '000000' } }
+          }
+        };
+
+        const teamSubtitleStyle = {
+          font: { name: 'Arial', size: 12, bold: true },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9E1F2' } }, // Light blue background
+          alignment: { horizontal: 'center', vertical: 'middle' },
+          border: {
+            top: { style: 'thin', color: { argb: '000000' } },
+            left: { style: 'thin', color: { argb: '000000' } },
+            bottom: { style: 'thin', color: { argb: '000000' } },
+            right: { style: 'thin', color: { argb: '000000' } }
+          }
+        };
+
+        const teamHeaderStyle = {
+          font: { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFF' } },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '5B9BD5' } }, // Blue header
+          alignment: { horizontal: 'center', vertical: 'middle' },
+          border: {
+            top: { style: 'thin', color: { argb: '000000' } },
+            left: { style: 'thin', color: { argb: '000000' } },
+            bottom: { style: 'thin', color: { argb: '000000' } },
+            right: { style: 'thin', color: { argb: '000000' } }
+          }
+        };
+
+        const teamGroupHeaderStyle = {
+          font: { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } },
+          fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '7B9CBE' } }, // Light slate blue for team headers
+          alignment: { horizontal: 'center', vertical: 'middle' },
+          border: {
+            top: { style: 'medium', color: { argb: '000000' } },
+            left: { style: 'medium', color: { argb: '000000' } },
+            bottom: { style: 'medium', color: { argb: '000000' } },
+            right: { style: 'medium', color: { argb: '000000' } }
+          }
+        };
+
+        // Add title and subtitle with enhanced styling
+        teamSheet.mergeCells('A1:G1');
+        const teamTitleCell = teamSheet.getCell('A1');
+        teamTitleCell.value = 'TEAM MEMBERS DETAILS';
+        teamTitleCell.style = teamTitleStyle;
+        teamSheet.getRow(1).height = 35; // Increased height for better visibility
+
+        teamSheet.mergeCells('A2:G2');
+        const teamEventTitleCell = teamSheet.getCell('A2');
+        teamEventTitleCell.value = `Event: ${eventTitle}`;
+        teamEventTitleCell.style = teamSubtitleStyle;
+        teamSheet.getRow(2).height = 25;
+
+        teamSheet.mergeCells('A3:G3');
+        const teamDateCell = teamSheet.getCell('A3');
+        teamDateCell.value = `Generated: ${new Date().toLocaleString()}`;
+        teamDateCell.style = teamSubtitleStyle;
+        teamSheet.getRow(3).height = 25;
+
+        // Add empty row with styling
+        const emptyRow = teamSheet.addRow(['']);
+        emptyRow.height = 10;
+
+        // Add header row for team members with simplified column names
+        const teamHeaderRow = teamSheet.addRow([
+          'Serial No.',
+          'Team Name',
+          'Member Name',
+          'Scholar ID',
+          'Department',
+          'Year',
+          'Notes'
+        ]);
+
+        // Apply enhanced header style to each cell in the header row
+        teamHeaderRow.eachCell((cell) => {
+          cell.style = teamHeaderStyle;
+        });
+        teamHeaderRow.height = 30; // Increased height for better visibility
+
+        // Group registrations by team
+        const teamGroups = [];
+
+        registrations.forEach(reg => {
+          // Check if this is a team registration
+          if (reg.additional_info?.team_members &&
+              Array.isArray(reg.additional_info.team_members) &&
+              reg.additional_info.team_members.length > 0) {
+
+            // Get team name (with fallback)
+            const teamName = reg.additional_info?.team_name || `Team ${reg.participant_name || 'Unknown'}`;
+            const teamMembers = [];
+
+            // Process each team member
+            reg.additional_info.team_members.forEach(member => {
+              teamMembers.push({
+                teamName,
+                teamLead: reg.participant_name || 'N/A',
+                teamLeadEmail: reg.participant_email || 'N/A',
+                teamLeadPhone: reg.participant_phone || 'N/A',
+                memberName: member.name || 'N/A',
+                scholarId: member.rollNumber || member.scholarId || member.scholar_id || 'N/A',
+                department: member.department || member.dept || 'N/A',
+                year: member.year || member.yr || 'N/A',
+                notes: '' // Empty notes column
+              });
+            });
+
+            // Add this team to our groups
+            if (teamMembers.length > 0) {
+              teamGroups.push({
+                teamName,
+                teamLead: reg.participant_name || 'N/A',
+                teamLeadEmail: reg.participant_email || 'N/A',
+                teamLeadPhone: reg.participant_phone || 'N/A',
+                members: teamMembers
+              });
+            }
+          }
+        });
+
+        // Add team data with simplified styling
+        teamGroups.forEach((team, teamIndex) => {
+          // Add a separator between teams (except for the first team)
+          if (teamIndex > 0) {
+            const separatorRow = teamSheet.addRow(['', '', '', '', '', '', '']);
+            separatorRow.height = 10;
+            separatorRow.eachCell((cell) => {
+              cell.style = {
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F2F2' } }
+              };
+            });
+          }
+
+          // Add team header row with team information
+          const teamRow = teamSheet.addRow([
+            `Team ${teamIndex + 1}`,
+            team.teamName,
+            `Lead: ${team.teamLead} | Email: ${team.teamLeadEmail} | Phone: ${team.teamLeadPhone}`,
+            '', '', '', ''
+          ]);
+
+          // Ensure the team header cell is formatted as text to prevent validation indicators
+          teamRow.getCell(3).numFmt = '@';
+
+          // Apply enhanced team header style
+          teamRow.eachCell((cell) => {
+            cell.style = teamGroupHeaderStyle;
+          });
+          teamRow.height = 30; // Increased height for better visibility
+
+          // Merge cells for better appearance
+          teamSheet.mergeCells(`C${teamRow.number}:G${teamRow.number}`);
+
+          // Add team members with simplified styling
+          team.members.forEach((member, memberIndex) => {
+            const memberRow = teamSheet.addRow([
+              `${teamIndex + 1}.${memberIndex + 1}`, // Format: TeamNumber.MemberNumber
+              team.teamName,
+              member.memberName,
+              member.scholarId,
+              member.department,
+              member.year,
+              member.notes
+            ]);
+
+            // Apply simple row style similar to registration sheet
+            const baseRowStyle = {
+              border: {
+                top: { style: 'thin', color: { argb: 'D0D0D0' } },
+                left: { style: 'thin', color: { argb: 'D0D0D0' } },
+                bottom: { style: 'thin', color: { argb: 'D0D0D0' } },
+                right: { style: 'thin', color: { argb: 'D0D0D0' } }
+              },
+              alignment: { vertical: 'middle' }
+            };
+
+            // Apply alternating row colors for better readability
+            const rowColor = memberIndex % 2 === 0 ? 'F2F2F2' : 'FFFFFF';
+
+            // Apply styling to each cell
+            memberRow.eachCell((cell, colNumber) => {
+              cell.style = {
+                ...baseRowStyle,
+                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: rowColor } }
+              };
+
+              // Center align specific columns
+              if (colNumber === 1 || colNumber === 4 || colNumber === 5 || colNumber === 6) {
+                cell.style.alignment = { horizontal: 'center', vertical: 'middle' };
+              }
+
+              // Ensure scholar ID is formatted as text
+              if (colNumber === 4) {
+                cell.numFmt = '@';
+              }
+            });
+
+            // Make serial number bold and centered
+            memberRow.getCell(1).style.font = { bold: true };
+
+            // Set row height for better readability
+            memberRow.height = 22;
+          });
+        });
+
+        // Set column widths for team members sheet with simplified structure and proper formatting
+        teamSheet.columns = [
+          { key: 'serialNo', width: 10 },
+          { key: 'teamName', width: 22 },
+          { key: 'memberName', width: 25 },
+          { key: 'scholarId', width: 15, style: { numFmt: '@' } }, // Text format to prevent number validation
+          { key: 'department', width: 15 },
+          { key: 'year', width: 10 },
+          { key: 'notes', width: 25 }
+        ];
+
+        // Freeze the header rows
+        teamSheet.views = [
+          { state: 'frozen', xSplit: 0, ySplit: 5, activeCell: 'A6' }
+        ];
+      }
+
+      // Add Dashboard sheet with statistics
+      const dashboardSheet = workbook.addWorksheet('Dashboard', {
+        properties: { tabColor: { argb: 'ED7D31' } }
+      });
+
+      // Add title and subtitle
+      dashboardSheet.mergeCells('A1:E1');
+      const dashTitleCell = dashboardSheet.getCell('A1');
+      dashTitleCell.value = 'EVENT REGISTRATION DASHBOARD';
+      dashTitleCell.style = titleStyle;
+      dashboardSheet.getRow(1).height = 30;
+
+      dashboardSheet.mergeCells('A2:E2');
+      const dashEventTitleCell = dashboardSheet.getCell('A2');
+      dashEventTitleCell.value = `Event: ${eventTitle}`;
+      dashEventTitleCell.style = subtitleStyle;
+
+      dashboardSheet.mergeCells('A3:E3');
+      const dashDateCell = dashboardSheet.getCell('A3');
+      dashDateCell.value = `Generated: ${new Date().toLocaleString()}`;
+      dashDateCell.style = subtitleStyle;
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Add participant summary section
+      dashboardSheet.mergeCells('A5:E5');
+      const summaryHeaderCell = dashboardSheet.getCell('A5');
+      summaryHeaderCell.value = 'PARTICIPANT SUMMARY';
+      summaryHeaderCell.style = {
+        font: { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '44546A' } },
+        alignment: { horizontal: 'center' }
+      };
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Count total participants (including team members)
+      let totalTeamMembers = 0;
+      let allTeamMemberDepts = {};
+      let allTeamMemberYears = {};
+
+      // Process all registrations to count team members
+      registrations.forEach(reg => {
+        // Check if this is a team registration with members
+        if (reg.additional_info?.team_members &&
+            Array.isArray(reg.additional_info.team_members) &&
+            reg.additional_info.team_members.length > 0) {
+
+          // Count team members
+          const memberCount = reg.additional_info.team_members.length;
+          totalTeamMembers += memberCount;
+
+          // Count departments and years for team members
+          reg.additional_info.team_members.forEach(member => {
+            // Count department
+            const dept = member.department || member.dept || 'Unknown';
+            allTeamMemberDepts[dept] = (allTeamMemberDepts[dept] || 0) + 1;
+
+            // Count year
+            const year = member.year || member.yr || 'Unknown';
+            allTeamMemberYears[year] = (allTeamMemberYears[year] || 0) + 1;
+          });
+        }
+      });
+
+      // Calculate total participants
+      const totalParticipants = individualRegistrations + teamRegistrations + totalTeamMembers;
+
+      // Add total participant count to dashboard
+      const participantsRow = dashboardSheet.addRow(['Total Participants:', totalParticipants]);
+      participantsRow.getCell(1).style = { font: { bold: true } };
+      participantsRow.getCell(2).numFmt = '0'; // Format as number without decimals
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Calculate department distribution for registrants
+      const departmentCounts = {};
+      registrations.forEach(reg => {
+        const dept = reg.additional_info?.department || 'Unknown';
+        departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
+      });
+
+      // Add department distribution section
+      dashboardSheet.mergeCells('A10:E10');
+      const deptHeaderCell = dashboardSheet.getCell('A10');
+      deptHeaderCell.value = 'DEPARTMENT DISTRIBUTION (ALL PARTICIPANTS)';
+      deptHeaderCell.style = {
+        font: { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '44546A' } },
+        alignment: { horizontal: 'center' }
+      };
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Add department header row
+      const deptHeaderRow = dashboardSheet.addRow(['Department', 'Count', 'Percentage']);
+      deptHeaderRow.eachCell((cell, colNumber) => {
+        if (colNumber <= 3) {
+          cell.style = headerStyle;
+        }
+      });
+
+      // Combine department counts
+      const combinedDeptCounts = {...departmentCounts};
+      Object.entries(allTeamMemberDepts).forEach(([dept, count]) => {
+        combinedDeptCounts[dept] = (combinedDeptCounts[dept] || 0) + count;
+      });
+
+      // Add department distribution data with proper formatting
+      let rowIndex = 0;
+      Object.entries(combinedDeptCounts).forEach(([dept, count]) => {
+        // Calculate percentage
+        const percentage = totalParticipants > 0 ? (count / totalParticipants * 100).toFixed(1) : '0.0';
+
+        const deptRow = dashboardSheet.addRow([dept, count, `${percentage}%`]);
+
+        // Apply alternating row styles
+        const rowStyle = rowIndex % 2 === 0 ? evenRowStyle : oddRowStyle;
+        deptRow.eachCell((cell, colNumber) => {
+          if (colNumber <= 3) {
+            cell.style = { ...rowStyle, ...borderStyle };
+
+            // Format count as number without decimals to prevent validation indicators
+            if (colNumber === 2) {
+              cell.numFmt = '0';
+            }
+          }
+        });
+
+        rowIndex++;
+      });
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Add year distribution section
+      const yearSectionRow = dashboardSheet.getRow(dashboardSheet.rowCount + 1);
+      dashboardSheet.mergeCells(`A${yearSectionRow.number}:E${yearSectionRow.number}`);
+      const yearHeaderCell = dashboardSheet.getCell(`A${yearSectionRow.number}`);
+      yearHeaderCell.value = 'YEAR DISTRIBUTION (ALL PARTICIPANTS)';
+      yearHeaderCell.style = {
+        font: { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '44546A' } },
+        alignment: { horizontal: 'center' }
+      };
+
+      // Add empty row
+      dashboardSheet.addRow([]);
+
+      // Add year header row
+      const yearHeaderRow = dashboardSheet.addRow(['Year', 'Count', 'Percentage']);
+      yearHeaderRow.eachCell((cell, colNumber) => {
+        if (colNumber <= 3) {
+          cell.style = headerStyle;
+        }
+      });
+
+      // Calculate year distribution for registrants
+      const yearCounts = {};
+      registrations.forEach(reg => {
+        const year = reg.additional_info?.year || 'Unknown';
+        yearCounts[year] = (yearCounts[year] || 0) + 1;
+      });
+
+      // Combine year counts
+      const combinedYearCounts = {...yearCounts};
+      Object.entries(allTeamMemberYears).forEach(([year, count]) => {
+        combinedYearCounts[year] = (combinedYearCounts[year] || 0) + count;
+      });
+
+      // Add year distribution data with improved formatting
+      rowIndex = 0;
+      Object.entries(combinedYearCounts).forEach(([year, count]) => {
+        // Calculate percentage
+        const percentage = totalParticipants > 0 ? (count / totalParticipants * 100).toFixed(1) : '0.0';
+
+        // Format year as "1st year", "2nd year", etc.
+        let formattedYear = year;
+        if (!isNaN(year) && year !== 'Unknown') {
+          const yearNum = parseInt(year);
+          const suffix = yearNum === 1 ? 'st' : yearNum === 2 ? 'nd' : yearNum === 3 ? 'rd' : 'th';
+          formattedYear = `${yearNum}${suffix} Year`;
+        }
+
+        const yearRow = dashboardSheet.addRow([formattedYear, count, `${percentage}%`]);
+
+        // Apply alternating row styles
+        const rowStyle = rowIndex % 2 === 0 ? evenRowStyle : oddRowStyle;
+        yearRow.eachCell((cell, colNumber) => {
+          if (colNumber <= 3) {
+            cell.style = { ...rowStyle, ...borderStyle };
+
+            // Format numbers as text to prevent validation indicators
+            if (colNumber === 2) {
+              cell.numFmt = '0'; // Format as number without decimals
+            }
+          }
+        });
+
+        rowIndex++;
+      });
+
+      // Set column widths and formats for dashboard sheet
+      dashboardSheet.columns = [
+        { key: 'label', width: 30 },
+        { key: 'count', width: 15, style: { numFmt: '0' } }, // Format as number without decimals
+        { key: 'percentage', width: 15 },
+        { key: 'empty1', width: 10 },
+        { key: 'empty2', width: 10 }
+      ];
+
+      // Generate Excel file
+      console.log('Generating Excel buffer with ExcelJS...');
+      const buffer = await workbook.xlsx.writeBuffer();
+      console.log('Excel buffer generated successfully, creating blob...');
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const filename = `${eventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_registrations.xlsx`;
+
+      console.log('Returning styled Excel export with URL:', url);
+      return { success: true, url, filename, type: 'excel_styled' };
+    } catch (error) {
+      console.error('Error creating styled Excel export:', error);
+
+      // Create a more detailed error message
+      const errorDetails = {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      };
+
+      console.error('Detailed error information:', JSON.stringify(errorDetails, null, 2));
+
+      // Return a fallback response
+      return {
+        success: false,
+        message: `Failed to create styled Excel export: ${error.message}. Check console for details.`
+      };
+    }
+  },
+
+  // Export registrations as Excel or PDF
   exportRegistrationsAsCSV: async (eventId, eventTitle, format = 'excel') => {
     try {
       console.log(`Exporting registrations for event ID: ${eventId} as ${format}`);
+
+      // Use the professionally styled Excel export if format is 'excel_styled'
+      if (format === 'excel_styled') {
+        console.log('Using exportStyledExcel for professionally styled Excel export');
+        return await registrationService.exportStyledExcel(eventId, eventTitle);
+      }
 
       // Get all registrations for the event
       const registrations = await registrationService.getEventRegistrations(eventId);
@@ -1305,11 +1942,20 @@ const registrationService = {
             combinedYearCounts[year] = (combinedYearCounts[year] || 0) + count;
           });
 
-          // Add combined year distribution
+          // Add combined year distribution with improved formatting
           Object.entries(combinedYearCounts).forEach(([year, count]) => {
             // Calculate percentage safely (avoid division by zero)
             const percentage = totalParticipants > 0 ? (count / totalParticipants * 100).toFixed(1) : '0.0';
-            dashboardData.push([year, `${count} (${percentage}%)`]);
+
+            // Format year as "1st year", "2nd year", etc.
+            let formattedYear = year;
+            if (!isNaN(year) && year !== 'Unknown') {
+              const yearNum = parseInt(year);
+              const suffix = yearNum === 1 ? 'st' : yearNum === 2 ? 'nd' : yearNum === 3 ? 'rd' : 'th';
+              formattedYear = `${yearNum}${suffix} Year`;
+            }
+
+            dashboardData.push([formattedYear, `${count} (${percentage}%)`]);
           });
 
           // Create dashboard worksheet
@@ -1482,7 +2128,7 @@ const registrationService = {
             success: true,
             url,
             filename,
-            type: 'sheets',
+            type: 'excel',
             message: 'Excel file created successfully. Click to download.'
           };
 
