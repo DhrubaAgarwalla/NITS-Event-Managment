@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 // Import ExcelJS as a namespace import for ES modules
 import * as ExcelJSModule from 'exceljs';
+import eventService from './eventService';
 
 // Registration-related database operations
 const registrationService = {
@@ -262,6 +263,13 @@ const registrationService = {
         return { success: false, message: 'No registrations found for this event' };
       }
 
+      // Get event data to access custom fields configuration
+      const eventData = await eventService.getEventById(eventId);
+      const customFields = eventData?.custom_fields || [];
+
+      // Check if any registration has payment information
+      const hasPaymentInfo = registrations.some(reg => reg.payment_screenshot_url || reg.payment_status || reg.payment_amount);
+
       // Create a new workbook using the ExcelJSModule
       const workbook = new ExcelJSModule.Workbook();
       console.log('Workbook created successfully:', workbook);
@@ -318,19 +326,23 @@ const registrationService = {
         }
       };
 
+      // Calculate total columns for proper merging
+      const totalColumns = 10 + customFields.length + (hasPaymentInfo ? 3 : 0) + 1; // base + custom + payment + notes
+      const lastColumn = String.fromCharCode(64 + totalColumns); // Convert to letter (A=65, so 64+1=A)
+
       // Add title and subtitle
-      mainSheet.mergeCells('A1:K1');
+      mainSheet.mergeCells(`A1:${lastColumn}1`);
       const titleCell = mainSheet.getCell('A1');
       titleCell.value = 'NIT SILCHAR EVENT REGISTRATION DATA';
       titleCell.style = titleStyle;
       mainSheet.getRow(1).height = 30;
 
-      mainSheet.mergeCells('A2:K2');
+      mainSheet.mergeCells(`A2:${lastColumn}2`);
       const eventTitleCell = mainSheet.getCell('A2');
       eventTitleCell.value = `Event: ${eventTitle}`;
       eventTitleCell.style = subtitleStyle;
 
-      mainSheet.mergeCells('A3:K3');
+      mainSheet.mergeCells(`A3:${lastColumn}3`);
       const dateCell = mainSheet.getCell('A3');
       dateCell.value = `Generated: ${new Date().toLocaleString()}`;
       dateCell.style = subtitleStyle;
@@ -348,7 +360,7 @@ const registrationService = {
       const teamRegistrations = totalRegistrations - individualRegistrations;
 
       // Add statistics section
-      mainSheet.mergeCells('A5:K5');
+      mainSheet.mergeCells(`A5:${lastColumn}5`);
       const statsHeaderCell = mainSheet.getCell('A5');
       statsHeaderCell.value = 'Registration Statistics';
       statsHeaderCell.style = {
@@ -357,22 +369,22 @@ const registrationService = {
         alignment: { horizontal: 'center' }
       };
 
-      const statsRow1 = mainSheet.addRow(['Total Registrations:', totalRegistrations, '', '', '', '', '', '', '', '', '']);
+      // Create empty array for stats rows with proper length
+      const emptyStatsRow = new Array(totalColumns).fill('');
+
+      const statsRow1 = mainSheet.addRow(['Total Registrations:', totalRegistrations, ...emptyStatsRow.slice(2)]);
       statsRow1.getCell(1).style = { font: { bold: true } };
 
-      const statsRow2 = mainSheet.addRow(['Individual Registrations:', individualRegistrations, '', '', '', '', '', '', '', '', '']);
+      const statsRow2 = mainSheet.addRow(['Individual Registrations:', individualRegistrations, ...emptyStatsRow.slice(2)]);
       statsRow2.getCell(1).style = { font: { bold: true } };
 
-      const statsRow3 = mainSheet.addRow(['Team Registrations:', teamRegistrations, '', '', '', '', '', '', '', '', '']);
+      const statsRow3 = mainSheet.addRow(['Team Registrations:', teamRegistrations, ...emptyStatsRow.slice(2)]);
       statsRow3.getCell(1).style = { font: { bold: true } };
 
       // Add empty row
       mainSheet.addRow([]);
 
-      // Check if any registration has payment information
-      const hasPaymentInfo = registrations.some(reg => reg.payment_screenshot_url || reg.payment_status || reg.payment_amount);
-
-      // Add header row with conditional payment columns
+      // Add header row with conditional payment columns and custom fields
       const headers = [
         'Serial No.',
         'Name',
@@ -385,6 +397,11 @@ const registrationService = {
         'Registration Date',
         'Status'
       ];
+
+      // Add custom field headers
+      customFields.forEach(field => {
+        headers.push(field.label);
+      });
 
       if (hasPaymentInfo) {
         headers.push('Payment Status', 'Payment Amount', 'Payment Screenshot');
@@ -420,7 +437,7 @@ const registrationService = {
                        Array.isArray(reg.additional_info.team_members) &&
                        reg.additional_info.team_members.length > 0 ? 'Team' : 'Individual';
 
-        // Prepare data row with conditional payment columns
+        // Prepare data row with conditional payment columns and custom fields
         const rowData = [
           index + 1, // Serial number
           reg.participant_name || 'N/A',
@@ -433,6 +450,23 @@ const registrationService = {
           formattedDate,
           reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'
         ];
+
+        // Add custom field data
+        customFields.forEach(field => {
+          const customFieldValue = reg.additional_info?.custom_fields?.[field.id];
+          let displayValue = 'N/A';
+
+          if (customFieldValue !== undefined && customFieldValue !== null) {
+            if (Array.isArray(customFieldValue)) {
+              // For checkbox fields that store arrays
+              displayValue = customFieldValue.length > 0 ? customFieldValue.join(', ') : 'N/A';
+            } else {
+              displayValue = customFieldValue.toString();
+            }
+          }
+
+          rowData.push(displayValue);
+        });
 
         if (hasPaymentInfo) {
           rowData.push(
@@ -481,6 +515,20 @@ const registrationService = {
         { key: 'registrationDate', width: 20 },
         { key: 'status', width: 12 }
       ];
+
+      // Add custom field columns
+      customFields.forEach(field => {
+        // Determine width based on field type and label length
+        let width = Math.max(15, field.label.length + 5);
+        if (field.type === 'textarea') width = Math.min(width, 40);
+        if (field.type === 'email') width = Math.max(width, 25);
+
+        columns.push({
+          key: `custom_${field.id}`,
+          width: width,
+          style: field.type === 'number' ? {} : { numFmt: '@' } // Text format for non-number fields
+        });
+      });
 
       if (hasPaymentInfo) {
         columns.push(
@@ -998,6 +1046,10 @@ const registrationService = {
         return { success: false, message: 'No registrations found for this event' };
       }
 
+      // Get event data to access custom fields configuration
+      const eventData = await eventService.getEventById(eventId);
+      const customFields = eventData?.custom_fields || [];
+
       // Prepare data for export
       const exportData = registrations.map(reg => {
         // Format team members if present
@@ -1024,7 +1076,8 @@ const registrationService = {
           console.error('Error formatting date:', e);
         }
 
-        return {
+        // Create base export object
+        const exportObj = {
           'Name': reg.participant_name || 'N/A',
           'Email': reg.participant_email || 'N/A',
           'Phone': reg.participant_phone || 'N/A',
@@ -1033,9 +1086,30 @@ const registrationService = {
           'Year': reg.additional_info?.year || 'N/A',
           'Registration Type': reg.additional_info?.team_members ? 'Team' : 'Individual',
           'Registration Date': formattedDate,
-          'Status': reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
-          'Team Members': teamMembersInfo || 'N/A'
+          'Status': reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'
         };
+
+        // Add custom fields to export object
+        customFields.forEach(field => {
+          const customFieldValue = reg.additional_info?.custom_fields?.[field.id];
+          let displayValue = 'N/A';
+
+          if (customFieldValue !== undefined && customFieldValue !== null) {
+            if (Array.isArray(customFieldValue)) {
+              // For checkbox fields that store arrays
+              displayValue = customFieldValue.length > 0 ? customFieldValue.join(', ') : 'N/A';
+            } else {
+              displayValue = customFieldValue.toString();
+            }
+          }
+
+          exportObj[field.label] = displayValue;
+        });
+
+        // Add team members info
+        exportObj['Team Members'] = teamMembersInfo || 'N/A';
+
+        return exportObj;
       });
 
       if (format === 'excel') {
@@ -1068,8 +1142,8 @@ const registrationService = {
         // Create a clean, flat structure for the main data that's easy to edit
         const flatData = [];
 
-        // Add header row
-        flatData.push([
+        // Add header row with custom fields
+        const headers = [
           'Serial No.',
           'Name',
           'Email',
@@ -1079,14 +1153,20 @@ const registrationService = {
           'Year',
           'Type',
           'Registration Date',
-          'Status',
-          'Team Members',
-          'Notes'
-        ]);
+          'Status'
+        ];
+
+        // Add custom field headers
+        customFields.forEach(field => {
+          headers.push(field.label);
+        });
+
+        headers.push('Team Members', 'Notes');
+        flatData.push(headers);
 
         // Add data rows
         exportData.forEach((reg, index) => {
-          flatData.push([
+          const rowData = [
             index + 1, // Serial number
             reg['Name'],
             reg['Email'],
@@ -1096,10 +1176,18 @@ const registrationService = {
             reg['Year'],
             reg['Registration Type'],
             reg['Registration Date'],
-            reg['Status'],
-            reg['Team Members'], // Include team members information
-            '' // Empty notes column for clubs to add comments
-          ]);
+            reg['Status']
+          ];
+
+          // Add custom field values
+          customFields.forEach(field => {
+            rowData.push(reg[field.label] || 'N/A');
+          });
+
+          // Add team members and notes
+          rowData.push(reg['Team Members'] || 'N/A', ''); // Empty notes column for clubs to add comments
+
+          flatData.push(rowData);
         });
 
         // Combine header and data
@@ -1119,10 +1207,22 @@ const registrationService = {
           { wch: 10 }, // Year
           { wch: 15 }, // Type
           { wch: 20 }, // Registration Date
-          { wch: 12 }, // Status
+          { wch: 12 }  // Status
+        ];
+
+        // Add custom field column widths
+        customFields.forEach(field => {
+          let width = Math.max(15, field.label.length + 5);
+          if (field.type === 'textarea') width = Math.min(width, 40);
+          if (field.type === 'email') width = Math.max(width, 25);
+          columnWidths.push({ wch: width });
+        });
+
+        // Add team members and notes columns
+        columnWidths.push(
           { wch: 50 }, // Team Members
           { wch: 30 }  // Notes
-        ];
+        );
         worksheet['!cols'] = columnWidths;
 
         // Add the main worksheet to the workbook
@@ -1269,8 +1369,14 @@ const registrationService = {
           reg.additional_info.team_members.length > 0
         );
 
-        // Prepare table headers and body with conditional payment columns
+        // Prepare table headers and body with conditional payment columns and custom fields
         const tableHeaders = ['Name', 'Email', 'Phone', 'Student ID', 'Department', 'Year', 'Type', 'Status'];
+
+        // Add custom field headers
+        customFields.forEach(field => {
+          tableHeaders.push(field.label);
+        });
+
         if (hasPaymentInfo) {
           tableHeaders.push('Payment Status', 'Payment Amount');
         }
@@ -1290,6 +1396,11 @@ const registrationService = {
             reg['Registration Type'],
             reg['Status']
           ];
+
+          // Add custom field values
+          customFields.forEach(field => {
+            row.push(reg[field.label] || 'N/A');
+          });
 
           if (hasPaymentInfo) {
             // Find the original registration to get payment info
@@ -1333,53 +1444,79 @@ const registrationService = {
 
           columnStyles: (() => {
             const styles = {};
+            let columnIndex = 0;
 
-            if (hasPaymentInfo && hasTeamRegistrations) {
-              // Both payment and team info - compact layout
-              styles[0] = { cellWidth: 20 }; // Name
-              styles[1] = { cellWidth: 28 }; // Email
-              styles[2] = { cellWidth: 16 }; // Phone
-              styles[3] = { cellWidth: 16 }; // Student ID
-              styles[4] = { cellWidth: 16 }; // Department
-              styles[5] = { cellWidth: 10 }; // Year
-              styles[6] = { cellWidth: 14 }; // Type
-              styles[7] = { cellWidth: 14 }; // Status
-              styles[8] = { cellWidth: 16 }; // Payment Status
-              styles[9] = { cellWidth: 16 }; // Payment Amount
-              styles[10] = { cellWidth: 'auto' }; // Team Members
-            } else if (hasPaymentInfo && !hasTeamRegistrations) {
-              // Payment info only - wider columns for solo events (NO TEAM COLUMNS)
-              styles[0] = { cellWidth: 32 }; // Name
-              styles[1] = { cellWidth: 45 }; // Email
-              styles[2] = { cellWidth: 22 }; // Phone
-              styles[3] = { cellWidth: 22 }; // Student ID
-              styles[4] = { cellWidth: 25 }; // Department
-              styles[5] = { cellWidth: 15 }; // Year
-              styles[6] = { cellWidth: 20 }; // Type
-              styles[7] = { cellWidth: 20 }; // Status
-              styles[8] = { cellWidth: 22 }; // Payment Status
-              styles[9] = { cellWidth: 22 }; // Payment Amount
-            } else if (!hasPaymentInfo && hasTeamRegistrations) {
-              // Team info only - no payment
-              styles[0] = { cellWidth: 22 }; // Name
-              styles[1] = { cellWidth: 30 }; // Email
-              styles[2] = { cellWidth: 18 }; // Phone
-              styles[3] = { cellWidth: 18 }; // Student ID
-              styles[4] = { cellWidth: 18 }; // Department
-              styles[5] = { cellWidth: 12 }; // Year
-              styles[6] = { cellWidth: 15 }; // Type
-              styles[7] = { cellWidth: 15 }; // Status
-              styles[8] = { cellWidth: 'auto' }; // Team Members
+            // Base columns: Name, Email, Phone, Student ID, Department, Year, Type, Status
+            const baseColumns = 8;
+            const customFieldsCount = customFields.length;
+            const paymentColumns = hasPaymentInfo ? 2 : 0;
+            const teamColumns = hasTeamRegistrations ? 1 : 0;
+            const totalColumns = baseColumns + customFieldsCount + paymentColumns + teamColumns;
+
+            // Determine column widths based on content and available space
+            if (totalColumns <= 8) {
+              // Plenty of space - use generous widths
+              styles[columnIndex++] = { cellWidth: 25 }; // Name
+              styles[columnIndex++] = { cellWidth: 40 }; // Email
+              styles[columnIndex++] = { cellWidth: 20 }; // Phone
+              styles[columnIndex++] = { cellWidth: 20 }; // Student ID
+              styles[columnIndex++] = { cellWidth: 25 }; // Department
+              styles[columnIndex++] = { cellWidth: 15 }; // Year
+              styles[columnIndex++] = { cellWidth: 18 }; // Type
+              styles[columnIndex++] = { cellWidth: 18 }; // Status
+            } else if (totalColumns <= 12) {
+              // Moderate space - balanced widths
+              styles[columnIndex++] = { cellWidth: 20 }; // Name
+              styles[columnIndex++] = { cellWidth: 30 }; // Email
+              styles[columnIndex++] = { cellWidth: 18 }; // Phone
+              styles[columnIndex++] = { cellWidth: 18 }; // Student ID
+              styles[columnIndex++] = { cellWidth: 20 }; // Department
+              styles[columnIndex++] = { cellWidth: 12 }; // Year
+              styles[columnIndex++] = { cellWidth: 15 }; // Type
+              styles[columnIndex++] = { cellWidth: 15 }; // Status
             } else {
-              // Solo events without payment - maximum space utilization (NO TEAM OR PAYMENT COLUMNS)
-              styles[0] = { cellWidth: 35 }; // Name
-              styles[1] = { cellWidth: 50 }; // Email
-              styles[2] = { cellWidth: 25 }; // Phone
-              styles[3] = { cellWidth: 25 }; // Student ID
-              styles[4] = { cellWidth: 28 }; // Department
-              styles[5] = { cellWidth: 18 }; // Year
-              styles[6] = { cellWidth: 22 }; // Type
-              styles[7] = { cellWidth: 22 }; // Status
+              // Tight space - compact widths
+              styles[columnIndex++] = { cellWidth: 18 }; // Name
+              styles[columnIndex++] = { cellWidth: 25 }; // Email
+              styles[columnIndex++] = { cellWidth: 15 }; // Phone
+              styles[columnIndex++] = { cellWidth: 15 }; // Student ID
+              styles[columnIndex++] = { cellWidth: 15 }; // Department
+              styles[columnIndex++] = { cellWidth: 10 }; // Year
+              styles[columnIndex++] = { cellWidth: 12 }; // Type
+              styles[columnIndex++] = { cellWidth: 12 }; // Status
+            }
+
+            // Add custom field columns
+            customFields.forEach((field) => {
+              let width = 15; // Default width
+
+              // Adjust width based on field type and label length
+              if (field.type === 'textarea') {
+                width = 25;
+              } else if (field.type === 'email') {
+                width = 20;
+              } else if (field.label.length > 15) {
+                width = 20;
+              }
+
+              // Reduce width if we have too many columns
+              if (totalColumns > 12) {
+                width = Math.max(12, width - 3);
+              }
+
+              styles[columnIndex++] = { cellWidth: width };
+            });
+
+            // Add payment columns if present
+            if (hasPaymentInfo) {
+              const paymentWidth = totalColumns > 12 ? 12 : 15;
+              styles[columnIndex++] = { cellWidth: paymentWidth }; // Payment Status
+              styles[columnIndex++] = { cellWidth: paymentWidth }; // Payment Amount
+            }
+
+            // Add team members column if present
+            if (hasTeamRegistrations) {
+              styles[columnIndex++] = { cellWidth: 'auto' }; // Team Members - use remaining space
             }
 
             return styles;

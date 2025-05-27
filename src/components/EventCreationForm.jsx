@@ -67,6 +67,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     // Tags field
     selectedTags: [],
 
+    // Custom registration fields
+    custom_fields: [],
+
     // Schedule fields
     schedule: [
       {
@@ -237,6 +240,79 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         };
       }
     });
+  };
+
+  // Custom fields management
+  const addCustomField = () => {
+    const newField = {
+      id: Date.now().toString(),
+      label: '',
+      type: 'text',
+      required: false,
+      options: [] // For select/radio/checkbox types
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: [...prev.custom_fields, newField]
+    }));
+  };
+
+  const removeCustomField = (fieldId) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.filter(field => field.id !== fieldId)
+    }));
+  };
+
+  const updateCustomField = (fieldId, updates) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId ? { ...field, ...updates } : field
+      )
+    }));
+  };
+
+  const addCustomFieldOption = (fieldId) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? { ...field, options: [...field.options, ''] }
+          : field
+      )
+    }));
+  };
+
+  const updateCustomFieldOption = (fieldId, optionIndex, value) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.map((option, index) =>
+                index === optionIndex ? value : option
+              )
+            }
+          : field
+      )
+    }));
+  };
+
+  const removeCustomFieldOption = (fieldId, optionIndex) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: prev.custom_fields.map(field =>
+        field.id === fieldId
+          ? {
+              ...field,
+              options: field.options.filter((_, index) => index !== optionIndex)
+            }
+          : field
+      )
+    }));
   };
 
   // Handle image file selection for horizontal banner
@@ -701,7 +777,10 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         payment_amount: formData.requires_payment ? parseFloat(formData.payment_amount) : null,
         payment_upi_id: formData.requires_payment ? formData.payment_upi_id : null,
         payment_qr_code: paymentQRUrl || null,
-        payment_instructions: formData.requires_payment ? formData.payment_instructions : null
+        payment_instructions: formData.requires_payment ? formData.payment_instructions : null,
+
+        // Custom registration fields
+        custom_fields: formData.custom_fields || []
       };
 
       // Handle schedule data separately to avoid JSON serialization issues
@@ -848,6 +927,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           payment_instructions: 'Please complete the payment and upload the screenshot as proof.',
 
           selectedTags: [], // Reset selected tags
+          custom_fields: [], // Reset custom fields
           schedule: [
             {
               date: '',
@@ -2019,6 +2099,225 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Custom Registration Fields */}
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.5rem', width: '100%' }}>
+                  Custom Registration Fields
+                </h3>
+                <button
+                  type="button"
+                  onClick={addCustomField}
+                  style={{
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    color: '#3498db',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    marginLeft: '1rem'
+                  }}
+                >
+                  Add Field
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                Add custom fields to collect additional information from participants during registration.
+              </p>
+
+              {formData.custom_fields.length === 0 ? (
+                <div style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '8px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  border: '2px dashed rgba(255, 255, 255, 0.1)'
+                }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                    No custom fields added yet. Click "Add Field" to create your first custom field.
+                  </p>
+                </div>
+              ) : (
+                formData.custom_fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                      borderRadius: '8px',
+                      padding: '1.5rem',
+                      marginBottom: '1rem',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                      <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Field {index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => removeCustomField(field.id)}
+                        style={{
+                          backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                          color: '#e74c3c',
+                          border: 'none',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          Field Label *
+                        </label>
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => updateCustomField(field.id, { label: e.target.value })}
+                          placeholder="Enter field label"
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          Field Type
+                        </label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => updateCustomField(field.id, { type: e.target.value, options: e.target.value === 'select' || e.target.value === 'radio' || e.target.value === 'checkbox' ? [''] : [] })}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          <option value="text">Text</option>
+                          <option value="email">Email</option>
+                          <option value="number">Number</option>
+                          <option value="tel">Phone</option>
+                          <option value="textarea">Long Text</option>
+                          <option value="select">Dropdown</option>
+                          <option value="radio">Radio Buttons</option>
+                          <option value="checkbox">Checkboxes</option>
+                          <option value="date">Date</option>
+                          <option value="file">File Upload</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'end' }}>
+                        <label style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) => updateCustomField(field.id, { required: e.target.checked })}
+                            style={{ marginRight: '0.5rem', transform: 'scale(1.2)' }}
+                          />
+                          Required
+                        </label>
+                      </div>
+                    </div>
+
+                    {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <label style={{
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)'
+                          }}>
+                            Options
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addCustomFieldOption(field.id)}
+                            style={{
+                              backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                              color: '#2ecc71',
+                              border: 'none',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            Add Option
+                          </button>
+                        </div>
+
+                        {field.options.map((option, optionIndex) => (
+                          <div key={optionIndex} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => updateCustomFieldOption(field.id, optionIndex, e.target.value)}
+                              placeholder={`Option ${optionIndex + 1}`}
+                              style={{
+                                flex: 1,
+                                padding: '0.6rem 0.8rem',
+                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeCustomFieldOption(field.id, optionIndex)}
+                              style={{
+                                backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                                color: '#e74c3c',
+                                border: 'none',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem'
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Event Schedule */}

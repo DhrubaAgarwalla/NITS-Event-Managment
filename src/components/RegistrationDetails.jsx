@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import eventService from '../services/eventService';
 
 const RegistrationDetails = ({ registration, onClose }) => {
+  const [eventData, setEventData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -12,11 +16,32 @@ const RegistrationDetails = ({ registration, onClose }) => {
     }
   };
 
+  // Load event data to get custom field definitions
+  useEffect(() => {
+    const loadEventData = async () => {
+      if (registration?.event_id) {
+        try {
+          const data = await eventService.getEventById(registration.event_id);
+          setEventData(data);
+        } catch (error) {
+          console.error('Error loading event data:', error);
+        }
+      }
+      setLoading(false);
+    };
+
+    loadEventData();
+  }, [registration?.event_id]);
+
   // Get team members if available
   const teamMembers = registration?.additional_info?.team_members || [];
   const teamType = registration?.additional_info?.team_type || 'individual';
   const department = registration?.additional_info?.department || 'N/A';
   const year = registration?.additional_info?.year || 'N/A';
+
+  // Get custom fields data
+  const customFields = eventData?.custom_fields || [];
+  const customFieldsData = registration?.additional_info?.custom_fields || {};
 
   // Status badge style based on status
   const getStatusBadgeStyle = (status) => {
@@ -132,6 +157,52 @@ const RegistrationDetails = ({ registration, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Custom Fields Section */}
+      {!loading && customFields.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Additional Information</h4>
+
+          <div className="custom-fields-container" style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '6px',
+            padding: '0.75rem',
+            border: '1px solid rgba(255, 255, 255, 0.05)'
+          }}>
+            <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              {customFields.map((field) => {
+                const fieldValue = customFieldsData[field.id];
+                let displayValue = 'N/A';
+
+                if (fieldValue !== undefined && fieldValue !== null) {
+                  if (Array.isArray(fieldValue)) {
+                    // For checkbox fields that store arrays
+                    displayValue = fieldValue.length > 0 ? fieldValue.join(', ') : 'N/A';
+                  } else {
+                    displayValue = fieldValue.toString();
+                  }
+                }
+
+                return (
+                  <div key={field.id}>
+                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {field.label}
+                    </p>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '0.95rem',
+                      wordBreak: field.type === 'textarea' ? 'break-word' : 'normal',
+                      whiteSpace: field.type === 'textarea' ? 'pre-wrap' : 'normal'
+                    }}>
+                      {displayValue}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {teamType === 'team' && teamMembers.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>

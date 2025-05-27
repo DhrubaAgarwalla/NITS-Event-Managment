@@ -34,7 +34,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
     rollNumber: '',
     department: '',
     year: '',
-    team: getDefaultParticipationType()
+    team: getDefaultParticipationType(),
+    custom_fields: {} // Store custom field responses
   });
 
   // Payment-related state
@@ -99,6 +100,17 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         [name]: value
       }));
     }
+  };
+
+  // Handle custom field changes
+  const handleCustomFieldChange = (fieldId, value) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [fieldId]: value
+      }
+    }));
   };
 
   // Handle payment screenshot file selection
@@ -205,6 +217,20 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         }
       }
 
+      // Validate custom fields
+      if (eventData.custom_fields && eventData.custom_fields.length > 0) {
+        for (const field of eventData.custom_fields) {
+          if (field.required) {
+            const value = formData.custom_fields[field.id];
+            if (!value || (Array.isArray(value) && value.length === 0)) {
+              setError(`${field.label} is required.`);
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        }
+      }
+
       // Validate payment if required
       if (eventData.requires_payment && !paymentScreenshot) {
         setError('Payment screenshot is required for this event. Please upload your payment proof.');
@@ -266,7 +292,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           department: formData.department,
           year: formData.year,
           team_type: formData.team,
-          team_members: formData.team === 'team' ? teamMembers : []
+          team_members: formData.team === 'team' ? teamMembers : [],
+          custom_fields: formData.custom_fields || {}
         },
         // Payment information
         payment_screenshot_url: paymentScreenshotUrl,
@@ -289,7 +316,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           rollNumber: '',
           department: '',
           year: '',
-          team: getDefaultParticipationType()
+          team: getDefaultParticipationType(),
+          custom_fields: {}
         });
         setTeamMembers(initializeTeamMembers());
         setPaymentScreenshot(null);
@@ -629,6 +657,247 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
                   </select>
                 </div>
               </div>
+
+              {/* Custom Fields */}
+              {eventData.custom_fields && eventData.custom_fields.length > 0 && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h3 style={{
+                    margin: '0 0 1.5rem',
+                    fontSize: '1.2rem',
+                    color: 'var(--primary)',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Additional Information
+                  </h3>
+
+                  {eventData.custom_fields.map((field) => (
+                    <div key={field.id} className="form-group" style={{ marginBottom: '1.5rem' }}>
+                      <label
+                        htmlFor={`custom-field-${field.id}`}
+                        style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
+                        {field.label} {field.required && <span style={{ color: 'var(--primary)' }}>*</span>}
+                      </label>
+
+                      {field.type === 'text' && (
+                        <input
+                          type="text"
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                        />
+                      )}
+
+                      {field.type === 'email' && (
+                        <input
+                          type="email"
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                        />
+                      )}
+
+                      {field.type === 'number' && (
+                        <input
+                          type="number"
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                        />
+                      )}
+
+                      {field.type === 'tel' && (
+                        <input
+                          type="tel"
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                        />
+                      )}
+
+                      {field.type === 'date' && (
+                        <input
+                          type="date"
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                        />
+                      )}
+
+                      {field.type === 'textarea' && (
+                        <textarea
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          rows={4}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem',
+                            resize: 'vertical'
+                          }}
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                        />
+                      )}
+
+                      {field.type === 'select' && (
+                        <select
+                          id={`custom-field-${field.id}`}
+                          value={formData.custom_fields[field.id] || ''}
+                          onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          <option value="">Select {field.label}</option>
+                          {field.options.map((option, index) => (
+                            <option key={index} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      {field.type === 'radio' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {field.options.map((option, index) => (
+                            <label key={index} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <input
+                                type="radio"
+                                name={`custom-field-${field.id}`}
+                                value={option}
+                                checked={formData.custom_fields[field.id] === option}
+                                onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                                required={field.required}
+                                style={{ marginRight: '0.5rem' }}
+                              />
+                              {option}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.type === 'checkbox' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {field.options.map((option, index) => (
+                            <label key={index} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                value={option}
+                                checked={(formData.custom_fields[field.id] || []).includes(option)}
+                                onChange={(e) => {
+                                  const currentValues = formData.custom_fields[field.id] || [];
+                                  const newValues = e.target.checked
+                                    ? [...currentValues, option]
+                                    : currentValues.filter(v => v !== option);
+                                  handleCustomFieldChange(field.id, newValues);
+                                }}
+                                style={{ marginRight: '0.5rem' }}
+                              />
+                              {option}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.type === 'file' && (
+                        <input
+                          type="file"
+                          id={`custom-field-${field.id}`}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              // For now, just store the file name. In a real implementation,
+                              // you'd upload the file and store the URL
+                              handleCustomFieldChange(field.id, file.name);
+                            }
+                          }}
+                          required={field.required}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Show participation type selection based on event type */}
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
