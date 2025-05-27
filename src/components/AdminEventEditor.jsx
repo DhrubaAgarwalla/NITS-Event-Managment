@@ -675,11 +675,10 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
             >
               <option value="internal">Internal (Use platform registration)</option>
               <option value="external">External (Use Google Form)</option>
-              <option value="both">Both (Internal & External)</option>
             </select>
           </div>
 
-          {(formData.registration_method === 'external' || formData.registration_method === 'both') && (
+          {formData.registration_method === 'external' && (
             <div className="form-group" style={{ marginBottom: '0.75rem' }}>
               <label htmlFor="external_form_url" style={labelStyle}>
                 External Form URL {formData.registration_method === 'external' && <span style={{ color: 'var(--primary)' }}>*</span>}

@@ -29,10 +29,16 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     vertical_image_url: '', // Added vertical banner URL
     registration_open: true,
     selectedTags: [],
+    // Payment fields
+    requires_payment: false,
+    payment_amount: '',
+    payment_upi_id: '',
+    payment_qr_code: '',
+    payment_instructions: 'Please complete the payment and upload the screenshot as proof.',
     // Schedule data
     schedule: [
       {
-        day: 'Day 1',
+        date: '',
         events: [
           { time: '09:00', title: 'Opening Ceremony', location: '' }
         ]
@@ -48,6 +54,12 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
   const [verticalImageFile, setVerticalImageFile] = useState(null);
   const [verticalImagePreview, setVerticalImagePreview] = useState('');
   const [verticalUploadProgress, setVerticalUploadProgress] = useState(0);
+
+  // Payment QR code
+  const [paymentQRFile, setPaymentQRFile] = useState(null);
+  const [paymentQRPreview, setPaymentQRPreview] = useState('');
+  const [paymentQRUploadProgress, setPaymentQRUploadProgress] = useState(0);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -136,6 +148,12 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         vertical_image_url: event.vertical_image_url || '',
         registration_open: event.registration_open !== false, // Default to true if not explicitly set to false
         selectedTags: [], // Will be populated by loadEventTags function
+        // Payment fields
+        requires_payment: event.requires_payment || false,
+        payment_amount: event.payment_amount?.toString() || '',
+        payment_upi_id: event.payment_upi_id || '',
+        payment_qr_code: event.payment_qr_code || '',
+        payment_instructions: event.payment_instructions || 'Please complete the payment and upload the screenshot as proof.',
         schedule: scheduleData
       });
 
@@ -147,14 +165,18 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       if (event.vertical_image_url) {
         setVerticalImagePreview(event.vertical_image_url);
       }
+
+      if (event.payment_qr_code) {
+        setPaymentQRPreview(event.payment_qr_code);
+      }
     }
   }, [event]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -191,16 +213,43 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }));
   };
 
+  // Handle schedule date changes
+  const handleScheduleDateChange = (dayIndex, date) => {
+    const updatedSchedule = [...formData.schedule];
+    updatedSchedule[dayIndex].date = date;
+
+    setFormData(prev => ({
+      ...prev,
+      schedule: updatedSchedule
+    }));
+  };
+
   // Add a new day to the schedule
   const addScheduleDay = () => {
-    const dayNumber = formData.schedule.length + 1;
+    // Calculate the next date based on the last schedule date or start_date
+    let nextDate = '';
+    if (formData.schedule.length > 0) {
+      const lastDate = formData.schedule[formData.schedule.length - 1].date;
+      if (lastDate) {
+        const lastDateObj = new Date(lastDate);
+        lastDateObj.setDate(lastDateObj.getDate() + 1);
+        nextDate = lastDateObj.toISOString().split('T')[0];
+      }
+    }
+
+    // If no date calculated and start_date exists, use start_date + schedule length
+    if (!nextDate && formData.start_date) {
+      const startDateObj = new Date(formData.start_date);
+      startDateObj.setDate(startDateObj.getDate() + formData.schedule.length);
+      nextDate = startDateObj.toISOString().split('T')[0];
+    }
 
     setFormData(prev => ({
       ...prev,
       schedule: [
         ...prev.schedule,
         {
-          day: `Day ${dayNumber}`,
+          date: nextDate,
           events: [
             { time: '09:00', title: '', location: '' }
           ]
@@ -286,6 +335,28 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }
   };
 
+  // Handle payment QR code file selection
+  const handlePaymentQRChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Payment QR code must be less than 5MB');
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Payment QR code must be an image file');
+        return;
+      }
+
+      setPaymentQRFile(file);
+      setPaymentQRPreview(URL.createObjectURL(file));
+    }
+  };
+
   // Upload horizontal image to Cloudinary
   const uploadImageToCloudinary = async (file) => {
     try {
@@ -338,6 +409,32 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
     }
   };
 
+  // Upload payment QR code to Cloudinary
+  const uploadPaymentQRToCloudinary = async (file) => {
+    try {
+      setPaymentQRUploadProgress(0);
+
+      // Update progress callback function
+      const updateProgress = (progress) => {
+        console.log(`Payment QR code upload progress: ${progress}%`);
+        setPaymentQRUploadProgress(progress);
+      };
+
+      // Upload to Cloudinary with progress tracking
+      const result = await uploadImage(file, 'payment-qr-codes', updateProgress);
+
+      if (!result || !result.url) {
+        throw new Error('Payment QR code upload failed: No URL returned from Cloudinary');
+      }
+
+      setPaymentQRUploadProgress(100);
+      return result.url;
+    } catch (err) {
+      console.error('Error uploading payment QR code to Cloudinary:', err);
+      throw err;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -357,6 +454,16 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       }
       if (!formData.category_id) {
         throw new Error('Category is required');
+      }
+
+      // Validate payment fields if payment is required
+      if (formData.requires_payment) {
+        if (!formData.payment_amount || parseFloat(formData.payment_amount) <= 0) {
+          throw new Error('Please provide a valid payment amount');
+        }
+        if (!formData.payment_upi_id) {
+          throw new Error('Please provide a UPI ID for payment');
+        }
       }
 
       // Prepare date objects
@@ -396,6 +503,20 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         }
       }
 
+      // Upload payment QR code if a new one is selected
+      let paymentQRUrl = formData.payment_qr_code;
+      if (paymentQRFile && formData.requires_payment) {
+        try {
+          setError('Uploading payment QR code...');
+          paymentQRUrl = await uploadPaymentQRToCloudinary(paymentQRFile);
+        } catch (uploadError) {
+          // Don't fail the whole operation if QR code upload fails
+          console.error('Payment QR code upload failed:', uploadError);
+          setError(`Payment QR code upload failed: ${uploadError.message}. Event will be updated without QR code.`);
+          paymentQRUrl = formData.payment_qr_code; // Keep existing QR code
+        }
+      }
+
       // Prepare event data
       const eventData = {
         title: formData.title,
@@ -417,6 +538,12 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         image_url: imageUrl,
         vertical_image_url: verticalImageUrl, // Add vertical banner URL
         registration_open: formData.registration_open,
+        // Payment fields
+        requires_payment: formData.requires_payment || false,
+        payment_amount: formData.requires_payment ? parseFloat(formData.payment_amount) : null,
+        payment_upi_id: formData.requires_payment ? formData.payment_upi_id : null,
+        payment_qr_code: paymentQRUrl || null,
+        payment_instructions: formData.requires_payment ? formData.payment_instructions : null,
         additional_info: {
           schedule: formData.schedule
         }
@@ -872,7 +999,6 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             >
               <option value="internal">Internal (Use platform registration)</option>
               <option value="external">External (Use Google Form)</option>
-              <option value="both">Both (Internal & External)</option>
             </select>
           </div>
 
@@ -905,7 +1031,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             </p>
           </div>
 
-          {(formData.registration_method === 'external' || formData.registration_method === 'both') && (
+          {formData.registration_method === 'external' && (
             <div className="form-group" style={{ marginBottom: '0.75rem' }}>
               <label htmlFor="external_form_url" style={labelStyle}>
                 External Form URL {formData.registration_method === 'external' && <span style={{ color: 'var(--primary)' }}>*</span>}
@@ -1007,7 +1133,22 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ margin: 0, fontSize: '1rem' }}>{day.day}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1rem', minWidth: '60px' }}>Date:</h4>
+                  <input
+                    type="date"
+                    value={day.date}
+                    onChange={(e) => handleScheduleDateChange(dayIndex, e.target.value)}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '4px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
@@ -1128,6 +1269,185 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
               ))}
             </div>
           ))}
+        </div>
+
+        {/* Payment Settings */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.5rem', fontSize: '1.1rem' }}>
+            Payment Settings
+          </h3>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '1rem' }}>
+              <input
+                type="checkbox"
+                name="requires_payment"
+                checked={formData.requires_payment}
+                onChange={handleChange}
+                style={{ marginRight: '0.5rem', transform: 'scale(1.2)' }}
+              />
+              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                This event requires payment for registration
+              </span>
+            </label>
+
+            {formData.requires_payment && (
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label
+                      htmlFor="payment_amount"
+                      style={labelStyle}
+                    >
+                      Registration Fee (₹) <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="payment_amount"
+                      name="payment_amount"
+                      value={formData.payment_amount}
+                      onChange={handleChange}
+                      required={formData.requires_payment}
+                      min="1"
+                      style={inputStyle}
+                      placeholder="100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="payment_upi_id"
+                      style={labelStyle}
+                    >
+                      UPI ID <span style={{ color: 'var(--primary)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="payment_upi_id"
+                      name="payment_upi_id"
+                      value={formData.payment_upi_id}
+                      onChange={handleChange}
+                      required={formData.requires_payment}
+                      style={inputStyle}
+                      placeholder="yourname@paytm"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label
+                    htmlFor="payment_instructions"
+                    style={labelStyle}
+                  >
+                    Payment Instructions
+                  </label>
+                  <textarea
+                    id="payment_instructions"
+                    name="payment_instructions"
+                    value={formData.payment_instructions}
+                    onChange={handleChange}
+                    rows={3}
+                    style={{
+                      ...inputStyle,
+                      resize: 'vertical'
+                    }}
+                    placeholder="Additional instructions for payment..."
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="payment_qr_code"
+                    style={labelStyle}
+                  >
+                    Payment QR Code (Optional)
+                  </label>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                    Upload a QR code image for easy payment. Students can scan this to pay directly.
+                  </p>
+
+                  <div style={{
+                    border: '2px dashed rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    textAlign: 'center',
+                    marginBottom: '1rem',
+                    cursor: 'pointer',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                  }}
+                  onClick={() => document.getElementById('payment-qr-upload').click()}
+                  >
+                    {paymentQRPreview ? (
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <img
+                          src={paymentQRPreview}
+                          alt="Payment QR code preview"
+                          style={{
+                            maxWidth: '200px',
+                            maxHeight: '200px',
+                            borderRadius: '8px',
+                            objectFit: 'contain',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '120px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📱</div>
+                          <div>Click to upload QR code</div>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="payment-qr-upload"
+                      accept="image/*"
+                      onChange={handlePaymentQRChange}
+                      style={{ display: 'none' }}
+                    />
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                      Recommended: Square image, max 5MB
+                    </div>
+                  </div>
+
+                  {paymentQRUploadProgress > 0 && paymentQRUploadProgress < 100 && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        Uploading QR code... {paymentQRUploadProgress}%
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${paymentQRUploadProgress}%`,
+                          height: '100%',
+                          backgroundColor: 'var(--primary)',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ marginBottom: '1rem' }}>

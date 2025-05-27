@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import registrationService from '../services/registrationService';
+import { uploadImage } from '../services/cloudinaryService';
 
 // Event data and registrations will come from props
 
@@ -35,6 +36,11 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
     year: '',
     team: getDefaultParticipationType()
   });
+
+  // Payment-related state
+  const [paymentScreenshot, setPaymentScreenshot] = useState(null);
+  const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState(null);
+  const [paymentUploadProgress, setPaymentUploadProgress] = useState(0);
 
   // Initialize team members array with the minimum required members
   const initializeTeamMembers = () => {
@@ -93,6 +99,46 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         [name]: value
       }));
     }
+  };
+
+  // Handle payment screenshot file selection
+  const handlePaymentScreenshotChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      setPaymentScreenshot(null);
+      setPaymentScreenshotPreview(null);
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file for payment screenshot.');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      setError(`Payment screenshot file size (${fileSizeMB.toFixed(2)} MB) exceeds the 5 MB limit.`);
+      e.target.value = '';
+      return;
+    }
+
+    console.log(`Selected payment screenshot: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+
+    // Preview the selected image
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPaymentScreenshotPreview(reader.result);
+    };
+    reader.onerror = () => {
+      setError('Failed to read the selected payment screenshot. Please try another file.');
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+
+    setPaymentScreenshot(file);
   };
 
   const handleTeamMemberChange = (index, e) => {
@@ -159,6 +205,13 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         }
       }
 
+      // Validate payment if required
+      if (eventData.requires_payment && !paymentScreenshot) {
+        setError('Payment screenshot is required for this event. Please upload your payment proof.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Check if user is already registered
       const existingRegistration = await registrationService.checkExistingRegistration(
         eventData.id,
@@ -169,6 +222,36 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         setError('You have already registered for this event');
         setIsSubmitting(false);
         return;
+      }
+
+      // Upload payment screenshot if provided
+      let paymentScreenshotUrl = null;
+      if (paymentScreenshot && eventData.requires_payment) {
+        try {
+          setPaymentUploadProgress(0);
+          console.log('Starting payment screenshot upload to Cloudinary...');
+
+          const updateProgress = (progress) => {
+            console.log(`Payment screenshot upload progress: ${progress}%`);
+            setPaymentUploadProgress(progress);
+          };
+
+          const result = await uploadImage(paymentScreenshot, 'payment-screenshots', updateProgress);
+
+          if (!result || !result.url) {
+            throw new Error('Payment screenshot upload failed: No URL returned from Cloudinary');
+          }
+
+          console.log('Payment screenshot upload successful, URL:', result.url);
+          setPaymentUploadProgress(100);
+          paymentScreenshotUrl = result.url;
+        } catch (uploadErr) {
+          console.error('Error uploading payment screenshot:', uploadErr);
+          setError(`Payment screenshot upload failed: ${uploadErr.message}. Please try again.`);
+          setIsSubmitting(false);
+          setPaymentUploadProgress(0);
+          return;
+        }
       }
 
       // Prepare registration data
@@ -184,7 +267,11 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           year: formData.year,
           team_type: formData.team,
           team_members: formData.team === 'team' ? teamMembers : []
-        }
+        },
+        // Payment information
+        payment_screenshot_url: paymentScreenshotUrl,
+        payment_status: eventData.requires_payment ? 'pending' : null,
+        payment_amount: eventData.requires_payment ? eventData.payment_amount : null
       };
 
       // Submit registration to Supabase
@@ -205,6 +292,9 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           team: getDefaultParticipationType()
         });
         setTeamMembers(initializeTeamMembers());
+        setPaymentScreenshot(null);
+        setPaymentScreenshotPreview(null);
+        setPaymentUploadProgress(0);
         setIsSuccess(false);
       }, 3000);
     } catch (err) {
@@ -249,7 +339,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
             </h2>
 
             {/* External Registration Form Link - Only show if registration is open */}
-            {(eventData.registration_method === 'external' || eventData.registration_method === 'both') &&
+            {eventData.registration_method === 'external' &&
              eventData.external_form_url &&
              eventData.registration_open !== false && (
               <motion.div
@@ -329,8 +419,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
               </motion.div>
             )}
 
-            {/* Internal Registration Form - Only show if registration method is internal or both AND registration is open */}
-            {(eventData.registration_method === 'internal' || eventData.registration_method === 'both') &&
+            {/* Internal Registration Form - Only show if registration method is internal AND registration is open */}
+            {eventData.registration_method === 'internal' &&
              eventData.registration_open !== false && (
             <form onSubmit={handleSubmit}>
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -904,7 +994,150 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
                 </motion.div>
               )}
 
+              {/* Payment Information Section */}
+              {eventData.requires_payment && (
+                <motion.div
+                  className="payment-section"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  style={{
+                    marginBottom: '2rem',
+                    padding: '1.5rem',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderLeft: '4px solid #ffc107',
+                    borderRadius: '8px'
+                  }}
+                >
+                  <h3 style={{
+                    margin: '0 0 1rem',
+                    fontSize: '1.3rem',
+                    color: '#ffc107',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <span>💳</span> Payment Required
+                  </h3>
 
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      <strong>Registration Fee: ₹{eventData.payment_amount}</strong>
+                    </p>
+                    {eventData.payment_upi_id && (
+                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                        UPI ID: <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{eventData.payment_upi_id}</span>
+                      </p>
+                    )}
+                    <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      {eventData.payment_instructions || 'Please complete the payment and upload the screenshot as proof.'}
+                    </p>
+                  </div>
+
+                  {/* QR Code Display */}
+                  {eventData.payment_qr_code && (
+                    <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                        Scan QR Code to Pay:
+                      </p>
+                      <img
+                        src={eventData.payment_qr_code}
+                        alt="Payment QR Code"
+                        style={{
+                          maxWidth: '200px',
+                          height: 'auto',
+                          border: '2px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '8px',
+                          backgroundColor: 'white',
+                          padding: '0.5rem'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Payment Screenshot Upload */}
+                  <div>
+                    <label
+                      htmlFor="payment_screenshot"
+                      style={{
+                        display: 'block',
+                        marginBottom: '0.5rem',
+                        fontSize: '0.9rem',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
+                      Payment Screenshot <span style={{ color: '#ffc107' }}>*</span>
+                    </label>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                      Upload a screenshot of your payment confirmation. Accepted formats: JPG, PNG (Max 5MB)
+                    </p>
+                    <input
+                      type="file"
+                      id="payment_screenshot"
+                      name="payment_screenshot"
+                      accept="image/*"
+                      onChange={handlePaymentScreenshotChange}
+                      required={eventData.requires_payment}
+                      style={{
+                        width: '100%',
+                        padding: '0.8rem 1rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                        fontSize: '1rem'
+                      }}
+                    />
+
+                    {/* Payment Screenshot Preview */}
+                    {paymentScreenshotPreview && (
+                      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                          Payment Screenshot Preview:
+                        </p>
+                        <img
+                          src={paymentScreenshotPreview}
+                          alt="Payment Screenshot Preview"
+                          style={{
+                            maxWidth: '300px',
+                            height: 'auto',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Upload Progress */}
+                    {paymentUploadProgress > 0 && (
+                      <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107' }}>
+                            {paymentUploadProgress === 100 ? 'Upload Complete!' : `Uploading Payment Screenshot: ${paymentUploadProgress}%`}
+                          </p>
+                          {paymentUploadProgress === 100 && (
+                            <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
+                          )}
+                        </div>
+                        <div style={{
+                          width: '100%',
+                          height: '8px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            width: `${paymentUploadProgress}%`,
+                            height: '100%',
+                            backgroundColor: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107',
+                            transition: 'width 0.3s ease'
+                          }}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
               <button
                 type="submit"

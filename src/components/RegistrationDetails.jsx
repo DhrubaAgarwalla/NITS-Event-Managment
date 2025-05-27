@@ -178,6 +178,72 @@ const RegistrationDetails = ({ registration, onClose }) => {
         </div>
       )}
 
+      {/* Payment Information */}
+      {(registration.payment_screenshot_url || registration.payment_status || registration.payment_amount) && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Payment Information</h4>
+
+          <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+            {registration.payment_amount && (
+              <div>
+                <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Amount</p>
+                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: '500' }}>₹{registration.payment_amount}</p>
+              </div>
+            )}
+
+            {registration.payment_status && (
+              <div>
+                <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Status</p>
+                <span style={{
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: '500',
+                  backgroundColor: registration.payment_status === 'verified' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                  color: registration.payment_status === 'verified' ? '#22c55e' : '#fbbf24'
+                }}>
+                  {registration.payment_status.charAt(0).toUpperCase() + registration.payment_status.slice(1)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {registration.payment_screenshot_url && (
+            <div>
+              <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Screenshot</p>
+              <a
+                href={registration.payment_screenshot_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'rgba(110, 68, 255, 0.1)',
+                  border: '1px solid rgba(110, 68, 255, 0.3)',
+                  borderRadius: '4px',
+                  color: 'var(--primary)',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = 'rgba(110, 68, 255, 0.15)';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'rgba(110, 68, 255, 0.1)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>📷</span> View Payment Screenshot
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ marginBottom: '1.5rem' }}>
         <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Registration Timeline</h4>
 

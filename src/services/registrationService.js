@@ -144,6 +144,32 @@ const registrationService = {
     }
   },
 
+  // Update payment status
+  updatePaymentStatus: async (id, paymentStatus) => {
+    try {
+      console.log(`Updating payment status to ${paymentStatus} for registration ID: ${id}`);
+      const registrationRef = ref(database, `registrations/${id}`);
+
+      await update(registrationRef, {
+        payment_status: paymentStatus,
+        updated_at: new Date().toISOString()
+      });
+
+      console.log('Payment status updated successfully');
+
+      // Get the updated registration
+      const snapshot = await get(registrationRef);
+
+      return {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      throw error;
+    }
+  },
+
   // Delete a registration
   deleteRegistration: async (id) => {
     try {
@@ -343,8 +369,11 @@ const registrationService = {
       // Add empty row
       mainSheet.addRow([]);
 
-      // Add header row
-      const headerRow = mainSheet.addRow([
+      // Check if any registration has payment information
+      const hasPaymentInfo = registrations.some(reg => reg.payment_screenshot_url || reg.payment_status || reg.payment_amount);
+
+      // Add header row with conditional payment columns
+      const headers = [
         'Serial No.',
         'Name',
         'Email',
@@ -354,9 +383,16 @@ const registrationService = {
         'Year',
         'Type',
         'Registration Date',
-        'Status',
-        'Notes'
-      ]);
+        'Status'
+      ];
+
+      if (hasPaymentInfo) {
+        headers.push('Payment Status', 'Payment Amount', 'Payment Screenshot');
+      }
+
+      headers.push('Notes');
+
+      const headerRow = mainSheet.addRow(headers);
 
       // Apply header style to each cell in the header row
       headerRow.eachCell((cell) => {
@@ -384,8 +420,8 @@ const registrationService = {
                        Array.isArray(reg.additional_info.team_members) &&
                        reg.additional_info.team_members.length > 0 ? 'Team' : 'Individual';
 
-        // Add data row
-        const dataRow = mainSheet.addRow([
+        // Prepare data row with conditional payment columns
+        const rowData = [
           index + 1, // Serial number
           reg.participant_name || 'N/A',
           reg.participant_email || 'N/A',
@@ -395,9 +431,20 @@ const registrationService = {
           reg.additional_info?.year || 'N/A',
           regType,
           formattedDate,
-          reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
-          '' // Empty notes column
-        ]);
+          reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'
+        ];
+
+        if (hasPaymentInfo) {
+          rowData.push(
+            reg.payment_status ? reg.payment_status.charAt(0).toUpperCase() + reg.payment_status.slice(1) : 'N/A',
+            reg.payment_amount ? `₹${reg.payment_amount}` : 'N/A',
+            reg.payment_screenshot_url || 'N/A'
+          );
+        }
+
+        rowData.push(''); // Empty notes column
+
+        const dataRow = mainSheet.addRow(rowData);
 
         // Apply alternating row styles
         const rowStyle = index % 2 === 0 ? evenRowStyle : oddRowStyle;
@@ -422,7 +469,7 @@ const registrationService = {
       });
 
       // Set column widths and formats for better readability
-      mainSheet.columns = [
+      const columns = [
         { key: 'serialNo', width: 10 },
         { key: 'name', width: 25 },
         { key: 'email', width: 30 },
@@ -432,9 +479,20 @@ const registrationService = {
         { key: 'year', width: 10 },
         { key: 'type', width: 15 },
         { key: 'registrationDate', width: 20 },
-        { key: 'status', width: 12 },
-        { key: 'notes', width: 30 }
+        { key: 'status', width: 12 }
       ];
+
+      if (hasPaymentInfo) {
+        columns.push(
+          { key: 'paymentStatus', width: 15 },
+          { key: 'paymentAmount', width: 15 },
+          { key: 'paymentScreenshot', width: 40 }
+        );
+      }
+
+      columns.push({ key: 'notes', width: 30 });
+
+      mainSheet.columns = columns;
 
       // Add Team Members sheet if there are team registrations
       if (teamRegistrations > 0) {
@@ -1200,10 +1258,29 @@ const registrationService = {
         doc.setLineWidth(0.5);
         doc.line(10, 47, doc.internal.pageSize.width - 10, 47);
 
-        // Add table with improved styling
-        autoTable(doc, {
-          head: [['Name', 'Email', 'Phone', 'Student ID', 'Department', 'Year', 'Type', 'Status', 'Team Members']],
-          body: exportData.map(reg => [
+        // Check if any registration has payment information
+        const hasPaymentInfo = registrations.some(reg => reg.payment_screenshot_url || reg.payment_status || reg.payment_amount);
+
+        // Check if any registration has team members - be more strict about this check
+        const hasTeamRegistrations = registrations.some(reg =>
+          reg.additional_info &&
+          reg.additional_info.team_members &&
+          Array.isArray(reg.additional_info.team_members) &&
+          reg.additional_info.team_members.length > 0
+        );
+
+        // Prepare table headers and body with conditional payment columns
+        const tableHeaders = ['Name', 'Email', 'Phone', 'Student ID', 'Department', 'Year', 'Type', 'Status'];
+        if (hasPaymentInfo) {
+          tableHeaders.push('Payment Status', 'Payment Amount');
+        }
+        // Only add Team Members column if there are actual team registrations
+        if (hasTeamRegistrations) {
+          tableHeaders.push('Team Members');
+        }
+
+        const tableBody = exportData.map((reg) => {
+          const row = [
             reg['Name'],
             reg['Email'],
             reg['Phone'],
@@ -1211,9 +1288,30 @@ const registrationService = {
             reg['Department'],
             reg['Year'],
             reg['Registration Type'],
-            reg['Status'],
-            reg['Team Members']
-          ]),
+            reg['Status']
+          ];
+
+          if (hasPaymentInfo) {
+            // Find the original registration to get payment info
+            const originalReg = registrations.find(r => r.participant_email === reg['Email']);
+            row.push(
+              originalReg?.payment_status ? originalReg.payment_status.charAt(0).toUpperCase() + originalReg.payment_status.slice(1) : 'N/A',
+              originalReg?.payment_amount ? `₹${originalReg.payment_amount}` : 'N/A'
+            );
+          }
+
+          // Only add team members column if there are team registrations
+          if (hasTeamRegistrations) {
+            row.push(reg['Team Members']);
+          }
+
+          return row;
+        });
+
+        // Add table with improved styling
+        autoTable(doc, {
+          head: [tableHeaders],
+          body: tableBody,
           startY: 50,
           styles: {
             overflow: 'linebreak',
@@ -1232,17 +1330,61 @@ const registrationService = {
           alternateRowStyles: {
             fillColor: [240, 240, 240] // Light gray for alternate rows
           },
-          columnStyles: {
-            0: { cellWidth: 25 }, // Name
-            1: { cellWidth: 35 }, // Email
-            2: { cellWidth: 20 }, // Phone
-            3: { cellWidth: 20 }, // Student ID
-            4: { cellWidth: 20 }, // Department
-            5: { cellWidth: 15 }, // Year
-            6: { cellWidth: 20 }, // Type
-            7: { cellWidth: 20 }, // Status
-            8: { cellWidth: 'auto' } // Team Members - auto width
-          },
+
+          columnStyles: (() => {
+            const styles = {};
+
+            if (hasPaymentInfo && hasTeamRegistrations) {
+              // Both payment and team info - compact layout
+              styles[0] = { cellWidth: 20 }; // Name
+              styles[1] = { cellWidth: 28 }; // Email
+              styles[2] = { cellWidth: 16 }; // Phone
+              styles[3] = { cellWidth: 16 }; // Student ID
+              styles[4] = { cellWidth: 16 }; // Department
+              styles[5] = { cellWidth: 10 }; // Year
+              styles[6] = { cellWidth: 14 }; // Type
+              styles[7] = { cellWidth: 14 }; // Status
+              styles[8] = { cellWidth: 16 }; // Payment Status
+              styles[9] = { cellWidth: 16 }; // Payment Amount
+              styles[10] = { cellWidth: 'auto' }; // Team Members
+            } else if (hasPaymentInfo && !hasTeamRegistrations) {
+              // Payment info only - wider columns for solo events (NO TEAM COLUMNS)
+              styles[0] = { cellWidth: 32 }; // Name
+              styles[1] = { cellWidth: 45 }; // Email
+              styles[2] = { cellWidth: 22 }; // Phone
+              styles[3] = { cellWidth: 22 }; // Student ID
+              styles[4] = { cellWidth: 25 }; // Department
+              styles[5] = { cellWidth: 15 }; // Year
+              styles[6] = { cellWidth: 20 }; // Type
+              styles[7] = { cellWidth: 20 }; // Status
+              styles[8] = { cellWidth: 22 }; // Payment Status
+              styles[9] = { cellWidth: 22 }; // Payment Amount
+            } else if (!hasPaymentInfo && hasTeamRegistrations) {
+              // Team info only - no payment
+              styles[0] = { cellWidth: 22 }; // Name
+              styles[1] = { cellWidth: 30 }; // Email
+              styles[2] = { cellWidth: 18 }; // Phone
+              styles[3] = { cellWidth: 18 }; // Student ID
+              styles[4] = { cellWidth: 18 }; // Department
+              styles[5] = { cellWidth: 12 }; // Year
+              styles[6] = { cellWidth: 15 }; // Type
+              styles[7] = { cellWidth: 15 }; // Status
+              styles[8] = { cellWidth: 'auto' }; // Team Members
+            } else {
+              // Solo events without payment - maximum space utilization (NO TEAM OR PAYMENT COLUMNS)
+              styles[0] = { cellWidth: 35 }; // Name
+              styles[1] = { cellWidth: 50 }; // Email
+              styles[2] = { cellWidth: 25 }; // Phone
+              styles[3] = { cellWidth: 25 }; // Student ID
+              styles[4] = { cellWidth: 28 }; // Department
+              styles[5] = { cellWidth: 18 }; // Year
+              styles[6] = { cellWidth: 22 }; // Type
+              styles[7] = { cellWidth: 22 }; // Status
+            }
+
+            return styles;
+          })(),
+
           didDrawPage: () => {
             // Add page number at the bottom
             doc.setFontSize(8);

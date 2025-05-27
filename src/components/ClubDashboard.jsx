@@ -2079,7 +2079,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         position: 'relative',
                         WebkitOverflowScrolling: 'touch' // For smooth scrolling on iOS
                       }}>
-                        <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
+                        <table style={{ width: '100%', minWidth: selectedEvent?.requires_payment ? '1100px' : '900px', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
@@ -2087,6 +2087,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Department</th>
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Year</th>
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Type</th>
+                              {selectedEvent?.requires_payment && (
+                                <th style={{ padding: '1rem', textAlign: 'left' }}>Payment Status</th>
+                              )}
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Registration Date</th>
                               <th style={{ padding: '1rem', textAlign: 'left' }}>Actions</th>
                             </tr>
@@ -2110,6 +2113,48 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                     <span>Individual</span>
                                   )}
                                 </td>
+                                {selectedEvent?.requires_payment && (
+                                  <td style={{ padding: '1rem' }}>
+                                    {registration.payment_screenshot_url ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{
+                                          padding: '0.25rem 0.5rem',
+                                          borderRadius: '4px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: '500',
+                                          backgroundColor: registration.payment_status === 'verified' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                                          color: registration.payment_status === 'verified' ? '#22c55e' : '#fbbf24'
+                                        }}>
+                                          {registration.payment_status === 'verified' ? 'Verified' : 'Pending'}
+                                        </span>
+                                        <a
+                                          href={registration.payment_screenshot_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{
+                                            color: 'var(--primary)',
+                                            textDecoration: 'none',
+                                            fontSize: '0.9rem'
+                                          }}
+                                          title="View payment screenshot"
+                                        >
+                                          📷 View
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <span style={{
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '4px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '500',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                        color: '#ef4444'
+                                      }}>
+                                        No Payment
+                                      </span>
+                                    )}
+                                  </td>
+                                )}
                                 <td style={{ padding: '1rem' }}>
                                   {formatDate(registration.created_at, 'MMM d, yyyy')}
                                 </td>
@@ -2150,6 +2195,30 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                   >
                                     {registration.status === 'registered' ? 'Mark Attended' : 'Mark Registered'}
                                   </button>
+                                  {selectedEvent?.requires_payment && registration.payment_screenshot_url && (
+                                    <button
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: registration.payment_status === 'verified' ? '#fbbf24' : '#22c55e',
+                                        cursor: 'pointer',
+                                        marginRight: '0.5rem'
+                                      }}
+                                      onClick={() => {
+                                        const newPaymentStatus = registration.payment_status === 'verified' ? 'pending' : 'verified';
+                                        registrationService.updatePaymentStatus(registration.id, newPaymentStatus)
+                                          .then(() => {
+                                            loadEventRegistrations(selectedEvent.id);
+                                          })
+                                          .catch(err => {
+                                            console.error('Error updating payment status:', err);
+                                            setError('Failed to update payment status');
+                                          });
+                                      }}
+                                    >
+                                      {registration.payment_status === 'verified' ? 'Unverify Payment' : 'Verify Payment'}
+                                    </button>
+                                  )}
                                   <button
                                     style={{
                                       background: 'none',

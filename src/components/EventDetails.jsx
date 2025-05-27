@@ -116,6 +116,18 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     }
   };
 
+  // Format schedule date for display
+  const formatScheduleDate = (dateString) => {
+    try {
+      if (!dateString) return 'Date not set';
+      const date = new Date(dateString);
+      return format(date, 'MMMM d, yyyy');
+    } catch (err) {
+      console.error('Error formatting schedule date:', err);
+      return 'Invalid date';
+    }
+  };
+
   // Share functions
   const shareOnFacebook = () => {
     // Include event title and image in Facebook share
@@ -1046,7 +1058,9 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                             borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
                           }}
                         >
-                          <h4 style={{ margin: 0, color: 'var(--primary)' }}>{day.day}</h4>
+                          <h4 style={{ margin: 0, color: 'var(--primary)' }}>
+                            {day.date ? formatScheduleDate(day.date) : (day.day || `Day ${dayIndex + 1}`)}
+                          </h4>
                         </div>
 
                         <div>
@@ -1590,7 +1604,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                           borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
                         }}
                       >
-                        {day.day}
+                        {day.date ? formatScheduleDate(day.date) : (day.day || `Day ${dayIndex + 1}`)}
                       </h3>
 
                       <div style={{ padding: '0.5rem' }}>
