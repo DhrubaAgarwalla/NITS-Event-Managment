@@ -568,6 +568,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                 </button>
 
                 <button
+                  className="export-google-sheets-btn"
                   onClick={() => handleExportRegistrations('google_sheets')}
                   disabled={exportLoading || registrations.length === 0}
                   style={{

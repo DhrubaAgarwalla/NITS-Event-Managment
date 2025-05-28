@@ -156,10 +156,14 @@
     }
 
     .export-pdf-btn,
-    .export-sheets-btn {
+    .export-sheets-btn,
+    .export-google-sheets-btn {
       margin-top: 0.5rem;
-      width: 100%;
-      justify-content: center;
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 0.75rem 1rem !important;
+      font-size: 0.9rem !important;
+      white-space: nowrap !important;
     }
   }
 
@@ -236,6 +240,19 @@
     }
 
     .registration-card button span {
+      font-size: 1rem !important;
+    }
+
+    .export-pdf-btn,
+    .export-sheets-btn,
+    .export-google-sheets-btn {
+      padding: 0.6rem 0.8rem !important;
+      font-size: 0.85rem !important;
+    }
+
+    .export-pdf-btn span,
+    .export-sheets-btn span,
+    .export-google-sheets-btn span {
       font-size: 1rem !important;
     }
   }
