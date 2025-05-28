@@ -4,12 +4,15 @@
  */
 
 // Backend service configuration
-const BACKEND_BASE_URL = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app/';
+const BACKEND_BASE_URL = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app';
 const API_PREFIX = '/api/v1';
 
 class GoogleSheetsService {
   constructor() {
-    this.baseUrl = `${BACKEND_BASE_URL}${API_PREFIX}`;
+    // Remove trailing slash from BACKEND_BASE_URL if present
+    const baseUrl = BACKEND_BASE_URL.endsWith('/') ? BACKEND_BASE_URL.slice(0, -1) : BACKEND_BASE_URL;
+    this.baseUrl = `${baseUrl}${API_PREFIX}`;
+    console.log('Google Sheets Service initialized with base URL:', this.baseUrl);
   }
 
   /**
@@ -18,6 +21,8 @@ class GoogleSheetsService {
   async createEventSheet(eventData, registrations) {
     try {
       console.log(`Creating Google Sheet for event: ${eventData.title}`);
+      console.log('Request URL:', `${this.baseUrl}/sheets/create`);
+      console.log('Request payload:', { eventData, registrations });
 
       const response = await fetch(`${this.baseUrl}/sheets/create`, {
         method: 'POST',
@@ -31,11 +36,19 @@ class GoogleSheetsService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        let errorMessage;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+        } catch (parseError) {
+          errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
+        }
+        console.error('HTTP Error Response:', response.status, response.statusText);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log('Backend response:', result);
 
       if (!result.success) {
         throw new Error(result.message || 'Failed to create Google Sheet');
@@ -50,6 +63,9 @@ class GoogleSheetsService {
 
     } catch (error) {
       console.error('Error creating Google Sheet:', error);
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Network error: Unable to connect to Google Sheets backend. Please check your internet connection and try again.`);
+      }
       throw new Error(`Failed to create Google Sheet: ${error.message}`);
     }
   }
@@ -173,6 +189,8 @@ class GoogleSheetsService {
    */
   async checkBackendHealth() {
     try {
+      console.log('Checking backend health at:', `${this.baseUrl}/health`);
+
       const response = await fetch(`${this.baseUrl}/health`, {
         method: 'GET',
         headers: {
@@ -180,11 +198,15 @@ class GoogleSheetsService {
         }
       });
 
+      console.log('Health check response status:', response.status);
+
       if (!response.ok) {
-        return { available: false, error: `HTTP error! status: ${response.status}` };
+        return { available: false, error: `HTTP error! status: ${response.status} - ${response.statusText}` };
       }
 
       const result = await response.json();
+      console.log('Health check result:', result);
+
       return {
         available: result.status === 'healthy',
         status: result.status,
