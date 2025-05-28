@@ -29,10 +29,10 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Only hide navbar on club dashboard page
+  // Hide navbar on club dashboard and admin dashboard pages
   // This ensures navbar is visible on all other pages, even after refresh
-  if (isClubLoggedIn && currentPage === 'club-dashboard') {
-    console.log('Hiding navbar on club dashboard');
+  if ((isClubLoggedIn && currentPage === 'club-dashboard') || currentPage === 'admin-dashboard') {
+    console.log('Hiding navbar on dashboard page:', currentPage);
     return null;
   }
 

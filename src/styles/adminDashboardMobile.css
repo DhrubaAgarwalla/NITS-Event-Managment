@@ -1,0 +1,491 @@
+/* Admin Dashboard Mobile Styles */
+
+/* Ensure admin dashboard takes full height when navbar is hidden */
+.admin-dashboard {
+  min-height: 100vh;
+  padding-top: 0 !important; /* Remove top padding since navbar is hidden */
+}
+
+/* Desktop styles for admin dashboard */
+@media (min-width: 769px) {
+  .admin-dashboard {
+    padding: 2rem 0 !important;
+  }
+
+  .admin-dashboard .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Ensure proper spacing on desktop */
+  .admin-dashboard-header {
+    margin-bottom: 2rem;
+  }
+
+  .admin-dashboard-tabs {
+    margin-bottom: 2rem;
+  }
+}
+
+/* General mobile adjustments for admin dashboard */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem 0 !important;
+  }
+
+  .admin-dashboard .container {
+    padding: 0 1rem;
+  }
+
+  /* Dashboard Header */
+  .admin-dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 1.25rem !important;
+    gap: 1rem;
+  }
+
+  .admin-dashboard-header > div:first-child {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .admin-dashboard-header h2 {
+    font-size: 1.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .admin-dashboard-header p {
+    font-size: 0.9rem !important;
+  }
+
+  .admin-dashboard-header button {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Success and Error Messages */
+  .admin-dashboard .container > div[style*="backgroundColor: rgba(46, 204, 113, 0.1)"],
+  .admin-dashboard .container > div[style*="backgroundColor: rgba(255, 0, 0, 0.1)"] {
+    padding: 0.75rem !important;
+    margin: 0 -1rem 1rem -1rem !important;
+    border-radius: 0 !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Dashboard Tabs */
+  .admin-dashboard-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .admin-dashboard-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-dashboard .tab-button {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.85rem !important;
+    flex-shrink: 0;
+    min-width: auto;
+    white-space: nowrap;
+  }
+
+  /* Club Requests Tab */
+  .requests-tab h3 {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .requests-list > div {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Request card layout adjustments */
+  .requests-list > div > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .requests-list > div > div:first-child > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .requests-list > div > div:first-child > div:first-child > div:first-child {
+    margin-right: 0 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .requests-list > div > div:first-child > div:first-child > div:first-child img {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .requests-list > div > div:first-child > div:first-child > div:last-child {
+    text-align: center;
+  }
+
+  .requests-list > div > div:first-child > span {
+    align-self: flex-start !important;
+    margin-top: 0.5rem !important;
+  }
+
+  /* Request action buttons */
+  .requests-list > div > div:last-child {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .requests-list > div > div:last-child button {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Create Club Tab */
+  .create-club-tab h3 {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .create-club-tab form {
+    padding: 1rem !important;
+  }
+
+  .create-club-tab h4 {
+    font-size: 1rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Form layout adjustments */
+  .create-club-tab form > div > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .create-club-tab form > div > div[style*="display: flex"] > div {
+    flex: none !important;
+  }
+
+  .create-club-tab form input,
+  .create-club-tab form textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 0.75rem 1rem !important;
+  }
+
+  .create-club-tab form label {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Form submit button */
+  .create-club-tab form button[type="submit"] {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+    margin-top: 1rem !important;
+  }
+
+  /* Clubs List Grid */
+  .clubs-list {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .clubs-list > div {
+    padding: 1rem !important;
+  }
+
+  .clubs-list > div > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center;
+    margin-bottom: 1rem !important;
+  }
+
+  .clubs-list > div > div:first-child > div:first-child {
+    margin-right: 0 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .clubs-list > div > div:last-child {
+    justify-content: center !important;
+  }
+
+  .clubs-list > div > div:last-child button {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Events List */
+  .events-list > div {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .events-list > div > div:first-child {
+    width: 100% !important;
+    height: 200px !important;
+    flex-shrink: 1 !important;
+  }
+
+  .events-list > div > div:last-child > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .events-list > div > div:last-child > div:first-child > div:last-child {
+    margin-top: 0.75rem !important;
+    align-self: flex-start !important;
+  }
+
+  .events-list > div > div:last-child > div:last-child {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .events-list > div > div:last-child > div:last-child button {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Modal adjustments */
+  .admin-dashboard div[style*="position: fixed"][style*="zIndex: 1000"] {
+    padding: 1rem !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"][style*="zIndex: 1000"] > div {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 95vh !important;
+  }
+
+  /* Approval Modal */
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] {
+    padding: 1rem !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] h3 {
+    font-size: 1.1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] > div:nth-child(2) {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] > div:nth-child(2) > div:first-child {
+    margin-right: 0 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] > div:nth-child(2) img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] ul {
+    margin: 1rem 0;
+    padding-left: 1rem;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] ul li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] > div:last-child {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .admin-dashboard div[style*="position: fixed"] div[style*="backgroundColor: var(--dark-surface)"] > div:last-child button {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 0.5rem 0 !important;
+  }
+
+  .admin-dashboard .container {
+    padding: 0 0.75rem;
+  }
+
+  .admin-dashboard-header {
+    padding: 1rem !important;
+  }
+
+  .admin-dashboard-header h2 {
+    font-size: 1.3rem !important;
+  }
+
+  .admin-dashboard .tab-button {
+    padding: 0.6rem 0.8rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .requests-list > div,
+  .clubs-list > div,
+  .events-list > div {
+    padding: 0.75rem !important;
+  }
+
+  .create-club-tab form {
+    padding: 0.75rem !important;
+  }
+
+  .create-club-tab form input,
+  .create-club-tab form textarea {
+    padding: 0.6rem 0.8rem !important;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .admin-dashboard .tab-button {
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .requests-list > div > div:last-child button,
+  .clubs-list > div > div:last-child button,
+  .events-list > div > div:last-child button {
+    padding: 0.6rem 0.8rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Additional mobile enhancements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  .admin-dashboard button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Better spacing for readability */
+  .admin-dashboard h3 {
+    line-height: 1.3;
+    margin-bottom: 1rem;
+  }
+
+  .admin-dashboard h4 {
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+  }
+
+  .admin-dashboard p {
+    line-height: 1.5;
+  }
+
+  /* Improve form accessibility */
+  .admin-dashboard input:focus,
+  .admin-dashboard textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Status badges mobile optimization */
+  .admin-dashboard span[style*="padding: 0.3rem 0.8rem"] {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap;
+  }
+
+  /* Loading states */
+  .admin-dashboard div[style*="textAlign: center"][style*="padding: 2rem"] {
+    padding: 1.5rem 1rem !important;
+    font-size: 0.9rem;
+  }
+
+  /* Empty states */
+  .admin-dashboard div[style*="textAlign: center"][style*="backgroundColor: var(--dark-surface)"] {
+    padding: 1.5rem 1rem !important;
+    margin: 0 -1rem !important;
+    border-radius: 0 !important;
+  }
+
+  /* Scroll indicators for tabs */
+  .admin-dashboard-tabs::after {
+    content: "← Scroll for more tabs →";
+    position: absolute;
+    bottom: -1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Hide scroll indicator when not needed */
+  @media (min-width: 640px) {
+    .admin-dashboard-tabs::after {
+      display: none;
+    }
+  }
+
+  /* Improve image handling */
+  .admin-dashboard img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Better button spacing in action groups */
+  .admin-dashboard div[style*="display: flex"][style*="gap: 0.5rem"] {
+    gap: 0.75rem !important;
+  }
+
+  /* Improve modal backdrop */
+  .admin-dashboard div[style*="position: fixed"][style*="backgroundColor: rgba(0, 0, 0, 0.8)"] {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* Better text truncation */
+  .admin-dashboard p[style*="color: var(--text-secondary)"] {
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  /* Improve list item spacing */
+  .requests-list > div + div,
+  .events-list > div + div {
+    margin-top: 1rem !important;
+  }
+
+  /* Better form field spacing */
+  .create-club-tab form > div {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .create-club-tab form > div:last-child {
+    margin-bottom: 0 !important;
+  }
+}

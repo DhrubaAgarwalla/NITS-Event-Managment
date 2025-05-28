@@ -270,6 +270,7 @@ export default function AdminDashboard({ setCurrentPage }) {
       <div className="container">
         {/* Dashboard Header */}
         <div
+          className="admin-dashboard-header"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -333,6 +334,7 @@ export default function AdminDashboard({ setCurrentPage }) {
 
         {/* Dashboard Tabs */}
         <div
+          className="admin-dashboard-tabs"
           style={{
             display: 'flex',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
