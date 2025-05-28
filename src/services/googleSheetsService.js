@@ -220,6 +220,35 @@ class GoogleSheetsService {
   }
 
   /**
+   * Store Google Sheets link in event data
+   */
+  async storeSheetLinkInEvent(eventId, sheetData) {
+    try {
+      // Import eventService dynamically to avoid circular dependency
+      const { default: eventService } = await import('./eventService.js');
+
+      // Update event with Google Sheets information
+      const updates = {
+        google_sheets: {
+          spreadsheetId: sheetData.spreadsheetId,
+          shareableLink: sheetData.shareableLink,
+          title: sheetData.filename,
+          created_at: new Date().toISOString(),
+          rowCount: sheetData.rowCount
+        }
+      };
+
+      await eventService.updateEvent(eventId, updates);
+      console.log('Google Sheets link stored in event data successfully');
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error storing Google Sheets link in event:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Export registrations to Google Sheets (main export function)
    */
   async exportRegistrationsToSheets(eventId, eventTitle, registrations, eventData) {
@@ -240,7 +269,16 @@ class GoogleSheetsService {
       // Create the Google Sheet
       const result = await this.createEventSheet(formattedEventData, registrations);
 
-      return {
+      // Generate WhatsApp sharing URL
+      const whatsappMessage = encodeURIComponent(
+        `🎉 *${eventTitle} - Event Registrations*\n\n` +
+        `📊 Google Sheet with ${registrations.length} registrations is ready!\n\n` +
+        `🔗 View/Edit: ${result.shareableLink}\n\n` +
+        `✨ Anyone can edit this sheet without requesting access.`
+      );
+      const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
+
+      const exportResult = {
         success: true,
         url: result.shareableLink,
         filename: result.title,
@@ -248,8 +286,21 @@ class GoogleSheetsService {
         spreadsheetId: result.spreadsheetId,
         message: 'Google Sheet created successfully. Anyone can edit this sheet without requesting access.',
         shareableLink: result.shareableLink,
-        rowCount: result.rowCount
+        rowCount: result.rowCount,
+        whatsappUrl,
+        whatsappMessage: decodeURIComponent(whatsappMessage)
       };
+
+      // Store the Google Sheets link in the event data
+      try {
+        await this.storeSheetLinkInEvent(eventId, exportResult);
+        console.log('Google Sheets link stored in event successfully');
+      } catch (storeError) {
+        console.warn('Failed to store Google Sheets link in event:', storeError.message);
+        // Don't fail the export if storing fails
+      }
+
+      return exportResult;
 
     } catch (error) {
       console.error('Error exporting to Google Sheets:', error);

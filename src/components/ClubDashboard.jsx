@@ -10,6 +10,7 @@ import RegistrationDetails from './RegistrationDetails';
 import GalleryManager from './GalleryManager';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
+import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
 
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
@@ -52,6 +53,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [showGoogleSheetsDialog, setShowGoogleSheetsDialog] = useState(false);
+  const [googleSheetsResult, setGoogleSheetsResult] = useState(null);
 
   // Load club events
   const loadClubEvents = async () => {
@@ -472,6 +475,37 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   // Get event registrations count
   const getRegistrationsCount = (eventId) => {
     return registrations.filter(reg => reg.event_id === eventId).length;
+  };
+
+  // Google Sheets dialog handlers
+  const handleOpenSheet = (shareableLink) => {
+    window.open(shareableLink, '_blank');
+  };
+
+  const handleCopyLink = async (shareableLink) => {
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      alert('Google Sheet link copied to clipboard!');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = shareableLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Google Sheet link copied to clipboard!');
+    }
+  };
+
+  const handleShareWhatsApp = (whatsappUrl) => {
+    console.log('Opening WhatsApp URL:', whatsappUrl);
+    if (whatsappUrl) {
+      window.open(whatsappUrl, '_blank');
+    } else {
+      console.error('WhatsApp URL is empty or undefined');
+      alert('WhatsApp URL is not available. Please try copying the link instead.');
+    }
   };
 
   if (!club) {
@@ -1984,33 +2018,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                             return;
                           }
 
-                          // Show success message and open the Google Sheet
-                          const confirmOpen = confirm(
-                            `Google Sheet created successfully!\n\n` +
-                            `Title: ${result.filename}\n` +
-                            `Rows: ${result.rowCount} registrations\n\n` +
-                            `Click OK to open the Google Sheet in a new tab, or Cancel to copy the link.`
-                          );
-
-                          if (confirmOpen) {
-                            // Open Google Sheet in new tab
-                            window.open(result.shareableLink, '_blank');
-                          } else {
-                            // Copy link to clipboard
-                            try {
-                              await navigator.clipboard.writeText(result.shareableLink);
-                              alert('Google Sheet link copied to clipboard!');
-                            } catch (err) {
-                              // Fallback for older browsers
-                              const textArea = document.createElement('textarea');
-                              textArea.value = result.shareableLink;
-                              document.body.appendChild(textArea);
-                              textArea.select();
-                              document.execCommand('copy');
-                              document.body.removeChild(textArea);
-                              alert('Google Sheet link copied to clipboard!');
-                            }
-                          }
+                          // Show the new Google Sheets success dialog
+                          setGoogleSheetsResult(result);
+                          setShowGoogleSheetsDialog(true);
                         } catch (err) {
                           // Remove the loading overlay if it exists
                           const loadingOverlay = document.querySelector('.loading-overlay');
@@ -2456,6 +2466,20 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             />
           </div>
         </div>
+      )}
+
+      {/* Google Sheets Success Dialog */}
+      {showGoogleSheetsDialog && googleSheetsResult && (
+        <GoogleSheetsSuccessDialog
+          result={googleSheetsResult}
+          onClose={() => {
+            setShowGoogleSheetsDialog(false);
+            setGoogleSheetsResult(null);
+          }}
+          onOpenSheet={handleOpenSheet}
+          onCopyLink={handleCopyLink}
+          onShareWhatsApp={handleShareWhatsApp}
+        />
       )}
     </div>
   );

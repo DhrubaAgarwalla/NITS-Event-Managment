@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
 import AdminEventEditor from './AdminEventEditor';
+import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
+import GoogleSheetsInfo from './GoogleSheetsInfo';
 
 const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   const [event, setEvent] = useState(null);
@@ -13,6 +15,8 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [isEditing, setIsEditing] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showGoogleSheetsDialog, setShowGoogleSheetsDialog] = useState(false);
+  const [googleSheetsResult, setGoogleSheetsResult] = useState(null);
 
   // Fetch event data from Supabase
   useEffect(() => {
@@ -96,33 +100,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
       // Handle different export formats
       if (format === 'google_sheets') {
-        // For Google Sheets, show success message and open the sheet
-        const confirmOpen = confirm(
-          `Google Sheet created successfully!\n\n` +
-          `Title: ${result.filename}\n` +
-          `Rows: ${result.rowCount} registrations\n\n` +
-          `Click OK to open the Google Sheet in a new tab, or Cancel to copy the link.`
-        );
-
-        if (confirmOpen) {
-          // Open Google Sheet in new tab
-          window.open(result.shareableLink, '_blank');
-        } else {
-          // Copy link to clipboard
-          try {
-            await navigator.clipboard.writeText(result.shareableLink);
-            alert('Google Sheet link copied to clipboard!');
-          } catch (err) {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = result.shareableLink;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            alert('Google Sheet link copied to clipboard!');
-          }
-        }
+        // Show the new Google Sheets success dialog
+        setGoogleSheetsResult(result);
+        setShowGoogleSheetsDialog(true);
       } else {
         // For Excel and PDF, download the file
         if (result.url && result.filename) {
@@ -153,6 +133,37 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
     } catch (err) {
       console.error('Error toggling featured status:', err);
       alert('Failed to update featured status: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  // Google Sheets dialog handlers
+  const handleOpenSheet = (shareableLink) => {
+    window.open(shareableLink, '_blank');
+  };
+
+  const handleCopyLink = async (shareableLink) => {
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      alert('Google Sheet link copied to clipboard!');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = shareableLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Google Sheet link copied to clipboard!');
+    }
+  };
+
+  const handleShareWhatsApp = (whatsappUrl) => {
+    console.log('Opening WhatsApp URL:', whatsappUrl);
+    if (whatsappUrl) {
+      window.open(whatsappUrl, '_blank');
+    } else {
+      console.error('WhatsApp URL is empty or undefined');
+      alert('WhatsApp URL is not available. Please try copying the link instead.');
     }
   };
 
@@ -518,6 +529,9 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                   <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>No description available</p>
                 )}
               </div>
+
+              {/* Google Sheets Information */}
+              <GoogleSheetsInfo event={event} />
             </div>
           </div>
         )}
@@ -703,6 +717,20 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
       {/* Edit Modal */}
       {/* AdminEventEditor is now rendered as a full page component */}
+
+      {/* Google Sheets Success Dialog */}
+      {showGoogleSheetsDialog && googleSheetsResult && (
+        <GoogleSheetsSuccessDialog
+          result={googleSheetsResult}
+          onClose={() => {
+            setShowGoogleSheetsDialog(false);
+            setGoogleSheetsResult(null);
+          }}
+          onOpenSheet={handleOpenSheet}
+          onCopyLink={handleCopyLink}
+          onShareWhatsApp={handleShareWhatsApp}
+        />
+      )}
     </motion.div>
   );
 };
