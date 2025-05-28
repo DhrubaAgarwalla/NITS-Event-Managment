@@ -1,0 +1,174 @@
+/* Enhanced Search Components Styling */
+
+/* Mobile responsive styles for search components */
+@media (max-width: 768px) {
+  /* Events page search adjustments */
+  .events-page .search-container {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+  }
+
+  .events-page .filter-buttons {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+
+  .events-page .search-input-container {
+    min-width: unset !important;
+    width: 100% !important;
+  }
+
+  /* Clubs page search adjustments */
+  .clubs-page .search-container {
+    max-width: 100% !important;
+  }
+
+  .clubs-page .search-input-container {
+    max-width: 100% !important;
+  }
+
+  /* Search input mobile optimizations */
+  .search-input {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 1rem 3rem !important;
+  }
+
+  .search-icon {
+    font-size: 1rem !important;
+  }
+
+  .clear-button {
+    font-size: 1.1rem !important;
+    padding: 0.3rem !important;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .events-page .filter-buttons {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .events-page .filter-buttons button {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .search-input {
+    padding: 0.9rem 2.5rem !important;
+    font-size: 16px !important;
+  }
+
+  .search-icon {
+    left: 0.8rem !important;
+    font-size: 1rem !important;
+  }
+
+  .clear-button {
+    right: 0.8rem !important;
+    font-size: 1rem !important;
+  }
+}
+
+/* Focus and hover states for better accessibility */
+.search-input:focus {
+  border-color: var(--primary) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(110, 68, 255, 0.1) !important;
+}
+
+.clear-button:hover {
+  color: var(--primary) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.clear-button:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Animation for search input */
+.search-input-container {
+  transition: all 0.3s ease;
+}
+
+.search-input-container:hover .search-input {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Loading state for search */
+.search-loading {
+  position: relative;
+}
+
+.search-loading::after {
+  content: '';
+  position: absolute;
+  right: 3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .search-input {
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .search-input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(110, 68, 255, 0.3) !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .search-input,
+  .clear-button,
+  .search-input-container {
+    transition: none !important;
+  }
+
+  .search-loading::after {
+    animation: none !important;
+  }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  .search-input {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .search-input:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .clear-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0.5rem !important;
+  }
+
+  .search-input {
+    min-height: 44px !important;
+  }
+}

@@ -4,7 +4,6 @@ import clubService from '../services/clubService';
 import { navigateTo } from '../utils/navigation';
 
 const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
-  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,38 +28,17 @@ const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
     fetchClubs();
   }, []);
 
-  // Group clubs by category for filtering
-  const clubCategories = clubs.reduce((categories, club) => {
-    // Extract category from club data or social links
-    let category = 'other';
-    if (club.social_links && club.social_links.category) {
-      category = club.social_links.category.toLowerCase();
-    }
-
-    if (!categories.includes(category)) {
-      categories.push(category);
-    }
-    return categories;
-  }, []);
-
-  // Filter clubs based on category and search term
+  // Filter clubs based on search term only
   const filteredClubs = clubs.filter(club => {
-    // Extract category from club data or social links
-    let category = 'other';
-    if (club.social_links && club.social_links.category) {
-      category = club.social_links.category.toLowerCase();
-    }
-
-    const matchesFilter = filter === 'all' || category === filter;
     const matchesSearch =
       club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (club.description && club.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return matchesFilter && matchesSearch;
+    return matchesSearch;
   });
 
   return (
-    <section className="section" id="clubs-page">
+    <section className="section clubs-page" id="clubs-page">
       <div className="container">
         <motion.h2
           className="section-title"
@@ -77,39 +55,79 @@ const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
           transition={{ duration: 0.6, delay: 0.2 }}
           style={{ marginBottom: '2rem' }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button
-                className={`btn ${filter === 'all' ? 'btn-primary' : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                All
-              </button>
-              {clubCategories.map(category => (
-                <button
-                  key={category}
-                  className={`btn ${filter === category ? 'btn-primary' : ''}`}
-                  onClick={() => setFilter(category)}
-                >
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </button>
-              ))}
-            </div>
-
-            <div>
+          <div className="search-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div className="search-input-container" style={{ position: 'relative', width: '100%', maxWidth: '500px' }}>
+              <div className="search-icon" style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: '1.1rem',
+                pointerEvents: 'none',
+                zIndex: 1
+              }}>
+                🔍
+              </div>
               <input
+                className="search-input"
                 type="text"
                 placeholder="Search clubs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '4px',
-                  color: 'var(--text-primary)'
+                  width: '100%',
+                  padding: '1rem 3rem 1rem 3rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s ease',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--primary)';
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(110, 68, 255, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                  e.target.style.boxShadow = 'none';
                 }}
               />
+              {searchTerm && (
+                <button
+                  className="clear-button"
+                  onClick={() => setSearchTerm('')}
+                  style={{
+                    position: 'absolute',
+                    right: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '1.2rem',
+                    cursor: 'pointer',
+                    padding: '0.2rem',
+                    borderRadius: '50%',
+                    transition: 'all 0.2s ease',
+                    zIndex: 1
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.color = 'var(--primary)';
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.color = 'rgba(255, 255, 255, 0.5)';
+                    e.target.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
         </motion.div>

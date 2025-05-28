@@ -26,6 +26,17 @@
   .admin-dashboard-tabs {
     margin-bottom: 2rem;
   }
+
+  /* Create Club Preview on Desktop */
+  .create-club-preview {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .create-club-preview:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* General mobile adjustments for admin dashboard */
@@ -160,6 +171,49 @@
     margin-bottom: 1rem !important;
   }
 
+  /* Create Club Preview Card */
+  .create-club-preview {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.3s ease;
+  }
+
+  .create-club-preview:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .create-club-preview > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .create-club-preview > div:first-child > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .create-club-preview > div:first-child > div:first-child > div:first-child {
+    margin-right: 0 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .create-club-preview > div:first-child > div:first-child > div:first-child > div {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .create-club-preview > div:first-child > div:first-child > div:last-child {
+    text-align: center;
+  }
+
+  .create-club-preview > div:first-child > span {
+    align-self: flex-start !important;
+    margin-top: 0.5rem !important;
+  }
+
   .create-club-tab form {
     padding: 1rem !important;
   }
@@ -190,12 +244,17 @@
     margin-bottom: 0.5rem !important;
   }
 
-  /* Form submit button */
-  .create-club-tab form button[type="submit"] {
+  /* Form action buttons */
+  .create-club-tab form > div:last-child {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .create-club-tab form > div:last-child button {
     width: 100% !important;
     padding: 0.75rem 1rem !important;
     font-size: 0.9rem !important;
-    margin-top: 1rem !important;
   }
 
   /* Clubs List Grid */

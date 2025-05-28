@@ -625,9 +625,116 @@ export default function AdminDashboard({ setCurrentPage }) {
           <div className="create-club-tab">
             <h3>Create New Club Account</h3>
 
+            <div
+              className="create-club-preview"
+              style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                marginBottom: '1rem'
+              }}
+            >
+              {/* Header Section with Logo Preview */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <div style={{ marginRight: '1rem', flexShrink: 0 }}>
+                    <div
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}
+                    >
+                      {newClubForm.logo_url ? (
+                        <img
+                          src={newClubForm.logo_url}
+                          alt="Club Logo Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        style={{
+                          fontSize: '1.5rem',
+                          color: 'white',
+                          display: newClubForm.logo_url ? 'none' : 'flex'
+                        }}
+                      >
+                        {newClubForm.name ? newClubForm.name.charAt(0).toUpperCase() : '?'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem' }}>
+                      {newClubForm.name || 'New Club'}
+                    </h4>
+                    <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      <strong>Login Email:</strong> {newClubForm.email || 'Not specified'}
+                    </p>
+                    <p style={{ margin: '0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                      <strong>Contact:</strong> {newClubForm.contact_email || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '0.3rem 0.8rem',
+                    borderRadius: '20px',
+                    fontSize: '0.8rem',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    color: '#3498db'
+                  }}
+                >
+                  Draft
+                </span>
+              </div>
+
+              {/* Description Section */}
+              {newClubForm.description && (
+                <div style={{ margin: '1rem 0' }}>
+                  <p><strong>Description:</strong></p>
+                  <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)' }}>{newClubForm.description}</p>
+                </div>
+              )}
+
+              {/* Additional Info Section */}
+              <div style={{ margin: '1rem 0' }}>
+                <p><strong>Additional Information:</strong></p>
+                <div style={{ margin: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  {newClubForm.contact_phone && (
+                    <p style={{ margin: '0.25rem 0' }}>
+                      <strong>Phone:</strong> {newClubForm.contact_phone}
+                    </p>
+                  )}
+                  {newClubForm.website && (
+                    <p style={{ margin: '0.25rem 0' }}>
+                      <strong>Website:</strong> <a href={newClubForm.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>{newClubForm.website}</a>
+                    </p>
+                  )}
+                  {!newClubForm.contact_phone && !newClubForm.website && (
+                    <p style={{ margin: '0.25rem 0', fontStyle: 'italic' }}>No additional information provided</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Section */}
             <form onSubmit={handleCreateClub} style={{ backgroundColor: 'var(--dark-surface)', padding: '2rem', borderRadius: '8px' }}>
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginTop: 0 }}>Account Information</h4>
+                <h4 style={{ marginTop: 0, marginBottom: '1rem' }}>Account Information</h4>
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                   <div style={{ flex: 1 }}>
                     <label
@@ -887,20 +994,47 @@ export default function AdminDashboard({ setCurrentPage }) {
                 </div>
               </div>
 
-              <div style={{ marginTop: '2rem' }}>
+              <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    // Reset form
+                    setNewClubForm({
+                      email: '',
+                      password: '',
+                      name: '',
+                      description: '',
+                      contact_email: '',
+                      contact_phone: '',
+                      website: '',
+                      logo_url: ''
+                    });
+                  }}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'var(--text-primary)',
+                    border: 'none',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  Clear Form
+                </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={loading}
                   style={{
-                    width: '100%',
-                    padding: '1rem',
                     backgroundColor: 'var(--primary)',
                     color: 'white',
                     border: 'none',
+                    padding: '0.75rem 1.5rem',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     fontWeight: '500'
                   }}
                 >
