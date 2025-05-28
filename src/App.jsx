@@ -46,7 +46,6 @@ import AdminCheck from './components/AdminCheck';
 import ClubRequestForm from './components/ClubRequestForm';
 import EventCreationForm from './components/EventCreationForm';
 import ForgotPassword from './components/ForgotPassword';
-import ResetPassword from './components/ResetPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
 
 function App() {
@@ -87,19 +86,7 @@ function App() {
       return;
     }
 
-    // Check if we're in a password reset flow
-    const hasResetToken =
-      hash.includes('type=recovery') ||
-      query.includes('type=recovery') ||
-      hash.includes('access_token=') ||
-      query.includes('access_token=') ||
-      query.includes('reset-password=true');
 
-    if (hasResetToken && currentPage !== 'reset-password') {
-      console.log('Redirecting to reset-password page');
-      setCurrentPage('reset-password');
-      return;
-    }
 
     // Handle other direct routes
     if (path === '/events') {
@@ -278,7 +265,6 @@ function App() {
             {currentPage === 'club-request' && <ClubRequestForm setCurrentPage={setCurrentPage} />}
             {currentPage === 'create-event' && <EventCreationForm setCurrentPage={setCurrentPage} />}
             {currentPage === 'forgot-password' && <ForgotPassword setCurrentPage={setCurrentPage} />}
-            {currentPage === 'reset-password' && <ResetPassword setCurrentPage={setCurrentPage} />}
           </div>
         )}
       </AnimatePresence>
