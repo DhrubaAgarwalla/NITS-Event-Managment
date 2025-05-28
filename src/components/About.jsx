@@ -381,28 +381,7 @@ const About = ({ setCurrentPage }) => {
                 </div>
               </div>
 
-              <div className="showcase-card">
-                <div className="card-header">
-                  <h4>Latest Updates</h4>
-                </div>
-                <div className="card-body">
-                  <div className="update-item">
-                    <h5>3D Immersive Interface</h5>
-                    <p>Experience events in a whole new way with our interactive 3D environment</p>
-                    <span className="update-date">June 2023</span>
-                  </div>
-                  <div className="update-item">
-                    <h5>Club Dashboard Enhancements</h5>
-                    <p>New tools for clubs to better manage their events and track registrations</p>
-                    <span className="update-date">May 2023</span>
-                  </div>
-                  <div className="update-item">
-                    <h5>Mobile App Launch</h5>
-                    <p>Get event notifications and updates on the go with our new mobile application</p>
-                    <span className="update-date">April 2023</span>
-                  </div>
-                </div>
-              </div>
+
             </motion.div>
           </div>
         </motion.div>
