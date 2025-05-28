@@ -4,7 +4,7 @@
  */
 
 // Backend service configuration
-const BACKEND_BASE_URL = import.meta.env.VITE_SHEETS_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_BASE_URL = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app/';
 const API_PREFIX = '/api/v1';
 
 class GoogleSheetsService {
