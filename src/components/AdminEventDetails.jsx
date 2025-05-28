@@ -95,15 +95,45 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       }
 
       // Handle different export formats
-      // For Excel and PDF, download the file
-      if (result.url && result.filename) {
-        const link = document.createElement('a');
-        link.href = result.url;
-        link.download = result.filename;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      if (format === 'google_sheets') {
+        // For Google Sheets, show success message and open the sheet
+        const confirmOpen = confirm(
+          `Google Sheet created successfully!\n\n` +
+          `Title: ${result.filename}\n` +
+          `Rows: ${result.rowCount} registrations\n\n` +
+          `Click OK to open the Google Sheet in a new tab, or Cancel to copy the link.`
+        );
+
+        if (confirmOpen) {
+          // Open Google Sheet in new tab
+          window.open(result.shareableLink, '_blank');
+        } else {
+          // Copy link to clipboard
+          try {
+            await navigator.clipboard.writeText(result.shareableLink);
+            alert('Google Sheet link copied to clipboard!');
+          } catch (err) {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = result.shareableLink;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Google Sheet link copied to clipboard!');
+          }
+        }
+      } else {
+        // For Excel and PDF, download the file
+        if (result.url && result.filename) {
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = result.filename;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       }
     } catch (err) {
       console.error('Error exporting registrations:', err);
@@ -535,6 +565,26 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
                   }}
                 >
                   <span>{exportLoading ? '⏳' : '📊'}</span> {exportLoading ? 'Exporting...' : 'Excel (Styled)'}
+                </button>
+
+                <button
+                  onClick={() => handleExportRegistrations('google_sheets')}
+                  disabled={exportLoading || registrations.length === 0}
+                  style={{
+                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
+                    color: '#4285F4',
+                    border: '1px solid rgba(66, 133, 244, 0.3)',
+                    borderRadius: '4px',
+                    padding: '0.5rem 1rem',
+                    cursor: registrations.length === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    opacity: registrations.length === 0 ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span>{exportLoading ? '⏳' : '📋'}</span> {exportLoading ? 'Exporting...' : 'Google Sheets'}
                 </button>
               </div>
             </div>

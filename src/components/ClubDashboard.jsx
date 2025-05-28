@@ -1910,6 +1910,144 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                     </button>
 
                     <button
+                      className="btn export-google-sheets-btn"
+                      onClick={async () => {
+                        try {
+                          // Create a loading overlay for the entire page
+                          const loadingOverlay = document.createElement('div');
+                          loadingOverlay.className = 'loading-overlay';
+                          loadingOverlay.style.position = 'fixed';
+                          loadingOverlay.style.top = '0';
+                          loadingOverlay.style.left = '0';
+                          loadingOverlay.style.width = '100%';
+                          loadingOverlay.style.height = '100%';
+                          loadingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                          loadingOverlay.style.display = 'flex';
+                          loadingOverlay.style.flexDirection = 'column';
+                          loadingOverlay.style.justifyContent = 'center';
+                          loadingOverlay.style.alignItems = 'center';
+                          loadingOverlay.style.zIndex = '9999';
+
+                          // Add a spinner
+                          const spinner = document.createElement('div');
+                          spinner.className = 'spinner';
+                          spinner.style.border = '5px solid rgba(255, 255, 255, 0.3)';
+                          spinner.style.borderTop = '5px solid #4285F4';
+                          spinner.style.borderRadius = '50%';
+                          spinner.style.width = '50px';
+                          spinner.style.height = '50px';
+                          spinner.style.animation = 'spin 1s linear infinite';
+
+                          // Add a message
+                          const message = document.createElement('div');
+                          message.style.color = 'white';
+                          message.style.marginTop = '20px';
+                          message.style.fontWeight = 'bold';
+                          message.innerHTML = 'Creating Google Sheet...<br><span style="font-size: 0.8rem; font-weight: normal">This may take a few seconds</span>';
+
+                          // Add animation style
+                          const style = document.createElement('style');
+                          style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+
+                          // Add elements to the overlay
+                          loadingOverlay.appendChild(spinner);
+                          loadingOverlay.appendChild(message);
+                          document.head.appendChild(style);
+                          document.body.appendChild(loadingOverlay);
+
+                          // Set loading state
+                          const button = document.querySelector('.export-google-sheets-btn');
+                          const originalContent = button.innerHTML;
+                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Creating Google Sheet...';
+                          button.disabled = true;
+                          button.style.opacity = '0.7';
+                          button.style.cursor = 'wait';
+
+                          // Export registrations to Google Sheets
+                          const result = await registrationService.exportRegistrationsAsCSV(
+                            selectedEvent.id,
+                            selectedEvent.title,
+                            'google_sheets'
+                          );
+
+                          // Remove the loading overlay
+                          document.body.removeChild(loadingOverlay);
+
+                          // Reset button state
+                          button.innerHTML = originalContent;
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
+
+                          if (!result.success) {
+                            alert(result.message || 'Failed to create Google Sheet');
+                            return;
+                          }
+
+                          // Show success message and open the Google Sheet
+                          const confirmOpen = confirm(
+                            `Google Sheet created successfully!\n\n` +
+                            `Title: ${result.filename}\n` +
+                            `Rows: ${result.rowCount} registrations\n\n` +
+                            `Click OK to open the Google Sheet in a new tab, or Cancel to copy the link.`
+                          );
+
+                          if (confirmOpen) {
+                            // Open Google Sheet in new tab
+                            window.open(result.shareableLink, '_blank');
+                          } else {
+                            // Copy link to clipboard
+                            try {
+                              await navigator.clipboard.writeText(result.shareableLink);
+                              alert('Google Sheet link copied to clipboard!');
+                            } catch (err) {
+                              // Fallback for older browsers
+                              const textArea = document.createElement('textarea');
+                              textArea.value = result.shareableLink;
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              alert('Google Sheet link copied to clipboard!');
+                            }
+                          }
+                        } catch (err) {
+                          // Remove the loading overlay if it exists
+                          const loadingOverlay = document.querySelector('.loading-overlay');
+                          if (loadingOverlay) {
+                            document.body.removeChild(loadingOverlay);
+                          }
+
+                          // Reset button state on error
+                          const button = document.querySelector('.export-google-sheets-btn');
+                          button.innerHTML = '<span style="font-size: 1.2rem">📋</span> Google Sheets';
+                          button.disabled = false;
+                          button.style.opacity = '1';
+                          button.style.cursor = 'pointer';
+
+                          console.error('Error exporting registrations to Google Sheets:', err);
+                          alert('Failed to create Google Sheet: ' + (err.message || 'Unknown error'));
+                        }
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(66, 133, 244, 0.15)',
+                        color: '#4285F4',
+                        padding: '0.75rem 1.25rem',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(66, 133, 244, 0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        whiteSpace: 'nowrap',
+                        fontWeight: '500',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.2rem' }}>📋</span> Google Sheets
+                    </button>
+
+                    <button
                       className="btn export-sheets-btn"
                       onClick={async () => {
                         try {

@@ -6,6 +6,7 @@ import autoTable from 'jspdf-autotable';
 // Import ExcelJS as a namespace import for ES modules
 import * as ExcelJSModule from 'exceljs';
 import eventService from './eventService';
+import googleSheetsService from './googleSheetsService';
 
 // Registration-related database operations
 const registrationService = {
@@ -1549,6 +1550,45 @@ const registrationService = {
         const filename = `${eventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_registrations.pdf`;
 
         return { success: true, url, filename, type: 'pdf' };
+      } else if (format === 'google_sheets') {
+        // Export to Google Sheets using the backend service
+        try {
+          console.log('Exporting to Google Sheets via backend service');
+
+          // Get event data for custom fields
+          const eventData = await eventService.getEventById(eventId);
+
+          // Use the Google Sheets service
+          const result = await googleSheetsService.exportRegistrationsToSheets(
+            eventId,
+            eventTitle,
+            registrations,
+            eventData
+          );
+
+          if (!result.success) {
+            throw new Error(result.message || 'Failed to create Google Sheet');
+          }
+
+          return {
+            success: true,
+            url: result.shareableLink,
+            filename: result.filename,
+            type: 'google_sheets',
+            spreadsheetId: result.spreadsheetId,
+            message: result.message,
+            shareableLink: result.shareableLink,
+            rowCount: result.rowCount
+          };
+
+        } catch (error) {
+          console.error('Error creating Google Sheet:', error);
+          return {
+            success: false,
+            error: error.message,
+            message: `Failed to create Google Sheet: ${error.message}`
+          };
+        }
       } else if (format === 'sheets') {
         try {
           console.log('Creating professional Excel file with styling');

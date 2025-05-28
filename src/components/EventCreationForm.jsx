@@ -189,7 +189,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
   // Handle form input change
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     // Special handling for participation_type
     if (name === 'participation_type') {
@@ -212,11 +212,26 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         }));
       }
     } else {
-      // Normal handling for other fields
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      // Normal handling for other fields - handle checkboxes properly
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [name]: type === 'checkbox' ? checked : value
+        };
+
+        // If disabling payment requirement, clear payment-related fields
+        if (name === 'requires_payment' && !checked) {
+          newData.payment_amount = '';
+          newData.payment_upi_id = '';
+          newData.payment_instructions = 'Please complete the payment and upload the screenshot as proof.';
+          // Also clear payment QR file and preview
+          setPaymentQRFile(null);
+          setPaymentQRPreview(null);
+          setPaymentQRUploadProgress(0);
+        }
+
+        return newData;
+      });
     }
   };
 
