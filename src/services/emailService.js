@@ -62,7 +62,7 @@ class EmailService {
       }
 
       const result = await response.json();
-      
+
       return {
         success: true,
         messageId: result.messageId,
@@ -84,7 +84,7 @@ class EmailService {
    */
   generateQRCodeEmailHTML(data) {
     const { participantName, eventTitle, eventDate, eventLocation, registrationId } = data;
-    
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -219,7 +219,7 @@ class EmailService {
         </div>
 
         <p>Dear <strong>${participantName}</strong>,</p>
-        
+
         <p>Thank you for registering for <strong>${eventTitle}</strong>! Your registration has been confirmed and your unique QR code is ready.</p>
 
         <div class="event-details">
@@ -261,7 +261,7 @@ class EmailService {
                 <li><strong>Arrive on time</strong> - QR codes will be scanned at the event entrance</li>
                 <li><strong>Bring a backup</strong> - You can also show your registration ID if needed</li>
                 <li><strong>Contact support</strong> if you face any issues with your QR code</li>
-                <li><strong>QR code is valid for 24 hours</strong> from generation time</li>
+                <li><strong>QR code is valid until the event date</strong> - keep it safe!</li>
             </ul>
         </div>
 
@@ -315,7 +315,7 @@ class EmailService {
       }
 
       const result = await response.json();
-      
+
       return {
         success: true,
         messageId: result.messageId,
@@ -337,7 +337,7 @@ class EmailService {
    */
   generateAttendanceConfirmationHTML(data) {
     const { participantName, eventTitle, attendanceTimestamp } = data;
-    
+
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -394,11 +394,11 @@ class EmailService {
         </div>
 
         <p>Dear <strong>${participantName}</strong>,</p>
-        
+
         <p>Your attendance for <strong>${eventTitle}</strong> has been successfully recorded!</p>
-        
+
         <p><strong>Attendance Time:</strong> ${new Date(attendanceTimestamp).toLocaleString()}</p>
-        
+
         <p>Thank you for participating in the event. We hope you have a great experience!</p>
 
         <div class="footer">

@@ -1282,6 +1282,22 @@ const registrationService = {
           console.error('Error formatting date:', e);
         }
 
+        // Format attendance timestamp
+        let attendanceTime = 'N/A';
+        if (reg.attendance_timestamp) {
+          try {
+            attendanceTime = new Date(reg.attendance_timestamp).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch (e) {
+            console.error('Error formatting attendance timestamp:', e);
+          }
+        }
+
         // Create base export object
         const exportObj = {
           'Name': reg.participant_name || 'N/A',
@@ -1292,7 +1308,9 @@ const registrationService = {
           'Year': reg.additional_info?.year || 'N/A',
           'Registration Type': reg.additional_info?.team_members ? 'Team' : 'Individual',
           'Registration Date': formattedDate,
-          'Status': reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'
+          'Registration Status': reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
+          'Attendance Status': reg.attendance_status === 'attended' ? 'Attended' : 'Not Attended',
+          'Attendance Time': attendanceTime
         };
 
         // Add custom fields to export object
@@ -1332,16 +1350,23 @@ const registrationService = {
           ['']
         ];
 
-        // Calculate registration statistics
+        // Calculate registration and attendance statistics
         const totalRegistrations = exportData.length;
         const individualRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Individual').length;
         const teamRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Team').length;
+        const attendedCount = exportData.filter(reg => reg['Attendance Status'] === 'Attended').length;
+        const attendanceRate = totalRegistrations > 0 ? ((attendedCount / totalRegistrations) * 100).toFixed(1) : '0.0';
 
         // Add statistics
         headerData.push(['Registration Statistics:']);
         headerData.push(['Total Registrations:', totalRegistrations]);
         headerData.push(['Individual Registrations:', individualRegistrations]);
         headerData.push(['Team Registrations:', teamRegistrations]);
+        headerData.push(['']);
+        headerData.push(['Attendance Statistics:']);
+        headerData.push(['Total Attended:', attendedCount]);
+        headerData.push(['Not Attended:', totalRegistrations - attendedCount]);
+        headerData.push(['Attendance Rate:', `${attendanceRate}%`]);
         headerData.push(['']);
         headerData.push(['']);
 
@@ -1359,7 +1384,9 @@ const registrationService = {
           'Year',
           'Type',
           'Registration Date',
-          'Status'
+          'Registration Status',
+          'Attendance Status',
+          'Attendance Time'
         ];
 
         // Add custom field headers
@@ -1382,7 +1409,9 @@ const registrationService = {
             reg['Year'],
             reg['Registration Type'],
             reg['Registration Date'],
-            reg['Status']
+            reg['Registration Status'],
+            reg['Attendance Status'],
+            reg['Attendance Time']
           ];
 
           // Add custom field values
@@ -1413,7 +1442,9 @@ const registrationService = {
           { wch: 10 }, // Year
           { wch: 15 }, // Type
           { wch: 20 }, // Registration Date
-          { wch: 12 }  // Status
+          { wch: 18 }, // Registration Status
+          { wch: 18 }, // Attendance Status
+          { wch: 20 }  // Attendance Time
         ];
 
         // Add custom field column widths
@@ -1456,7 +1487,9 @@ const registrationService = {
             'Scholar ID',
             'Department',
             'Year',
-            'Status',
+            'Registration Status',
+            'Attendance Status',
+            'Attendance Time',
             'Notes'
           ]);
 
@@ -1477,7 +1510,9 @@ const registrationService = {
                   member.rollNumber || 'N/A',
                   member.department || 'N/A',
                   member.year || 'N/A',
-                  reg['Status'],
+                  reg['Registration Status'],
+                  reg['Attendance Status'],
+                  reg['Attendance Time'],
                   '' // Empty notes column
                 ]);
               });
@@ -1499,7 +1534,9 @@ const registrationService = {
             { wch: 15 }, // Scholar ID
             { wch: 15 }, // Department
             { wch: 10 }, // Year
-            { wch: 15 }, // Status
+            { wch: 18 }, // Registration Status
+            { wch: 18 }, // Attendance Status
+            { wch: 20 }, // Attendance Time
             { wch: 30 }  // Notes
           ];
           teamWorksheet['!cols'] = teamColumnWidths;
@@ -1555,8 +1592,8 @@ const registrationService = {
         const individualRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Individual').length;
         const teamRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Team').length;
 
-        // Add registration summary
-        doc.text(`Total Registrations: ${totalRegistrations}`, doc.internal.pageSize.width / 2, 37, { align: 'center' });
+        // Add registration and attendance summary
+        doc.text(`Total Registrations: ${totalRegistrations} | Attended: ${attendedCount} (${attendanceRate}%)`, doc.internal.pageSize.width / 2, 37, { align: 'center' });
         doc.text(`Individual: ${individualRegistrations} | Team: ${teamRegistrations}`, doc.internal.pageSize.width / 2, 42, { align: 'center' });
 
         // Add horizontal line
@@ -1576,7 +1613,7 @@ const registrationService = {
         );
 
         // Prepare table headers and body with conditional payment columns and custom fields
-        const tableHeaders = ['Name', 'Email', 'Phone', 'Student ID', 'Department', 'Year', 'Type', 'Status'];
+        const tableHeaders = ['Name', 'Email', 'Phone', 'Student ID', 'Department', 'Year', 'Type', 'Reg Status', 'Attendance', 'Attended At'];
 
         // Add custom field headers
         customFields.forEach(field => {
@@ -1600,7 +1637,9 @@ const registrationService = {
             reg['Department'],
             reg['Year'],
             reg['Registration Type'],
-            reg['Status']
+            reg['Registration Status'],
+            reg['Attendance Status'],
+            reg['Attendance Time']
           ];
 
           // Add custom field values
@@ -1652,36 +1691,28 @@ const registrationService = {
             const styles = {};
             let columnIndex = 0;
 
-            // Base columns: Name, Email, Phone, Student ID, Department, Year, Type, Status
-            const baseColumns = 8;
+            // Base columns: Name, Email, Phone, Student ID, Department, Year, Type, Reg Status, Attendance, Attended At
+            const baseColumns = 10;
             const customFieldsCount = customFields.length;
             const paymentColumns = hasPaymentInfo ? 2 : 0;
             const teamColumns = hasTeamRegistrations ? 1 : 0;
             const totalColumns = baseColumns + customFieldsCount + paymentColumns + teamColumns;
 
             // Determine column widths based on content and available space
-            if (totalColumns <= 8) {
+            if (totalColumns <= 10) {
               // Plenty of space - use generous widths
-              styles[columnIndex++] = { cellWidth: 25 }; // Name
-              styles[columnIndex++] = { cellWidth: 40 }; // Email
-              styles[columnIndex++] = { cellWidth: 20 }; // Phone
-              styles[columnIndex++] = { cellWidth: 20 }; // Student ID
-              styles[columnIndex++] = { cellWidth: 25 }; // Department
-              styles[columnIndex++] = { cellWidth: 15 }; // Year
-              styles[columnIndex++] = { cellWidth: 18 }; // Type
-              styles[columnIndex++] = { cellWidth: 18 }; // Status
-            } else if (totalColumns <= 12) {
-              // Moderate space - balanced widths
-              styles[columnIndex++] = { cellWidth: 20 }; // Name
-              styles[columnIndex++] = { cellWidth: 30 }; // Email
+              styles[columnIndex++] = { cellWidth: 22 }; // Name
+              styles[columnIndex++] = { cellWidth: 35 }; // Email
               styles[columnIndex++] = { cellWidth: 18 }; // Phone
               styles[columnIndex++] = { cellWidth: 18 }; // Student ID
               styles[columnIndex++] = { cellWidth: 20 }; // Department
               styles[columnIndex++] = { cellWidth: 12 }; // Year
               styles[columnIndex++] = { cellWidth: 15 }; // Type
-              styles[columnIndex++] = { cellWidth: 15 }; // Status
-            } else {
-              // Tight space - compact widths
+              styles[columnIndex++] = { cellWidth: 15 }; // Reg Status
+              styles[columnIndex++] = { cellWidth: 15 }; // Attendance
+              styles[columnIndex++] = { cellWidth: 20 }; // Attended At
+            } else if (totalColumns <= 14) {
+              // Moderate space - balanced widths
               styles[columnIndex++] = { cellWidth: 18 }; // Name
               styles[columnIndex++] = { cellWidth: 25 }; // Email
               styles[columnIndex++] = { cellWidth: 15 }; // Phone
@@ -1689,7 +1720,21 @@ const registrationService = {
               styles[columnIndex++] = { cellWidth: 15 }; // Department
               styles[columnIndex++] = { cellWidth: 10 }; // Year
               styles[columnIndex++] = { cellWidth: 12 }; // Type
-              styles[columnIndex++] = { cellWidth: 12 }; // Status
+              styles[columnIndex++] = { cellWidth: 12 }; // Reg Status
+              styles[columnIndex++] = { cellWidth: 12 }; // Attendance
+              styles[columnIndex++] = { cellWidth: 15 }; // Attended At
+            } else {
+              // Tight space - compact widths
+              styles[columnIndex++] = { cellWidth: 15 }; // Name
+              styles[columnIndex++] = { cellWidth: 20 }; // Email
+              styles[columnIndex++] = { cellWidth: 12 }; // Phone
+              styles[columnIndex++] = { cellWidth: 12 }; // Student ID
+              styles[columnIndex++] = { cellWidth: 12 }; // Department
+              styles[columnIndex++] = { cellWidth: 8 };  // Year
+              styles[columnIndex++] = { cellWidth: 10 }; // Type
+              styles[columnIndex++] = { cellWidth: 10 }; // Reg Status
+              styles[columnIndex++] = { cellWidth: 10 }; // Attendance
+              styles[columnIndex++] = { cellWidth: 12 }; // Attended At
             }
 
             // Add custom field columns
@@ -1811,16 +1856,23 @@ const registrationService = {
             ['']
           ];
 
-          // Calculate registration statistics
+          // Calculate registration and attendance statistics
           const totalRegistrations = exportData.length;
           const individualRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Individual').length;
           const teamRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Team').length;
+          const attendedCount = exportData.filter(reg => reg['Attendance Status'] === 'Attended').length;
+          const attendanceRate = totalRegistrations > 0 ? ((attendedCount / totalRegistrations) * 100).toFixed(1) : '0.0';
 
           // Add statistics
           headerData.push(['Registration Statistics:']);
           headerData.push(['Total Registrations:', totalRegistrations]);
           headerData.push(['Individual Registrations:', individualRegistrations]);
           headerData.push(['Team Registrations:', teamRegistrations]);
+          headerData.push(['']);
+          headerData.push(['Attendance Statistics:']);
+          headerData.push(['Total Attended:', attendedCount]);
+          headerData.push(['Not Attended:', totalRegistrations - attendedCount]);
+          headerData.push(['Attendance Rate:', `${attendanceRate}%`]);
           headerData.push(['']);
 
           // Create data structure for the main registrations
@@ -1837,7 +1889,9 @@ const registrationService = {
             'Year',
             'Type',
             'Registration Date',
-            'Status',
+            'Registration Status',
+            'Attendance Status',
+            'Attendance Time',
             'Notes'
           ]);
 
@@ -1853,7 +1907,9 @@ const registrationService = {
               reg['Year'],
               reg['Registration Type'],
               reg['Registration Date'],
-              reg['Status'],
+              reg['Registration Status'],
+              reg['Attendance Status'],
+              reg['Attendance Time'],
               '' // Empty notes column for clubs to add comments
             ]);
           });
@@ -1903,7 +1959,7 @@ const registrationService = {
 
           if (headerRowIndex > 0) {
             // Apply header styles to all columns in the header row
-            const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            const headerCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
             headerCols.forEach(col => {
               const cellRef = `${col}${headerRowIndex + 1}`;
               mainWorksheet.s[cellRef] = {
@@ -1955,7 +2011,9 @@ const registrationService = {
             { wch: 10 }, // Year
             { wch: 15 }, // Type
             { wch: 20 }, // Registration Date
-            { wch: 12 }, // Status
+            { wch: 18 }, // Registration Status
+            { wch: 18 }, // Attendance Status
+            { wch: 20 }, // Attendance Time
             { wch: 30 }  // Notes
           ];
           mainWorksheet['!cols'] = mainColumnWidths;
@@ -1963,16 +2021,16 @@ const registrationService = {
           // Add styling to the main worksheet (as much as XLSX allows)
           // Style the title row
           mainWorksheet['!merges'] = [
-            // Merge cells for the title (A1:K1)
-            {s: {r: 0, c: 0}, e: {r: 0, c: 10}},
-            // Merge cells for the event name (A2:K2)
-            {s: {r: 1, c: 0}, e: {r: 1, c: 10}},
-            // Merge cells for the generation date (A3:K3)
-            {s: {r: 2, c: 0}, e: {r: 2, c: 10}},
-            // Merge cells for the empty row (A4:K4)
-            {s: {r: 3, c: 0}, e: {r: 3, c: 10}},
-            // Merge cells for "Registration Statistics:" (A5:K5)
-            {s: {r: 4, c: 0}, e: {r: 4, c: 10}}
+            // Merge cells for the title (A1:M1)
+            {s: {r: 0, c: 0}, e: {r: 0, c: 12}},
+            // Merge cells for the event name (A2:M2)
+            {s: {r: 1, c: 0}, e: {r: 1, c: 12}},
+            // Merge cells for the generation date (A3:M3)
+            {s: {r: 2, c: 0}, e: {r: 2, c: 12}},
+            // Merge cells for the empty row (A4:M4)
+            {s: {r: 3, c: 0}, e: {r: 3, c: 12}},
+            // Merge cells for "Registration Statistics:" (A5:M5)
+            {s: {r: 4, c: 0}, e: {r: 4, c: 12}}
           ];
 
           // Add the main worksheet to the workbook

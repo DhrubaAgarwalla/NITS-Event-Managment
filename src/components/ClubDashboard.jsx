@@ -2338,28 +2338,6 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                   >
                                     View Details
                                   </button>
-                                  <button
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: 'var(--primary)',
-                                      cursor: 'pointer',
-                                      marginRight: '0.5rem'
-                                    }}
-                                    onClick={() => {
-                                      const newStatus = registration.status === 'registered' ? 'attended' : 'registered';
-                                      registrationService.updateRegistrationStatus(registration.id, newStatus)
-                                        .then(() => {
-                                          loadEventRegistrations(selectedEvent.id);
-                                        })
-                                        .catch(err => {
-                                          console.error('Error updating status:', err);
-                                          setError('Failed to update registration status');
-                                        });
-                                    }}
-                                  >
-                                    {registration.status === 'registered' ? 'Mark Attended' : 'Mark Registered'}
-                                  </button>
                                   {selectedEvent?.requires_payment && registration.payment_screenshot_url && (
                                     <button
                                       style={{

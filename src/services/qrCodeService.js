@@ -19,7 +19,7 @@ class QRCodeService {
       // Create unique QR code data with security measures
       const timestamp = Date.now();
       const qrData = this.createSecureQRData(registrationId, eventId, participantEmail, timestamp);
-      
+
       // Generate QR code image as data URL
       const qrCodeImageUrl = await QRCode.toDataURL(qrData, {
         errorCorrectionLevel: 'M',
@@ -60,7 +60,7 @@ class QRCodeService {
     // Create a hash for verification
     const dataToHash = `${registrationId}:${eventId}:${participantEmail}:${timestamp}`;
     const hash = this.generateSimpleHash(dataToHash);
-    
+
     // Create QR code data structure
     const qrData = {
       type: 'NITS_EVENT_ATTENDANCE',
@@ -124,7 +124,7 @@ class QRCodeService {
     try {
       // Parse QR code data
       const qrData = JSON.parse(qrCodeData);
-      
+
       // Basic structure validation
       if (!this.isValidQRStructure(qrData)) {
         return {
@@ -136,7 +136,7 @@ class QRCodeService {
       // Verify hash
       const dataToHash = `${qrData.registrationId}:${qrData.eventId}:${qrData.email}:${qrData.timestamp}`;
       const expectedHash = this.generateSimpleHash(dataToHash);
-      
+
       if (qrData.hash !== expectedHash) {
         return {
           valid: false,
@@ -144,16 +144,8 @@ class QRCodeService {
         };
       }
 
-      // Check if QR code is not too old (24 hours validity)
-      const qrAge = Date.now() - qrData.timestamp;
-      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      
-      if (qrAge > maxAge) {
-        return {
-          valid: false,
-          error: 'QR code has expired'
-        };
-      }
+      // QR codes remain valid until the event date
+      // No time-based expiry check needed
 
       return {
         valid: true,
@@ -204,7 +196,7 @@ class QRCodeService {
       };
 
       await update(registrationRef, updates);
-      
+
       return {
         success: true,
         message: 'Attendance marked successfully',
@@ -236,7 +228,7 @@ class QRCodeService {
     };
 
     const qrOptions = { ...defaultOptions, ...options };
-    
+
     try {
       return await QRCode.toDataURL(data, qrOptions);
     } catch (error) {

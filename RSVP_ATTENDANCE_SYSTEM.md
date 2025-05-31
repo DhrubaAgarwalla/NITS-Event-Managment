@@ -15,7 +15,7 @@ The RSVP Attendance Tracking System is a comprehensive solution for managing eve
 
 ### Security Features
 - **Unique Hash Verification**: Prevents QR code tampering and duplication
-- **Timestamp Validation**: QR codes expire after 24 hours for security
+- **Timestamp Validation**: QR codes remain valid until the event date
 - **Structured Data Format**: JSON-based QR data with version control
 - **Event Validation**: QR codes are tied to specific events and registrations
 
@@ -225,7 +225,7 @@ Access the QR Code Demo component to:
 - Verify jsQR library is installed
 
 **Attendance Not Marking**
-- Check QR code validity and expiry
+- Check QR code validity and format
 - Verify registration exists in database
 - Check network connectivity
 

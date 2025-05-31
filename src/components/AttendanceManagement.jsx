@@ -21,6 +21,8 @@ const AttendanceManagement = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [markingAttendance, setMarkingAttendance] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all'); // 'all', 'individual', 'team'
 
   // Load club events on component mount
   useEffect(() => {
@@ -307,15 +309,80 @@ const AttendanceManagement = () => {
 
               {/* Registrations List */}
               <div className="registrations-section">
-                <h3>👥 Registered Participants</h3>
+                <div className="registrations-header">
+                  <h3>👥 Registered Participants</h3>
 
-                {registrations.length === 0 ? (
-                  <div className="no-registrations">
-                    <p>No registrations found for this event.</p>
+                  {/* Search and Filter Controls */}
+                  <div className="search-filter-controls">
+                    <div className="search-box">
+                      <input
+                        type="text"
+                        placeholder="Search by name, email, ID, or department..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                      />
+                      <span className="search-icon">🔍</span>
+                    </div>
+
+                    <div className="filter-buttons">
+                      <button
+                        className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterType('all')}
+                      >
+                        All ({registrations.length})
+                      </button>
+                      <button
+                        className={`filter-btn ${filterType === 'individual' ? 'active' : ''}`}
+                        onClick={() => setFilterType('individual')}
+                      >
+                        Individual ({registrations.filter(r => !r.additional_info?.team_members?.length).length})
+                      </button>
+                      <button
+                        className={`filter-btn ${filterType === 'team' ? 'active' : ''}`}
+                        onClick={() => setFilterType('team')}
+                      >
+                        Team ({registrations.filter(r => r.additional_info?.team_members?.length > 0).length})
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="registrations-list">
-                    {registrations.map(registration => (
+                </div>
+
+                {(() => {
+                  // Filter registrations based on search term and filter type
+                  const filteredRegistrations = registrations.filter(registration => {
+                    // Search filter
+                    const matchesSearch = searchTerm === '' ||
+                      registration.participant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      registration.participant_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      registration.participant_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      registration.additional_info?.department?.toLowerCase().includes(searchTerm.toLowerCase());
+
+                    // Type filter
+                    const isTeamRegistration = registration.additional_info?.team_members &&
+                                              registration.additional_info.team_members.length > 0;
+
+                    let matchesType = true;
+                    if (filterType === 'individual') {
+                      matchesType = !isTeamRegistration;
+                    } else if (filterType === 'team') {
+                      matchesType = isTeamRegistration;
+                    }
+
+                    return matchesSearch && matchesType;
+                  });
+
+                  return filteredRegistrations.length === 0 ? (
+                    <div className="no-registrations">
+                      {searchTerm || filterType !== 'all' ? (
+                        <p>No participants found matching your search criteria.</p>
+                      ) : (
+                        <p>No registrations found for this event.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="registrations-list">
+                      {filteredRegistrations.map(registration => (
                       <div
                         key={registration.id}
                         className={`registration-item ${registration.attendance_status}`}
@@ -364,9 +431,10 @@ const AttendanceManagement = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -398,17 +466,26 @@ const AttendanceManagement = () => {
         }
 
         .attendance-header h2 {
-          background: linear-gradient(to right, var(--primary, #6e44ff), var(--secondary, #ff44e3));
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
+          color: var(--text-primary, rgba(255, 255, 255, 0.87));
           margin-bottom: 10px;
           font-size: 2.5rem;
           font-weight: 700;
+          text-shadow:
+            0 0 20px rgba(110, 68, 255, 0.8),
+            0 0 40px rgba(255, 68, 227, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 15px;
         }
 
+
+
         .attendance-header p {
-          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+          color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+          font-size: 1.1rem;
+          font-weight: 400;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .loading-container {
@@ -701,6 +778,83 @@ const AttendanceManagement = () => {
           margin-bottom: 15px;
         }
 
+        .registrations-header {
+          margin-bottom: 20px;
+        }
+
+        .search-filter-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          margin-bottom: 20px;
+        }
+
+        .search-box {
+          position: relative;
+          flex: 1;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 12px 45px 12px 15px;
+          border: 1px solid rgba(110, 68, 255, 0.3);
+          border-radius: 8px;
+          background: var(--dark-bg, #050505);
+          color: var(--text-primary, rgba(255, 255, 255, 0.87));
+          font-size: 16px;
+          transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: var(--primary, #6e44ff);
+          box-shadow: 0 0 0 2px rgba(110, 68, 255, 0.2);
+        }
+
+        .search-input::placeholder {
+          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+        }
+
+        .search-icon {
+          position: absolute;
+          right: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+          pointer-events: none;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .filter-btn {
+          padding: 8px 16px;
+          border: 1px solid rgba(110, 68, 255, 0.3);
+          border-radius: 20px;
+          background: transparent;
+          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .filter-btn:hover {
+          border-color: var(--primary, #6e44ff);
+          color: var(--primary, #6e44ff);
+          transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+          background: var(--primary, #6e44ff);
+          color: white;
+          border-color: var(--primary, #6e44ff);
+          box-shadow: 0 2px 8px rgba(110, 68, 255, 0.3);
+        }
+
         .no-registrations {
           text-align: center;
           padding: 30px;
@@ -800,6 +954,18 @@ const AttendanceManagement = () => {
           transform: none;
         }
 
+        @media (min-width: 768px) {
+          .search-filter-controls {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+          }
+
+          .search-box {
+            max-width: 400px;
+          }
+        }
+
         @media (max-width: 768px) {
           .attendance-management {
             padding: 15px;
@@ -813,6 +979,16 @@ const AttendanceManagement = () => {
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
+          }
+
+          .filter-buttons {
+            justify-content: center;
+          }
+
+          .filter-btn {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
           }
         }
       `}</style>

@@ -47,16 +47,18 @@ const QRCodeDemo = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>🔍 QR Code Demo & Testing</h2>
-      <p>This component demonstrates QR code generation and verification for the attendance tracking system.</p>
+    <div className="qr-demo-container">
+      <div className="qr-demo-header">
+        <h2>🔍 QR Code Demo & Testing</h2>
+        <p>Generate and verify QR codes for attendance tracking system</p>
+      </div>
 
       {/* Test Data Input */}
-      <div style={{ 
-        background: '#f8f9fa', 
-        padding: '20px', 
-        borderRadius: '8px', 
-        marginBottom: '20px' 
+      <div style={{
+        background: '#f8f9fa',
+        padding: '20px',
+        borderRadius: '8px',
+        marginBottom: '20px'
       }}>
         <h3>Test Data</h3>
         <div style={{ display: 'grid', gap: '10px' }}>
@@ -66,9 +68,9 @@ const QRCodeDemo = () => {
               type="text"
               value={testData.registrationId}
               onChange={(e) => setTestData({...testData, registrationId: e.target.value})}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
+              style={{
+                width: '100%',
+                padding: '8px',
                 marginTop: '5px',
                 border: '1px solid #ddd',
                 borderRadius: '4px'
@@ -81,9 +83,9 @@ const QRCodeDemo = () => {
               type="text"
               value={testData.eventId}
               onChange={(e) => setTestData({...testData, eventId: e.target.value})}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
+              style={{
+                width: '100%',
+                padding: '8px',
                 marginTop: '5px',
                 border: '1px solid #ddd',
                 borderRadius: '4px'
@@ -96,9 +98,9 @@ const QRCodeDemo = () => {
               type="email"
               value={testData.participantEmail}
               onChange={(e) => setTestData({...testData, participantEmail: e.target.value})}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
+              style={{
+                width: '100%',
+                padding: '8px',
                 marginTop: '5px',
                 border: '1px solid #ddd',
                 borderRadius: '4px'
@@ -106,7 +108,7 @@ const QRCodeDemo = () => {
             />
           </div>
         </div>
-        
+
         <button
           onClick={generateTestQR}
           style={{
@@ -125,32 +127,32 @@ const QRCodeDemo = () => {
 
       {/* QR Code Display */}
       {qrCodeImage && (
-        <div style={{ 
-          background: 'white', 
-          padding: '20px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '8px',
           marginBottom: '20px',
           border: '1px solid #ddd',
           textAlign: 'center'
         }}>
           <h3>Generated QR Code</h3>
-          <img 
-            src={qrCodeImage} 
-            alt="Generated QR Code" 
-            style={{ 
-              maxWidth: '200px', 
+          <img
+            src={qrCodeImage}
+            alt="Generated QR Code"
+            style={{
+              maxWidth: '200px',
               border: '2px solid #007bff',
               borderRadius: '8px',
               padding: '10px',
               background: 'white'
             }}
           />
-          
+
           <div style={{ marginTop: '15px', textAlign: 'left' }}>
             <h4>QR Code Data:</h4>
-            <pre style={{ 
-              background: '#f8f9fa', 
-              padding: '10px', 
+            <pre style={{
+              background: '#f8f9fa',
+              padding: '10px',
               borderRadius: '4px',
               fontSize: '12px',
               overflow: 'auto'
@@ -178,17 +180,17 @@ const QRCodeDemo = () => {
 
       {/* Verification Result */}
       {verificationResult && (
-        <div style={{ 
+        <div style={{
           background: verificationResult.valid ? '#d4edda' : '#f8d7da',
           border: `1px solid ${verificationResult.valid ? '#c3e6cb' : '#f5c6cb'}`,
           color: verificationResult.valid ? '#155724' : '#721c24',
-          padding: '20px', 
-          borderRadius: '8px', 
+          padding: '20px',
+          borderRadius: '8px',
           marginBottom: '20px'
         }}>
           <h3>Verification Result</h3>
           <p><strong>Valid:</strong> {verificationResult.valid ? 'Yes' : 'No'}</p>
-          
+
           {verificationResult.valid ? (
             <div>
               <p><strong>Registration ID:</strong> {verificationResult.registrationId}</p>
@@ -203,9 +205,9 @@ const QRCodeDemo = () => {
       )}
 
       {/* Instructions */}
-      <div style={{ 
-        background: '#e3f2fd', 
-        padding: '20px', 
+      <div style={{
+        background: '#e3f2fd',
+        padding: '20px',
         borderRadius: '8px',
         border: '1px solid #bbdefb'
       }}>
@@ -216,11 +218,11 @@ const QRCodeDemo = () => {
           <li><strong>Verify QR Code:</strong> Click "Verify QR Code" to test the verification process</li>
           <li><strong>Test Scanning:</strong> You can use any QR code scanner app to scan the generated code</li>
         </ol>
-        
+
         <h4>🔒 Security Features</h4>
         <ul>
           <li>Unique hash verification prevents tampering</li>
-          <li>Timestamp validation (24-hour expiry)</li>
+          <li>Timestamp validation (valid until event date)</li>
           <li>Structured data format with version control</li>
           <li>Event and registration ID validation</li>
         </ul>
@@ -235,6 +237,37 @@ const QRCodeDemo = () => {
           <li>Export functionality (Excel/PDF/Google Sheets)</li>
         </ul>
       </div>
+
+      <style jsx>{`
+        .qr-demo-container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          background: var(--dark-bg, #050505);
+          color: var(--text-primary, rgba(255, 255, 255, 0.87));
+          min-height: 100vh;
+        }
+
+        .qr-demo-header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+
+        .qr-demo-header h2 {
+          background: linear-gradient(to right, var(--primary, #6e44ff), var(--secondary, #ff44e3));
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          margin-bottom: 10px;
+          font-size: 2.5rem;
+          font-weight: 700;
+        }
+
+        .qr-demo-header p {
+          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+          font-size: 1.1rem;
+        }
+      `}</style>
     </div>
   );
 };
