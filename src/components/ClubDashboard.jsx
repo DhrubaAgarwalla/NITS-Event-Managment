@@ -7,6 +7,7 @@ import { logoutAndRedirect, navigateToHome } from '../utils/navigation';
 import ClubProfileEditor from './ClubProfileEditor';
 import EventEditor from './EventEditor';
 import RegistrationDetails from './RegistrationDetails';
+import AttendanceManagement from './AttendanceManagement';
 import GalleryManager from './GalleryManager';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
@@ -14,7 +15,7 @@ import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
 
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'gallery'
+  const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'attendance', 'gallery'
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -765,6 +766,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             }}
           >
             Track Registrations
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'attendance' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'attendance' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'attendance' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'attendance' ? '600' : '400',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            📊 Attendance Tracking
           </button>
           <button
             className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
@@ -2411,6 +2428,13 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                 <p>Please select an event to view registrations.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Attendance Tab Content */}
+        {activeTab === 'attendance' && (
+          <div className="attendance-tab">
+            <AttendanceManagement />
           </div>
         )}
 

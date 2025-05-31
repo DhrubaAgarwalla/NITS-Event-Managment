@@ -86,11 +86,15 @@ The `events` collection stores event information.
   - registration_date: ISO date string
   - status: string ('registered', 'attended', 'cancelled')
   - additional_info: object
+  - qr_code_data: string (unique QR code for attendance)
+  - attendance_status: string ('not_attended', 'attended')
+  - attendance_timestamp: ISO date string (when marked as attended)
+  - qr_code_generated_at: ISO date string (when QR code was created)
   - created_at: ISO date string
   - updated_at: ISO date string
 ```
 
-The `registrations` collection stores event registrations.
+The `registrations` collection stores event registrations with RSVP attendance tracking.
 
 ### Club Requests
 

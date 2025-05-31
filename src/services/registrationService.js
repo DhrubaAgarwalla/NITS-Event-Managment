@@ -7,6 +7,8 @@ import autoTable from 'jspdf-autotable';
 import * as ExcelJSModule from 'exceljs';
 import eventService from './eventService';
 import googleSheetsService from './googleSheetsService';
+import qrCodeService from './qrCodeService.js';
+import emailService from './emailService.js';
 
 // Registration-related database operations
 const registrationService = {
@@ -58,14 +60,56 @@ const registrationService = {
       const newRegistration = {
         ...registrationData,
         status: 'registered',
+        attendance_status: 'not_attended', // Initialize attendance status
         registration_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      // Save to database
+      // Save to database first
       await set(newRegistrationRef, newRegistration);
       console.log('Registration created successfully with ID:', newRegistrationRef.key);
+
+      // Generate QR code for attendance tracking
+      try {
+        console.log('Generating QR code for registration...');
+        const qrResult = await qrCodeService.generateQRCode(
+          newRegistrationRef.key,
+          registrationData.event_id,
+          registrationData.participant_email
+        );
+
+        if (qrResult.success) {
+          console.log('QR code generated successfully');
+
+          // Get event details for email
+          const eventData = await eventService.getEventById(registrationData.event_id);
+
+          // Send QR code email
+          console.log('Sending QR code email...');
+          const emailResult = await emailService.sendQRCodeEmail({
+            participantEmail: registrationData.participant_email,
+            participantName: registrationData.participant_name,
+            eventTitle: eventData.title,
+            eventDate: eventData.start_date,
+            eventLocation: eventData.location,
+            qrCodeImageUrl: qrResult.qrCodeImageUrl,
+            registrationId: newRegistrationRef.key,
+            eventId: registrationData.event_id
+          });
+
+          if (emailResult.success) {
+            console.log('QR code email sent successfully');
+          } else {
+            console.warn('Failed to send QR code email:', emailResult.error);
+          }
+        } else {
+          console.warn('Failed to generate QR code');
+        }
+      } catch (qrError) {
+        console.error('Error in QR code generation or email sending:', qrError);
+        // Don't fail the registration if QR/email fails
+      }
 
       return {
         id: newRegistrationRef.key,
@@ -143,6 +187,119 @@ const registrationService = {
     } catch (error) {
       console.error('Error updating registration status:', error);
       throw error;
+    }
+  },
+
+  // Update attendance status specifically
+  updateAttendanceStatus: async (id, attendanceStatus) => {
+    try {
+      console.log(`Updating attendance status to ${attendanceStatus} for registration ID: ${id}`);
+      const registrationRef = ref(database, `registrations/${id}`);
+
+      const updates = {
+        attendance_status: attendanceStatus,
+        updated_at: new Date().toISOString()
+      };
+
+      // Add timestamp if marking as attended
+      if (attendanceStatus === 'attended') {
+        updates.attendance_timestamp = new Date().toISOString();
+      }
+
+      await update(registrationRef, updates);
+
+      console.log('Attendance status updated successfully');
+
+      // Get the updated registration
+      const snapshot = await get(registrationRef);
+
+      return {
+        id: snapshot.key,
+        ...snapshot.val()
+      };
+    } catch (error) {
+      console.error('Error updating attendance status:', error);
+      throw error;
+    }
+  },
+
+  // Mark attendance using QR code
+  markAttendanceByQR: async (qrCodeData) => {
+    try {
+      console.log('Processing QR code for attendance marking...');
+
+      // Verify QR code
+      const verification = await qrCodeService.verifyQRCode(qrCodeData);
+
+      if (!verification.valid) {
+        return {
+          success: false,
+          error: verification.error || 'Invalid QR code'
+        };
+      }
+
+      const { registrationId, eventId, email } = verification;
+
+      // Get registration details
+      const registrationRef = ref(database, `registrations/${registrationId}`);
+      const snapshot = await get(registrationRef);
+
+      if (!snapshot.exists()) {
+        return {
+          success: false,
+          error: 'Registration not found'
+        };
+      }
+
+      const registration = snapshot.val();
+
+      // Check if already attended
+      if (registration.attendance_status === 'attended') {
+        return {
+          success: false,
+          error: 'Attendance already marked for this registration',
+          alreadyAttended: true
+        };
+      }
+
+      // Mark attendance
+      const attendanceResult = await qrCodeService.markAttendance(registrationId);
+
+      if (attendanceResult.success) {
+        // Get event details for confirmation email
+        const eventData = await eventService.getEventById(eventId);
+
+        // Send attendance confirmation email
+        try {
+          await emailService.sendAttendanceConfirmation({
+            participantEmail: registration.participant_email,
+            participantName: registration.participant_name,
+            eventTitle: eventData.title,
+            attendanceTimestamp: attendanceResult.timestamp
+          });
+        } catch (emailError) {
+          console.warn('Failed to send attendance confirmation email:', emailError);
+        }
+
+        return {
+          success: true,
+          message: 'Attendance marked successfully',
+          participantName: registration.participant_name,
+          eventTitle: eventData.title,
+          timestamp: attendanceResult.timestamp
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Failed to mark attendance'
+        };
+      }
+    } catch (error) {
+      console.error('Error marking attendance by QR:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to process QR code'
+      };
     }
   },
 
@@ -328,7 +485,7 @@ const registrationService = {
       };
 
       // Calculate total columns for proper merging
-      const totalColumns = 10 + customFields.length + (hasPaymentInfo ? 3 : 0) + 1; // base + custom + payment + notes
+      const totalColumns = 12 + customFields.length + (hasPaymentInfo ? 3 : 0) + 1; // base (12 with attendance) + custom + payment + notes
       const lastColumn = String.fromCharCode(64 + totalColumns); // Convert to letter (A=65, so 64+1=A)
 
       // Add title and subtitle
@@ -351,7 +508,7 @@ const registrationService = {
       // Add empty row
       mainSheet.addRow([]);
 
-      // Calculate registration statistics
+      // Calculate registration and attendance statistics
       const totalRegistrations = registrations.length;
       const individualRegistrations = registrations.filter(r =>
         !r.additional_info?.team_members ||
@@ -359,6 +516,9 @@ const registrationService = {
         r.additional_info.team_members.length === 0
       ).length;
       const teamRegistrations = totalRegistrations - individualRegistrations;
+      const attendedRegistrations = registrations.filter(r => r.attendance_status === 'attended').length;
+      const notAttendedRegistrations = registrations.filter(r => r.attendance_status === 'not_attended' || !r.attendance_status).length;
+      const attendanceRate = totalRegistrations > 0 ? Math.round((attendedRegistrations / totalRegistrations) * 100) : 0;
 
       // Add statistics section
       mainSheet.mergeCells(`A5:${lastColumn}5`);
@@ -382,10 +542,22 @@ const registrationService = {
       const statsRow3 = mainSheet.addRow(['Team Registrations:', teamRegistrations, ...emptyStatsRow.slice(2)]);
       statsRow3.getCell(1).style = { font: { bold: true } };
 
+      const statsRow4 = mainSheet.addRow(['Attended:', attendedRegistrations, ...emptyStatsRow.slice(2)]);
+      statsRow4.getCell(1).style = { font: { bold: true } };
+      statsRow4.getCell(2).style = { font: { color: { argb: '00B050' } } }; // Green for attended
+
+      const statsRow5 = mainSheet.addRow(['Not Attended:', notAttendedRegistrations, ...emptyStatsRow.slice(2)]);
+      statsRow5.getCell(1).style = { font: { bold: true } };
+      statsRow5.getCell(2).style = { font: { color: { argb: 'FFA500' } } }; // Orange for not attended
+
+      const statsRow6 = mainSheet.addRow(['Attendance Rate:', `${attendanceRate}%`, ...emptyStatsRow.slice(2)]);
+      statsRow6.getCell(1).style = { font: { bold: true } };
+      statsRow6.getCell(2).style = { font: { color: { argb: '0070C0' }, bold: true } }; // Blue and bold for rate
+
       // Add empty row
       mainSheet.addRow([]);
 
-      // Add header row with conditional payment columns and custom fields
+      // Add header row with conditional payment columns, attendance tracking, and custom fields
       const headers = [
         'Serial No.',
         'Name',
@@ -396,7 +568,9 @@ const registrationService = {
         'Year',
         'Type',
         'Registration Date',
-        'Status'
+        'Status',
+        'Attendance Status',
+        'Attendance Time'
       ];
 
       // Add custom field headers
@@ -438,7 +612,24 @@ const registrationService = {
                        Array.isArray(reg.additional_info.team_members) &&
                        reg.additional_info.team_members.length > 0 ? 'Team' : 'Individual';
 
-        // Prepare data row with conditional payment columns and custom fields
+        // Format attendance timestamp
+        let formattedAttendanceTime = 'Not Attended';
+        if (reg.attendance_timestamp) {
+          try {
+            formattedAttendanceTime = new Date(reg.attendance_timestamp).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch (e) {
+            console.error('Error formatting attendance timestamp:', e);
+            formattedAttendanceTime = 'Invalid Date';
+          }
+        }
+
+        // Prepare data row with conditional payment columns, attendance tracking, and custom fields
         const rowData = [
           index + 1, // Serial number
           reg.participant_name || 'N/A',
@@ -449,7 +640,9 @@ const registrationService = {
           reg.additional_info?.year || 'N/A',
           regType,
           formattedDate,
-          reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending'
+          reg.status ? reg.status.charAt(0).toUpperCase() + reg.status.slice(1) : 'Pending',
+          reg.attendance_status ? reg.attendance_status.charAt(0).toUpperCase() + reg.attendance_status.slice(1).replace('_', ' ') : 'Not Attended',
+          formattedAttendanceTime
         ];
 
         // Add custom field data
@@ -501,6 +694,16 @@ const registrationService = {
         } else if (reg.status === 'cancelled') {
           statusCell.style.font = { color: { argb: 'FF0000' } }; // Red for cancelled
         }
+
+        // Apply special formatting to attendance status cell
+        const attendanceStatusCell = dataRow.getCell(11);
+        if (reg.attendance_status === 'attended') {
+          attendanceStatusCell.style.font = { color: { argb: '00B050' }, bold: true }; // Green and bold for attended
+          attendanceStatusCell.style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E8F5E8' } }; // Light green background
+        } else {
+          attendanceStatusCell.style.font = { color: { argb: 'FFA500' } }; // Orange for not attended
+          attendanceStatusCell.style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3CD' } }; // Light orange background
+        }
       });
 
       // Set column widths and formats for better readability
@@ -514,7 +717,9 @@ const registrationService = {
         { key: 'year', width: 10 },
         { key: 'type', width: 15 },
         { key: 'registrationDate', width: 20 },
-        { key: 'status', width: 12 }
+        { key: 'status', width: 12 },
+        { key: 'attendanceStatus', width: 15 },
+        { key: 'attendanceTime', width: 20 }
       ];
 
       // Add custom field columns
