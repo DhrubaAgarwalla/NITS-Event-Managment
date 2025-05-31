@@ -153,9 +153,10 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
     try {
       console.log('Processing QR code:', qrData);
+      console.log('Expected event ID:', eventId);
 
-      // Mark attendance using the registration service
-      const result = await registrationService.markAttendanceByQR(qrData);
+      // Mark attendance using the registration service with event ID validation
+      const result = await registrationService.markAttendanceByQR(qrData, eventId);
 
       if (result.success) {
         setScanResult({
@@ -179,11 +180,24 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       } else {
         setError(result.error || 'Failed to mark attendance');
 
+        // Handle different error types
         if (result.alreadyAttended) {
           setScanResult({
             success: false,
             message: result.error,
             alreadyAttended: true
+          });
+        } else if (result.eventMismatch) {
+          setScanResult({
+            success: false,
+            message: result.error,
+            eventMismatch: true
+          });
+        } else if (result.dataInconsistency) {
+          setScanResult({
+            success: false,
+            message: result.error,
+            dataInconsistency: true
           });
         }
       }
@@ -197,11 +211,41 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
   // Manual QR input for testing/fallback
   const handleManualInput = () => {
+    if (!eventId) {
+      setError('Event ID is required for QR code validation');
+      return;
+    }
+
     const qrData = prompt('Enter QR code data for testing:');
     if (qrData) {
       processQRCode(qrData);
     }
   };
+
+  // Prevent body scrolling when QR scanner is open
+  useEffect(() => {
+    // Store original body styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+    const originalHeight = document.body.style.height;
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    document.body.classList.add('qr-scanner-open');
+
+    // Cleanup function to restore scrolling
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.style.height = originalHeight;
+      document.body.classList.remove('qr-scanner-open');
+    };
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -304,10 +348,16 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           {scanResult && (
             <div className={`scan-result ${scanResult.success ? 'success' : 'error'}`}>
               <div className="result-icon">
-                {scanResult.success ? '✅' : '❌'}
+                {scanResult.success ? '✅' :
+                 scanResult.eventMismatch ? '🚫' :
+                 scanResult.alreadyAttended ? '⚠️' :
+                 scanResult.dataInconsistency ? '🔧' : '❌'}
               </div>
               <h3>
-                {scanResult.success ? 'Attendance Marked!' : 'Scan Failed'}
+                {scanResult.success ? 'Attendance Marked!' :
+                 scanResult.eventMismatch ? 'Wrong Event QR Code' :
+                 scanResult.alreadyAttended ? 'Already Attended' :
+                 scanResult.dataInconsistency ? 'Data Error' : 'Scan Failed'}
               </h3>
               <p>{scanResult.message}</p>
 
@@ -316,6 +366,14 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   <p><strong>Participant:</strong> {scanResult.participantName}</p>
                   <p><strong>Event:</strong> {scanResult.eventTitle}</p>
                   <p><strong>Time:</strong> {new Date(scanResult.timestamp).toLocaleString()}</p>
+                </div>
+              )}
+
+              {scanResult.eventMismatch && (
+                <div className="error-details">
+                  <p><strong>⚠️ Security Notice:</strong></p>
+                  <p>This QR code belongs to a different event. Each event has unique QR codes for security purposes.</p>
+                  <p><strong>Solution:</strong> Please use the QR code that was sent for this specific event.</p>
                 </div>
               )}
 
@@ -342,7 +400,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             </div>
           )}
 
-          {error && (
+          {error && !scanResult && (
             <div className="error-message">
               <div className="error-icon">⚠️</div>
               <p>{error}</p>
@@ -373,6 +431,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           justify-content: center;
           z-index: 1000;
           padding: 20px;
+          overflow: hidden;
+          touch-action: none;
+          -webkit-overflow-scrolling: touch;
         }
 
         .qr-scanner-modal {
@@ -792,6 +853,26 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           color: var(--accent, #44ffd2);
         }
 
+        .error-details {
+          background: rgba(255, 71, 87, 0.1);
+          padding: 20px;
+          border-radius: 12px;
+          margin: 20px 0;
+          text-align: left;
+          border: 1px solid rgba(255, 71, 87, 0.2);
+          backdrop-filter: blur(10px);
+        }
+
+        .error-details p {
+          margin: 8px 0;
+          color: var(--text-primary, rgba(255, 255, 255, 0.87));
+          line-height: 1.5;
+        }
+
+        .error-details strong {
+          color: #ff4757;
+        }
+
         .result-actions {
           margin-top: 20px;
         }
@@ -813,14 +894,18 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           text-shadow: 0 0 20px rgba(255, 71, 87, 0.8);
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .qr-scanner-container {
-            padding: 10px;
+            padding: 8px;
+            align-items: flex-start;
+            padding-top: 2rem;
           }
 
           .qr-scanner-modal {
-            max-height: 95vh;
+            max-height: calc(100vh - 4rem);
             border-radius: 12px;
+            width: 100%;
+            max-width: 100%;
           }
 
           .qr-scanner-header {
@@ -833,7 +918,11 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           }
 
           .qr-scanner-content {
-            padding: 20px;
+            padding: 15px;
+          }
+
+          .scanner-start {
+            padding: 30px 15px;
           }
 
           .camera-video {
@@ -854,6 +943,8 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             padding: 12px 20px;
             font-size: 14px;
             margin: 6px;
+            width: auto;
+            min-width: 120px;
           }
 
           .result-icon {
@@ -864,6 +955,98 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             width: 50px;
             height: 50px;
             font-size: 24px;
+          }
+
+          .success-details {
+            padding: 15px;
+            font-size: 14px;
+          }
+
+          .scan-result {
+            padding: 25px 15px;
+          }
+
+          .scanner-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+          }
+
+          .result-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .qr-scanner-container {
+            padding: 4px;
+            padding-top: 1rem;
+          }
+
+          .qr-scanner-modal {
+            max-height: calc(100vh - 2rem);
+            border-radius: 8px;
+          }
+
+          .qr-scanner-header {
+            padding: 12px;
+          }
+
+          .qr-scanner-header h2 {
+            font-size: 14px;
+          }
+
+          .qr-scanner-content {
+            padding: 12px;
+          }
+
+          .scanner-start {
+            padding: 20px 10px;
+          }
+
+          .camera-video {
+            height: 200px;
+          }
+
+          .scan-frame {
+            width: 150px;
+            height: 150px;
+          }
+
+          .scanner-icon {
+            font-size: 50px;
+          }
+
+          .start-scan-button, .manual-input-button, .stop-scan-button,
+          .scan-another-button, .retry-button {
+            padding: 10px 16px;
+            font-size: 13px;
+            margin: 4px;
+            width: 100%;
+            max-width: 200px;
+          }
+
+          .success-details {
+            padding: 12px;
+            font-size: 13px;
+          }
+
+          .scan-result {
+            padding: 20px 12px;
+          }
+
+          .scan-result h3 {
+            font-size: 16px;
+          }
+
+          .close-button {
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
           }
         }
       `}</style>

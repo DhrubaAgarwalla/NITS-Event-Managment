@@ -135,7 +135,7 @@ export default function ClubRequestForm({ setCurrentPage }) {
   };
 
   return (
-    <section className="section" id="club-request">
+    <section className="section club-request-form" id="club-request">
       <div className="container">
         <motion.div
           className="request-container"
@@ -396,6 +396,7 @@ export default function ClubRequestForm({ setCurrentPage }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {!logoPreview ? (
                       <div
+                        className="file-upload-area"
                         style={{
                           border: '2px dashed rgba(255, 255, 255, 0.2)',
                           borderRadius: '8px',
@@ -414,6 +415,7 @@ export default function ClubRequestForm({ setCurrentPage }) {
                       </div>
                     ) : (
                       <div
+                        className="logo-preview"
                         style={{
                           position: 'relative',
                           width: '150px',
@@ -548,7 +550,7 @@ export default function ClubRequestForm({ setCurrentPage }) {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary"
+                    className="btn btn-primary submit-button"
                     style={{ flex: 2, padding: '1rem' }}
                     disabled={isLoading}
                   >

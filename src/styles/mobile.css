@@ -339,6 +339,204 @@
     order: 1;
     margin-bottom: 2rem;
   }
+
+  /* Club Request Form Mobile Optimization */
+  .club-request-form {
+    padding: 1rem !important;
+    margin: 0 !important;
+  }
+
+  .club-request-form .container {
+    padding: 0 1rem;
+  }
+
+  .club-request-form h2 {
+    font-size: 1.5rem !important;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .club-request-form form {
+    max-width: 100% !important;
+  }
+
+  .club-request-form .form-group {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .club-request-form input,
+  .club-request-form textarea {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    border-radius: 6px !important;
+  }
+
+  .club-request-form textarea {
+    min-height: 100px !important;
+    resize: vertical;
+  }
+
+  .club-request-form .file-upload-area {
+    padding: 1rem !important;
+    text-align: center;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .club-request-form .logo-preview {
+    max-width: 120px !important;
+    max-height: 120px !important;
+    margin: 0 auto 1rem;
+  }
+
+  .club-request-form .submit-button {
+    width: 100% !important;
+    padding: 0.875rem !important;
+    font-size: 1rem !important;
+    margin-top: 1rem;
+  }
+
+  /* Event Creation Form Mobile Optimization */
+  .event-creation-form {
+    padding: 1rem !important;
+  }
+
+  .event-creation-form .container {
+    padding: 0 1rem;
+    max-width: 100%;
+  }
+
+  .event-creation-form h2 {
+    font-size: 1.5rem !important;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .event-creation-form .form-section {
+    margin-bottom: 2rem !important;
+  }
+
+  .event-creation-form .form-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .event-creation-form .form-group {
+    width: 100% !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .event-creation-form input,
+  .event-creation-form textarea,
+  .event-creation-form select {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+  }
+
+  .event-creation-form .image-upload-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .event-creation-form .image-preview {
+    max-width: 100% !important;
+    height: auto !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-creation-form .schedule-item {
+    padding: 1rem !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-creation-form .schedule-event {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .event-creation-form .custom-field-item {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
+  }
+
+  .event-creation-form .tag-container {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .event-creation-form .tag-item {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Event Registration Form Mobile Optimization */
+  .event-registration {
+    padding: 1rem !important;
+  }
+
+  .event-registration .container {
+    padding: 0 1rem;
+  }
+
+  .event-registration h2 {
+    font-size: 1.4rem !important;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .event-registration .registration-form {
+    max-width: 100% !important;
+  }
+
+  .event-registration .form-section {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .event-registration .form-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .event-registration .form-group {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .event-registration input,
+  .event-registration select,
+  .event-registration textarea {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+  }
+
+  .event-registration .team-member-section {
+    padding: 1rem !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-registration .team-member-fields {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .event-registration .payment-upload-section {
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .event-registration .payment-preview {
+    max-width: 200px !important;
+    margin: 0 auto 1rem;
+  }
+
+  .event-registration .submit-button {
+    width: 100% !important;
+    padding: 0.875rem !important;
+    font-size: 1rem !important;
+  }
 }
 
 /* Small mobile devices */
@@ -395,5 +593,382 @@
   /* Event highlights */
   .event-highlights-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  /* Small screen optimizations for forms */
+  .club-request-form h2,
+  .event-creation-form h2,
+  .event-registration h2 {
+    font-size: 1.3rem !important;
+  }
+
+  .club-request-form input,
+  .club-request-form textarea,
+  .event-creation-form input,
+  .event-creation-form textarea,
+  .event-creation-form select,
+  .event-registration input,
+  .event-registration textarea,
+  .event-registration select {
+    padding: 0.6rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  .club-request-form .submit-button,
+  .event-creation-form .submit-button,
+  .event-registration .submit-button {
+    padding: 0.75rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* Gallery grid for small screens */
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+
+  /* Club events grid for small screens */
+  .club-events-grid {
+    gap: 1rem !important;
+  }
+
+  /* Team members grid for small screens */
+  .team-members-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Attendance Management Mobile Optimization */
+  .attendance-management {
+    padding: 1rem !important;
+  }
+
+  .attendance-management .container {
+    padding: 0 1rem;
+  }
+
+  .attendance-management h2 {
+    font-size: 1.4rem !important;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .attendance-management .event-selector {
+    margin-bottom: 1.5rem;
+  }
+
+  .attendance-management .event-selector select {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+  }
+
+  .attendance-management .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem;
+  }
+
+  .attendance-management .stat-card {
+    padding: 1rem !important;
+    text-align: center;
+  }
+
+  .attendance-management .stat-card h3 {
+    font-size: 1.1rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .attendance-management .stat-card .stat-value {
+    font-size: 1.8rem !important;
+  }
+
+  .attendance-management .controls-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .attendance-management .controls-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .attendance-management .scan-qr-button,
+  .attendance-management .export-button {
+    width: 100% !important;
+    padding: 0.875rem !important;
+    font-size: 1rem !important;
+  }
+
+  .attendance-management .registrations-list {
+    margin-top: 1.5rem;
+  }
+
+  .attendance-management .registration-item {
+    flex-direction: column !important;
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .attendance-management .participant-info {
+    width: 100% !important;
+    text-align: center;
+  }
+
+  .attendance-management .participant-info h4 {
+    font-size: 1rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .attendance-management .participant-details {
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+    text-align: center;
+  }
+
+  .attendance-management .attendance-info {
+    width: 100% !important;
+    text-align: center;
+  }
+
+  .attendance-management .attendance-status {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    align-items: center;
+  }
+
+  .attendance-management .mark-attendance-button {
+    width: 100% !important;
+    max-width: 200px !important;
+    padding: 0.75rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .attendance-management .attendance-time {
+    font-size: 0.8rem !important;
+    margin-top: 0.25rem;
+  }
+
+  .attendance-management .recent-activity {
+    margin-top: 1.5rem;
+  }
+
+  .attendance-management .recent-activity h3 {
+    font-size: 1.2rem !important;
+    margin-bottom: 1rem;
+  }
+
+  .attendance-management .activity-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem;
+  }
+
+  .attendance-management .activity-item .activity-details {
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+    text-align: center;
+  }
+
+  .attendance-management .success-message {
+    padding: 0.75rem !important;
+    font-size: 0.9rem !important;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .attendance-management .error-message {
+    padding: 0.75rem !important;
+    font-size: 0.9rem !important;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .attendance-management .loading-spinner {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Event Editor Mobile Optimization */
+  .event-editor-container {
+    padding: 1rem !important;
+  }
+
+  .event-editor-container .container {
+    padding: 0 1rem;
+    max-width: 100% !important;
+  }
+
+  .event-editor-container .header-section {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    text-align: center;
+    padding: 1rem !important;
+  }
+
+  .event-editor-container h2 {
+    font-size: 1.3rem !important;
+    margin: 0;
+  }
+
+  .event-editor-container .back-button {
+    width: 100% !important;
+    max-width: 200px !important;
+    padding: 0.75rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .event-editor-container .form-section {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .event-editor-container .form-row {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .event-editor-container .form-group {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .event-editor-container input,
+  .event-editor-container textarea,
+  .event-editor-container select {
+    width: 100% !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+  }
+
+  .event-editor-container .image-upload-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .event-editor-container .image-preview {
+    max-width: 100% !important;
+    height: auto !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-editor-container .schedule-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .event-editor-container .schedule-item {
+    padding: 1rem !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-editor-container .schedule-event {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .event-editor-container .custom-fields-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .event-editor-container .custom-field-item {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
+  }
+
+  .event-editor-container .form-actions {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    margin-top: 1.5rem;
+  }
+
+  .event-editor-container .form-actions button {
+    width: 100% !important;
+    padding: 0.875rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* Registration Details Mobile Optimization */
+  .registration-details {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    max-height: calc(100vh - 2rem) !important;
+  }
+
+  .registration-details .header-section {
+    flex-direction: column !important;
+    gap: 1rem !important;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .registration-details h2 {
+    font-size: 1.2rem !important;
+    margin: 0;
+  }
+
+  .registration-details .close-button {
+    align-self: center;
+    width: 32px;
+    height: 32px;
+  }
+
+  .registration-details .info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .registration-details .info-item {
+    text-align: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+
+  .registration-details .info-item p:first-child {
+    font-size: 0.8rem !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .registration-details .info-item p:last-child {
+    font-size: 0.95rem !important;
+  }
+
+  .registration-details .section-title {
+    font-size: 1rem !important;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .registration-details .team-members-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .registration-details .team-member-card {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem;
+    text-align: center;
+  }
+
+  .registration-details .custom-fields-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .registration-details .custom-field-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem;
+    text-align: center;
+  }
+
+  .registration-details .payment-section {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .registration-details .payment-proof {
+    max-width: 200px !important;
+    margin: 0 auto 1rem;
+  }
+
+  .registration-details .timeline-section {
+    margin-bottom: 1.5rem;
   }
 }

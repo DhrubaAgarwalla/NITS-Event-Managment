@@ -253,7 +253,7 @@ const AttendanceManagement = () => {
               {/* Attendance Statistics */}
               {attendanceStats && (
                 <div className="attendance-stats">
-                  <h3>📈 Attendance Statistics</h3>
+                  <h3>📊 Attendance Statistics</h3>
                   <div className="stats-grid">
                     <div className="stat-card">
                       <div className="stat-number">{attendanceStats.total}</div>
@@ -279,7 +279,14 @@ const AttendanceManagement = () => {
               <div className="scanner-controls">
                 <button
                   className="qr-scan-button"
-                  onClick={() => setShowQRScanner(true)}
+                  onClick={() => {
+                    if (!selectedEvent?.id) {
+                      setError('Please select an event first before scanning QR codes.');
+                      return;
+                    }
+                    setShowQRScanner(true);
+                  }}
+                  disabled={!selectedEvent?.id}
                 >
                   📱 Scan QR Code
                 </button>
@@ -616,6 +623,33 @@ const AttendanceManagement = () => {
           margin-bottom: 15px;
         }
 
+        /* Mobile optimization for attendance stats section */
+        @media (max-width: 768px) {
+          .attendance-stats {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+          }
+
+          .attendance-stats h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .attendance-stats {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+          }
+
+          .attendance-stats h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+          }
+        }
+
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -630,6 +664,53 @@ const AttendanceManagement = () => {
           text-align: center;
           border-left: 4px solid var(--primary, #6e44ff);
           transition: transform 0.2s ease;
+        }
+
+        /* Mobile optimization for stats */
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+          }
+
+          .stat-card {
+            padding: 12px 8px;
+            border-radius: 8px;
+            border-left-width: 3px;
+          }
+
+          .stat-number {
+            font-size: 24px !important;
+          }
+
+          .stat-label {
+            font-size: 12px;
+            margin-top: 3px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+          }
+
+          .stat-card {
+            padding: 10px 6px;
+            border-radius: 6px;
+            border-left-width: 2px;
+          }
+
+          .stat-number {
+            font-size: 20px !important;
+          }
+
+          .stat-label {
+            font-size: 11px;
+            margin-top: 2px !important;
+          }
         }
 
         .stat-card:hover {
@@ -702,6 +783,22 @@ const AttendanceManagement = () => {
 
         .qr-scan-button:hover:before {
           left: 100%;
+        }
+
+        .qr-scan-button:disabled {
+          background: rgba(110, 68, 255, 0.3);
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .qr-scan-button:disabled:hover {
+          transform: none;
+          box-shadow: none;
+        }
+
+        .qr-scan-button:disabled:before {
+          display: none;
         }
 
         .recent-activity {

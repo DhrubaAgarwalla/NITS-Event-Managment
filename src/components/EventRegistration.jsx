@@ -333,7 +333,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
   };
 
   return (
-    <section className="section" id="registration" style={{ paddingTop: '2rem' }}>
+    <section className="section event-registration" id="registration" style={{ paddingTop: '2rem' }}>
       <div className="container">
         <motion.div
           className="registration-container"
@@ -483,7 +483,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="form-group">
                   <label
                     htmlFor="email"
@@ -581,7 +581,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="form-group">
                   <label
                     htmlFor="department"

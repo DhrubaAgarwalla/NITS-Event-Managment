@@ -91,9 +91,10 @@ const RegistrationDetails = ({ registration, onClose }) => {
         overflowY: 'auto'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div className="header-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Registration Details</h2>
         <button
+          className="close-button"
           onClick={onClose}
           style={{
             background: 'none',
@@ -133,20 +134,20 @@ const RegistrationDetails = ({ registration, onClose }) => {
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Participant Information</h4>
+        <h4 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Participant Information</h4>
 
         <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          <div>
+          <div className="info-item">
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>ID/Roll Number</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{registration.participant_id || 'N/A'}</p>
           </div>
 
-          <div>
+          <div className="info-item">
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Phone</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{registration.participant_phone || 'N/A'}</p>
           </div>
 
-          <div>
+          <div className="info-item">
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Department</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{department}</p>
           </div>
@@ -205,8 +206,8 @@ const RegistrationDetails = ({ registration, onClose }) => {
       )}
 
       {teamType === 'team' && teamMembers.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Team Members</h4>
+        <div className="team-members-section" style={{ marginBottom: '1.5rem' }}>
+          <h4 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Team Members</h4>
 
           <div className="team-members-container" style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -217,7 +218,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
             {teamMembers.map((member, index) => (
               <div
                 key={index}
-                className="team-member-item"
+                className="team-member-card"
                 style={{
                   padding: '0.6rem',
                   borderBottom: index < teamMembers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none'
@@ -251,8 +252,8 @@ const RegistrationDetails = ({ registration, onClose }) => {
 
       {/* Payment Information */}
       {(registration.payment_screenshot_url || registration.payment_status || registration.payment_amount) && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Payment Information</h4>
+        <div className="payment-section" style={{ marginBottom: '1.5rem' }}>
+          <h4 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Payment Information</h4>
 
           <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
             {registration.payment_amount && (
@@ -283,6 +284,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
             <div>
               <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Screenshot</p>
               <a
+                className="payment-proof"
                 href={registration.payment_screenshot_url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -315,16 +317,16 @@ const RegistrationDetails = ({ registration, onClose }) => {
         </div>
       )}
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h4 style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Registration Timeline</h4>
+      <div className="timeline-section" style={{ marginBottom: '1.5rem' }}>
+        <h4 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.8rem', color: 'var(--text-primary)' }}>Registration Timeline</h4>
 
         <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          <div>
+          <div className="info-item">
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Registered On</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatDate(registration.created_at)}</p>
           </div>
 
-          <div>
+          <div className="info-item">
             <p style={{ margin: '0 0 0.3rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Last Updated</p>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatDate(registration.updated_at)}</p>
           </div>

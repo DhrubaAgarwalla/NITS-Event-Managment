@@ -224,7 +224,7 @@ const registrationService = {
   },
 
   // Mark attendance using QR code
-  markAttendanceByQR: async (qrCodeData) => {
+  markAttendanceByQR: async (qrCodeData, expectedEventId = null) => {
     try {
       console.log('Processing QR code for attendance marking...');
 
@@ -240,6 +240,16 @@ const registrationService = {
 
       const { registrationId, eventId, email } = verification;
 
+      // CRITICAL SECURITY CHECK: Validate event ID matches
+      if (expectedEventId && eventId !== expectedEventId) {
+        console.warn(`QR code event mismatch: Expected ${expectedEventId}, got ${eventId}`);
+        return {
+          success: false,
+          error: 'This QR code is for a different event. Please use the correct QR code for this event.',
+          eventMismatch: true
+        };
+      }
+
       // Get registration details
       const registrationRef = ref(database, `registrations/${registrationId}`);
       const snapshot = await get(registrationRef);
@@ -252,6 +262,16 @@ const registrationService = {
       }
 
       const registration = snapshot.val();
+
+      // Double-check event ID from registration data
+      if (registration.event_id !== eventId) {
+        console.error(`Registration event mismatch: Registration has ${registration.event_id}, QR has ${eventId}`);
+        return {
+          success: false,
+          error: 'Registration data inconsistency detected. Please contact support.',
+          dataInconsistency: true
+        };
+      }
 
       // Check if already attended
       if (registration.attendance_status === 'attended') {
