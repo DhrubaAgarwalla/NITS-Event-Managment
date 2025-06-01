@@ -1622,10 +1622,12 @@ const registrationService = {
         doc.setTextColor(100, 100, 100); // Gray color
         doc.text(`Generated on: ${new Date().toLocaleString()}`, doc.internal.pageSize.width / 2, 32, { align: 'center' });
 
-        // Calculate registration statistics
+        // Calculate registration and attendance statistics
         const totalRegistrations = exportData.length;
         const individualRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Individual').length;
         const teamRegistrations = exportData.filter(reg => reg['Registration Type'] === 'Team').length;
+        const attendedCount = exportData.filter(reg => reg['Attendance Status'] === 'Attended').length;
+        const attendanceRate = totalRegistrations > 0 ? ((attendedCount / totalRegistrations) * 100).toFixed(1) : '0.0';
 
         // Add registration and attendance summary
         doc.text(`Total Registrations: ${totalRegistrations} | Attended: ${attendedCount} (${attendanceRate}%)`, doc.internal.pageSize.width / 2, 37, { align: 'center' });

@@ -23,7 +23,29 @@ class GoogleSheetsService {
     try {
       console.log(`Creating Google Sheet for event: ${eventData.title}`);
       console.log('Request URL:', `${this.baseUrl}/sheets/create`);
-      console.log('Request payload:', { eventData, registrations });
+
+      // Enhanced debugging for the request payload
+      console.log('📊 Detailed Request Payload:');
+      console.log('Event Data:', JSON.stringify(eventData, null, 2));
+      console.log('Registrations count:', registrations.length);
+      if (registrations.length > 0) {
+        console.log('Sample registration structure:', JSON.stringify(registrations[0], null, 2));
+
+        // Check for custom fields in registrations
+        const sampleReg = registrations[0];
+        if (sampleReg.additional_info?.custom_fields) {
+          console.log('Custom fields in sample registration:', JSON.stringify(sampleReg.additional_info.custom_fields, null, 2));
+        }
+
+        // Check for payment fields
+        if (sampleReg.payment_status || sampleReg.payment_amount || sampleReg.payment_screenshot_url) {
+          console.log('Payment fields in sample registration:', {
+            payment_status: sampleReg.payment_status,
+            payment_amount: sampleReg.payment_amount,
+            payment_screenshot_url: sampleReg.payment_screenshot_url
+          });
+        }
+      }
 
       const response = await fetch(`${this.baseUrl}/sheets/create`, {
         method: 'POST',
@@ -38,13 +60,24 @@ class GoogleSheetsService {
 
       if (!response.ok) {
         let errorMessage;
+        let errorDetails = null;
         try {
           const errorData = await response.json();
+          console.error('❌ Backend Error Response:', JSON.stringify(errorData, null, 2));
           errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+          errorDetails = errorData.details || errorData.receivedData || null;
+
+          // If it's a validation error, provide more specific information
+          if (errorData.error === 'Validation error' && errorData.details) {
+            console.error('🔍 Validation Error Details:', errorData.details);
+            errorMessage = `Validation failed: ${errorData.details.map(d => d.message).join(', ')}`;
+          }
         } catch (parseError) {
+          console.error('❌ Failed to parse error response:', parseError);
           errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
         }
-        console.error('HTTP Error Response:', response.status, response.statusText);
+        console.error('❌ HTTP Error Response:', response.status, response.statusText);
+        console.error('❌ Error Details:', errorDetails);
         throw new Error(errorMessage);
       }
 
@@ -270,15 +303,45 @@ class GoogleSheetsService {
         paymentAmount: eventData?.payment_amount
       });
 
-      // Prepare minimal event data for the backend to avoid 400 errors
+      // Debug: Log sample registration data
+      if (registrations.length > 0) {
+        console.log('📊 Sample Registration Data:', {
+          participantName: registrations[0].participant_name,
+          participantEmail: registrations[0].participant_email,
+          hasAdditionalInfo: !!registrations[0].additional_info,
+          additionalInfoKeys: registrations[0].additional_info ? Object.keys(registrations[0].additional_info) : [],
+          hasCustomFields: !!registrations[0].additional_info?.custom_fields,
+          customFieldsKeys: registrations[0].additional_info?.custom_fields ? Object.keys(registrations[0].additional_info.custom_fields) : [],
+          hasPaymentInfo: !!(registrations[0].payment_status || registrations[0].payment_amount || registrations[0].payment_screenshot_url)
+        });
+      }
+
+      // Prepare event data for the backend - ensure all required fields are present
       const formattedEventData = {
         id: eventId,
         title: eventTitle
       };
 
-      // Only add custom fields if they exist
-      if (eventData?.custom_fields && eventData.custom_fields.length > 0) {
-        formattedEventData.custom_fields = eventData.custom_fields;
+      // Only add custom fields if they exist and are valid
+      if (eventData?.custom_fields && Array.isArray(eventData.custom_fields) && eventData.custom_fields.length > 0) {
+        // Validate custom fields structure
+        const validCustomFields = eventData.custom_fields.filter(field =>
+          field &&
+          typeof field === 'object' &&
+          field.id &&
+          typeof field.id === 'string' &&
+          field.label &&
+          typeof field.label === 'string' &&
+          field.type &&
+          typeof field.type === 'string'
+        );
+
+        if (validCustomFields.length > 0) {
+          formattedEventData.custom_fields = validCustomFields;
+          console.log('📊 Valid custom fields added:', validCustomFields.length);
+        } else {
+          console.warn('⚠️ No valid custom fields found, skipping custom fields');
+        }
       }
 
       // Only add payment info if it exists - simplified for Google Sheets
@@ -287,15 +350,52 @@ class GoogleSheetsService {
         formattedEventData.payment_amount = eventData.payment_amount || null;
       }
 
-      console.log('📊 Formatted Event Data for Backend:', formattedEventData);
+      console.log('📊 Formatted Event Data for Backend:', JSON.stringify(formattedEventData, null, 2));
+
+      // Validate and clean registrations data
+      const cleanedRegistrations = registrations.map((reg, index) => {
+        // Ensure required fields are present
+        if (!reg.participant_name || !reg.participant_email) {
+          console.error(`❌ Registration ${index + 1} missing required fields:`, {
+            name: reg.participant_name,
+            email: reg.participant_email
+          });
+          throw new Error(`Registration ${index + 1} is missing required participant name or email`);
+        }
+
+        // Create a cleaned registration object with proper field types
+        const cleanedReg = {
+          participant_name: String(reg.participant_name),
+          participant_email: String(reg.participant_email),
+          participant_phone: reg.participant_phone ? String(reg.participant_phone) : '',
+          participant_student_id: reg.participant_student_id ? String(reg.participant_student_id) : '',
+          participant_department: reg.participant_department ? String(reg.participant_department) : '',
+          participant_year: reg.participant_year ? String(reg.participant_year) : '',
+          registration_type: reg.registration_type || 'Individual',
+          status: reg.status || 'Confirmed',
+          created_at: reg.created_at || reg.registration_date || new Date().toISOString(),
+          additional_info: reg.additional_info || null,
+          attendance_status: reg.attendance_status || '',
+          attendance_timestamp: reg.attendance_timestamp || ''
+        };
+
+        // Add payment fields if they exist
+        if (reg.payment_status) cleanedReg.payment_status = String(reg.payment_status);
+        if (reg.payment_amount) cleanedReg.payment_amount = reg.payment_amount;
+        if (reg.payment_screenshot_url) cleanedReg.payment_screenshot_url = String(reg.payment_screenshot_url);
+
+        return cleanedReg;
+      });
+
+      console.log('📊 Cleaned registrations count:', cleanedRegistrations.length);
 
       // Create the Google Sheet
-      const result = await this.createEventSheet(formattedEventData, registrations);
+      const result = await this.createEventSheet(formattedEventData, cleanedRegistrations);
 
       // Generate WhatsApp sharing URL
       const whatsappMessage = encodeURIComponent(
         `🎉 *${eventTitle} - Event Registrations*\n\n` +
-        `📊 Google Sheet with ${registrations.length} registrations is ready!\n\n` +
+        `📊 Google Sheet with ${cleanedRegistrations.length} registrations is ready!\n\n` +
         `🔗 View/Edit: ${result.shareableLink}\n\n` +
         `✨ Anyone can edit this sheet without requesting access.`
       );
