@@ -281,12 +281,10 @@ class GoogleSheetsService {
         formattedEventData.custom_fields = eventData.custom_fields;
       }
 
-      // Only add payment info if it exists
+      // Only add payment info if it exists - simplified for Google Sheets
       if (eventData?.requires_payment) {
         formattedEventData.requires_payment = eventData.requires_payment;
-        if (eventData.payment_amount) formattedEventData.payment_amount = eventData.payment_amount;
-        if (eventData.payment_qr_code) formattedEventData.payment_qr_code = eventData.payment_qr_code;
-        if (eventData.payment_upi_id) formattedEventData.payment_upi_id = eventData.payment_upi_id;
+        formattedEventData.payment_amount = eventData.payment_amount || null;
       }
 
       console.log('📊 Formatted Event Data for Backend:', formattedEventData);
