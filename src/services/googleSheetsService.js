@@ -270,25 +270,24 @@ class GoogleSheetsService {
         paymentAmount: eventData?.payment_amount
       });
 
-      // Prepare event data for the backend
+      // Prepare minimal event data for the backend to avoid 400 errors
       const formattedEventData = {
         id: eventId,
-        title: eventTitle,
-        custom_fields: eventData?.custom_fields || [],
-        // Payment information
-        requires_payment: eventData?.requires_payment || false,
-        payment_required: eventData?.requires_payment || false, // Backward compatibility
-        payment_amount: eventData?.payment_amount || null,
-        payment_qr_code: eventData?.payment_qr_code || null,
-        payment_upi_id: eventData?.payment_upi_id || null,
-        payment_instructions: eventData?.payment_instructions || null,
-        // Additional event metadata
-        description: eventData?.description || '',
-        location: eventData?.location || '',
-        start_date: eventData?.start_date || '',
-        end_date: eventData?.end_date || '',
-        registration_method: eventData?.registration_method || 'internal'
+        title: eventTitle
       };
+
+      // Only add custom fields if they exist
+      if (eventData?.custom_fields && eventData.custom_fields.length > 0) {
+        formattedEventData.custom_fields = eventData.custom_fields;
+      }
+
+      // Only add payment info if it exists
+      if (eventData?.requires_payment) {
+        formattedEventData.requires_payment = eventData.requires_payment;
+        if (eventData.payment_amount) formattedEventData.payment_amount = eventData.payment_amount;
+        if (eventData.payment_qr_code) formattedEventData.payment_qr_code = eventData.payment_qr_code;
+        if (eventData.payment_upi_id) formattedEventData.payment_upi_id = eventData.payment_upi_id;
+      }
 
       console.log('📊 Formatted Event Data for Backend:', formattedEventData);
 
