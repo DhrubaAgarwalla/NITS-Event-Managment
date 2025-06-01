@@ -346,8 +346,32 @@ class GoogleSheetsService {
 
       // Only add payment info if it exists - simplified for Google Sheets
       if (eventData?.requires_payment) {
-        formattedEventData.requires_payment = eventData.requires_payment;
-        formattedEventData.payment_amount = eventData.payment_amount || null;
+        // Convert payment requirement to boolean (handle "on", true, "true", etc.)
+        const requiresPayment = eventData.requires_payment === true ||
+                               eventData.requires_payment === "true" ||
+                               eventData.requires_payment === "on" ||
+                               eventData.requires_payment === 1;
+
+        formattedEventData.requires_payment = requiresPayment;
+
+        // Convert payment amount to number if it's a string
+        let paymentAmount = null;
+        if (eventData.payment_amount) {
+          if (typeof eventData.payment_amount === 'string') {
+            const parsed = parseFloat(eventData.payment_amount);
+            paymentAmount = isNaN(parsed) ? null : parsed;
+          } else if (typeof eventData.payment_amount === 'number') {
+            paymentAmount = eventData.payment_amount;
+          }
+        }
+        formattedEventData.payment_amount = paymentAmount;
+
+        console.log('📊 Payment info processed:', {
+          originalRequiresPayment: eventData.requires_payment,
+          convertedRequiresPayment: requiresPayment,
+          originalPaymentAmount: eventData.payment_amount,
+          convertedPaymentAmount: paymentAmount
+        });
       }
 
       console.log('📊 Formatted Event Data for Backend:', JSON.stringify(formattedEventData, null, 2));
