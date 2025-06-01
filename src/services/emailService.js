@@ -14,6 +14,9 @@ class EmailService {
    */
   async sendQRCodeEmail(emailData) {
     try {
+      console.log('📧 EmailService: Starting QR code email send process...');
+      console.log('📧 Backend URL:', this.backendUrl);
+
       const {
         participantEmail,
         participantName,
@@ -25,6 +28,24 @@ class EmailService {
         eventId
       } = emailData;
 
+      console.log('📧 Email data received:', {
+        participantEmail,
+        participantName,
+        eventTitle,
+        hasQRCode: !!qrCodeImageUrl,
+        registrationId
+      });
+
+      // Validate required data
+      if (!participantEmail || !participantName || !eventTitle || !qrCodeImageUrl) {
+        throw new Error('Missing required email data');
+      }
+
+      // Validate QR code format
+      if (!qrCodeImageUrl.startsWith('data:image/')) {
+        throw new Error('Invalid QR code image format');
+      }
+
       // Prepare email content
       const emailContent = this.generateQRCodeEmailHTML({
         participantName,
@@ -35,33 +56,54 @@ class EmailService {
         registrationId
       });
 
+      console.log('📧 Email content generated, length:', emailContent.length);
+
+      // Prepare request payload
+      const requestPayload = {
+        to: participantEmail,
+        subject: `🎫 Your QR Code for ${eventTitle} - NITS Event Manager`,
+        html: emailContent,
+        attachments: [
+          {
+            filename: `${eventTitle.replace(/[^a-z0-9]/gi, '_')}_qr_code.png`,
+            content: qrCodeImageUrl.split(',')[1], // Remove data:image/png;base64, prefix
+            encoding: 'base64',
+            cid: 'qr_code_image'
+          }
+        ]
+      };
+
+      console.log('📧 Sending request to:', `${this.backendUrl}/api/v1/send-email`);
+
       // Send email via backend service
       const response = await fetch(`${this.backendUrl}/api/v1/send-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          to: participantEmail,
-          subject: `🎫 Your QR Code for ${eventTitle} - NITS Event Manager`,
-          html: emailContent,
-          attachments: [
-            {
-              filename: `${eventTitle.replace(/[^a-z0-9]/gi, '_')}_qr_code.png`,
-              content: qrCodeImageUrl.split(',')[1], // Remove data:image/png;base64, prefix
-              encoding: 'base64',
-              cid: 'qr_code_image'
-            }
-          ]
-        })
+        body: JSON.stringify(requestPayload)
       });
 
+      console.log('📧 Response status:', response.status);
+      console.log('📧 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to send email');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          const errorText = await response.text();
+          console.error('📧 Failed to parse error response:', parseError);
+          console.error('📧 Raw error response:', errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+        }
+
+        console.error('📧 Email sending failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to send email`);
       }
 
       const result = await response.json();
+      console.log('📧 Email sent successfully:', result);
 
       return {
         success: true,
@@ -69,10 +111,17 @@ class EmailService {
         message: 'QR code email sent successfully'
       };
     } catch (error) {
-      console.error('Error sending QR code email:', error);
+      console.error('📧 Error sending QR code email:', error);
+      console.error('📧 Error stack:', error.stack);
+
       return {
         success: false,
-        error: error.message || 'Failed to send QR code email'
+        error: error.message || 'Failed to send QR code email',
+        details: {
+          backendUrl: this.backendUrl,
+          timestamp: new Date().toISOString(),
+          errorType: error.constructor.name
+        }
       };
     }
   }

@@ -86,7 +86,13 @@ const registrationService = {
           const eventData = await eventService.getEventById(registrationData.event_id);
 
           // Send QR code email
-          console.log('Sending QR code email...');
+          console.log('🔄 Sending QR code email...');
+          console.log('🔄 Event data for email:', {
+            title: eventData.title,
+            start_date: eventData.start_date,
+            location: eventData.location
+          });
+
           const emailResult = await emailService.sendQRCodeEmail({
             participantEmail: registrationData.participant_email,
             participantName: registrationData.participant_name,
@@ -99,9 +105,18 @@ const registrationService = {
           });
 
           if (emailResult.success) {
-            console.log('QR code email sent successfully');
+            console.log('✅ QR code email sent successfully:', emailResult.messageId);
           } else {
-            console.warn('Failed to send QR code email:', emailResult.error);
+            console.error('❌ Failed to send QR code email:', emailResult.error);
+            console.error('❌ Email error details:', emailResult.details);
+
+            // Log additional debugging info
+            console.error('❌ Registration data:', {
+              email: registrationData.participant_email,
+              name: registrationData.participant_name,
+              eventId: registrationData.event_id,
+              registrationId: newRegistrationRef.key
+            });
           }
         } else {
           console.warn('Failed to generate QR code');
