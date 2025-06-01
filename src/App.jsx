@@ -47,7 +47,7 @@ import ClubRequestForm from './components/ClubRequestForm';
 import EventCreationForm from './components/EventCreationForm';
 import ForgotPassword from './components/ForgotPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
-import EmailServiceDebugger from './components/EmailServiceDebugger';
+
 
 function App() {
   const { user, club, isAdmin, loading: authLoading } = useAuth();
@@ -240,7 +240,6 @@ function App() {
           <div className="app">
             <Cursor />
             <Mobile3DEffects />
-            <EmailServiceDebugger />
             <Navbar setCurrentPage={setCurrentPage} isClubLoggedIn={isClubLoggedIn} currentPage={currentPage} />
 
             {currentPage === 'home' && (
