@@ -4,7 +4,8 @@
  */
 class EmailService {
   constructor() {
-    this.backendUrl = import.meta.env.VITE_SHEETS_BACKEND_URL || 'http://localhost:3001';
+    this.backendUrl = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app';
+    console.log('🔧 EmailService initialized with backend URL:', this.backendUrl);
   }
 
   /**
