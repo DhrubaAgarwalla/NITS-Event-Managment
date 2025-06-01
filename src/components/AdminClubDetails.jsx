@@ -13,6 +13,28 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
   const [activeTab, setActiveTab] = useState('details');
   const [isEditing, setIsEditing] = useState(false);
 
+  // Prevent body scrolling when component mounts
+  useEffect(() => {
+    // Store original body styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+
+    // Cleanup function to restore original styles
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   // Fetch club data from Supabase
   useEffect(() => {
     const fetchClubData = async () => {
@@ -82,27 +104,39 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
     );
   }
 
+  // If editing, show only the editor
+  if (isEditing && club) {
+    return (
+      <AdminClubEditor
+        club={club}
+        onClose={() => setIsEditing(false)}
+        onUpdate={handleClubUpdate}
+      />
+    );
+  }
+
   return (
     <motion.div
+      className="admin-club-details"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       style={{ backgroundColor: 'var(--dark-bg)', borderRadius: '10px', overflow: 'hidden' }}
     >
       {/* Header */}
-      <div style={{ 
-        padding: '1.5rem', 
-        backgroundColor: 'var(--dark-surface)', 
-        display: 'flex', 
+      <div style={{
+        padding: '1.5rem',
+        backgroundColor: 'var(--dark-surface)',
+        display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ 
-            width: '60px', 
-            height: '60px', 
-            borderRadius: '50%', 
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
             overflow: 'hidden',
             backgroundColor: 'rgba(var(--primary-rgb), 0.2)',
             display: 'flex',
@@ -111,10 +145,10 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
             fontSize: '1.5rem'
           }}>
             {club.logo_url ? (
-              <img 
-                src={club.logo_url} 
-                alt={club.name} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              <img
+                src={club.logo_url}
+                alt={club.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
               club.name.charAt(0)
@@ -163,8 +197,8 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
       </div>
 
       {/* Tabs */}
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         backgroundColor: 'var(--dark-surface)'
       }}>
@@ -204,17 +238,17 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
       <div style={{ padding: '1.5rem' }}>
         {activeTab === 'details' && (
           <div className="club-details-tab">
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
               gap: '2rem',
               marginBottom: '2rem'
             }}>
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Basic Information</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--dark-surface)', 
-                  borderRadius: '8px', 
+                <div style={{
+                  backgroundColor: 'var(--dark-surface)',
+                  borderRadius: '8px',
                   padding: '1.5rem',
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -240,9 +274,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                     <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>WEBSITE</p>
                     <p style={{ margin: 0, fontSize: '0.95rem' }}>
                       {club.website ? (
-                        <a 
-                          href={club.website} 
-                          target="_blank" 
+                        <a
+                          href={club.website}
+                          target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: 'var(--primary)' }}
                         >
@@ -262,9 +296,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
 
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Social Media</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--dark-surface)', 
-                  borderRadius: '8px', 
+                <div style={{
+                  backgroundColor: 'var(--dark-surface)',
+                  borderRadius: '8px',
                   padding: '1.5rem'
                 }}>
                   {club.social_links && Object.keys(club.social_links || {}).length > 0 ? (
@@ -273,9 +307,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>INSTAGRAM</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.instagram} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.instagram}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -288,9 +322,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>FACEBOOK</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.facebook} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.facebook}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -303,9 +337,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>LINKEDIN</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.linkedin} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.linkedin}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -318,9 +352,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>TWITTER</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.twitter} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.twitter}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -333,9 +367,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>YOUTUBE</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.youtube} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.youtube}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -348,9 +382,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         <div>
                           <p style={{ margin: '0 0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>GITHUB</p>
                           <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                            <a 
-                              href={club.social_links.github} 
-                              target="_blank" 
+                            <a
+                              href={club.social_links.github}
+                              target="_blank"
                               rel="noopener noreferrer"
                               style={{ color: 'var(--primary)' }}
                             >
@@ -369,9 +403,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
 
             <div>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.2rem' }}>Description</h3>
-              <div style={{ 
-                backgroundColor: 'var(--dark-surface)', 
-                borderRadius: '8px', 
+              <div style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
                 padding: '1.5rem'
               }}>
                 {club.description ? (
@@ -394,17 +428,17 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
             </div>
 
             {clubEvents.length > 0 ? (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                gap: '1.5rem' 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: '1.5rem'
               }}>
                 {clubEvents.map(event => (
-                  <div 
+                  <div
                     key={event.id}
-                    style={{ 
-                      backgroundColor: 'var(--dark-surface)', 
-                      borderRadius: '8px', 
+                    style={{
+                      backgroundColor: 'var(--dark-surface)',
+                      borderRadius: '8px',
                       overflow: 'hidden',
                       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                       cursor: 'pointer'
@@ -419,8 +453,8 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    <div style={{ 
-                      height: '120px', 
+                    <div style={{
+                      height: '120px',
                       backgroundColor: 'rgba(var(--primary-rgb), 0.2)',
                       display: 'flex',
                       alignItems: 'center',
@@ -428,24 +462,24 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                       fontSize: '2rem'
                     }}>
                       {event.image_url ? (
-                        <img 
-                          src={event.image_url} 
-                          alt={event.title} 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        <img
+                          src={event.image_url}
+                          alt={event.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (
                         '🎉'
                       )}
                     </div>
                     <div style={{ padding: '1rem' }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: '0.5rem'
                       }}>
-                        <span style={{ 
-                          fontSize: '0.8rem', 
+                        <span style={{
+                          fontSize: '0.8rem',
                           backgroundColor: event.categories ? `${event.categories.color}20` : 'rgba(var(--primary-rgb), 0.2)',
                           color: event.categories ? event.categories.color : 'var(--primary)',
                           padding: '0.25rem 0.5rem',
@@ -453,17 +487,17 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         }}>
                           {event.categories ? event.categories.name : 'Event'}
                         </span>
-                        <span style={{ 
-                          fontSize: '0.8rem', 
-                          backgroundColor: 
-                            event.status === 'upcoming' ? 'rgba(0, 128, 255, 0.2)' : 
-                            event.status === 'ongoing' ? 'rgba(0, 200, 0, 0.2)' : 
-                            event.status === 'completed' ? 'rgba(128, 128, 128, 0.2)' : 
+                        <span style={{
+                          fontSize: '0.8rem',
+                          backgroundColor:
+                            event.status === 'upcoming' ? 'rgba(0, 128, 255, 0.2)' :
+                            event.status === 'ongoing' ? 'rgba(0, 200, 0, 0.2)' :
+                            event.status === 'completed' ? 'rgba(128, 128, 128, 0.2)' :
                             'rgba(255, 0, 0, 0.2)',
-                          color: 
-                            event.status === 'upcoming' ? '#0080ff' : 
-                            event.status === 'ongoing' ? '#00c800' : 
-                            event.status === 'completed' ? '#808080' : 
+                          color:
+                            event.status === 'upcoming' ? '#0080ff' :
+                            event.status === 'ongoing' ? '#00c800' :
+                            event.status === 'completed' ? '#808080' :
                             '#ff0000',
                           padding: '0.25rem 0.5rem',
                           borderRadius: '4px',
@@ -473,9 +507,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                         </span>
                       </div>
                       <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>{event.title}</h4>
-                      <p style={{ 
-                        margin: '0 0 0.75rem', 
-                        color: 'var(--text-secondary)', 
+                      <p style={{
+                        margin: '0 0 0.75rem',
+                        color: 'var(--text-secondary)',
                         fontSize: '0.85rem',
                         display: 'flex',
                         alignItems: 'center',
@@ -483,9 +517,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                       }}>
                         <span>📅</span> {formatDate(event.start_date)}
                       </p>
-                      <p style={{ 
-                        margin: 0, 
-                        fontSize: '0.9rem', 
+                      <p style={{
+                        margin: 0,
+                        fontSize: '0.9rem',
                         color: 'var(--text-secondary)',
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -501,9 +535,9 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
                 ))}
               </div>
             ) : (
-              <div style={{ 
-                backgroundColor: 'var(--dark-surface)', 
-                borderRadius: '8px', 
+              <div style={{
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '8px',
                 padding: '2rem',
                 textAlign: 'center'
               }}>
@@ -514,27 +548,6 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
         )}
       </div>
 
-      {/* Edit Modal */}
-      {isEditing && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <AdminClubEditor 
-            club={club} 
-            onClose={() => setIsEditing(false)} 
-            onUpdate={handleClubUpdate} 
-          />
-        </div>
-      )}
     </motion.div>
   );
 };

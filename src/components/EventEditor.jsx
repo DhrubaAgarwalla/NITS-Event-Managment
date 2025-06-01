@@ -1530,7 +1530,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         </div>
 
         {/* Custom Registration Fields */}
-        <div style={{ marginBottom: '2rem' }}>
+        <div className="custom-fields-section" style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ margin: 0, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.5rem', width: '100%', fontSize: '1.1rem' }}>
               Custom Registration Fields
@@ -1538,6 +1538,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             <button
               type="button"
               onClick={addCustomField}
+              className="add-custom-field-btn"
               style={{
                 backgroundColor: 'rgba(52, 152, 219, 0.2)',
                 color: '#3498db',
@@ -1573,6 +1574,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             formData.custom_fields.map((field, index) => (
               <div
                 key={field.id}
+                className="custom-field-item"
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.03)',
                   borderRadius: '8px',
@@ -1581,11 +1583,12 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div className="custom-field-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Field {index + 1}</h4>
                   <button
                     type="button"
                     onClick={() => removeCustomField(field.id)}
+                    className="custom-field-remove-btn"
                     style={{
                       backgroundColor: 'rgba(231, 76, 60, 0.2)',
                       color: '#e74c3c',
@@ -1600,7 +1603,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="custom-field-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={labelStyle}>
                       Field Label *
@@ -1620,7 +1623,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                     </label>
                     <select
                       value={field.type}
-                      onChange={(e) => updateCustomField(field.id, { type: e.target.value, options: e.target.value === 'select' || e.target.value === 'radio' || e.target.value === 'checkbox' ? [''] : [] })}
+                      onChange={(e) => updateCustomField(field.id, { type: e.target.value, options: e.target.value === 'select' ? [''] : [] })}
                       style={inputStyle}
                     >
                       <option value="text">Text</option>
@@ -1629,10 +1632,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                       <option value="tel">Phone</option>
                       <option value="textarea">Long Text</option>
                       <option value="select">Dropdown</option>
-                      <option value="radio">Radio Buttons</option>
-                      <option value="checkbox">Checkboxes</option>
                       <option value="date">Date</option>
-                      <option value="file">File Upload</option>
                     </select>
                   </div>
 
@@ -1655,8 +1655,8 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                   </div>
                 </div>
 
-                {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
-                  <div>
+                {field.type === 'select' && (
+                  <div className="custom-field-options">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <label style={labelStyle}>
                         Options
@@ -1679,7 +1679,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                     </div>
 
                     {field.options.map((option, optionIndex) => (
-                      <div key={optionIndex} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <div key={optionIndex} className="custom-field-option-item" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                         <input
                           type="text"
                           value={option}
@@ -1698,6 +1698,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
                         <button
                           type="button"
                           onClick={() => removeCustomFieldOption(field.id, optionIndex)}
+                          className="custom-field-option-remove"
                           style={{
                             backgroundColor: 'rgba(231, 76, 60, 0.2)',
                             color: '#e74c3c',

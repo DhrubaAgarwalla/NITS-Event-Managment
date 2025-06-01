@@ -26,6 +26,28 @@ const AdminEventEditor = ({ event, onClose, onUpdate }) => {
     is_featured: false,
     selectedTags: []
   });
+
+  // Prevent body scrolling when component mounts
+  useEffect(() => {
+    // Store original body styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+
+    // Cleanup function to restore original styles
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
   // Horizontal banner (main event banner)
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');

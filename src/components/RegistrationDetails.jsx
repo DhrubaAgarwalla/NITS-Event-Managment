@@ -16,6 +16,28 @@ const RegistrationDetails = ({ registration, onClose }) => {
     }
   };
 
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    // Store original body styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+
+    // Cleanup function to restore original styles
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   // Load event data to get custom field definitions
   useEffect(() => {
     const loadEventData = async () => {

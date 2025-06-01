@@ -23,6 +23,28 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  // Prevent body scrolling when component mounts
+  useEffect(() => {
+    // Store original body styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+
+    // Cleanup function to restore original styles
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   useEffect(() => {
     if (club) {
       // Initialize form with club data
@@ -92,7 +114,7 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
 
       // Show success message
       setSuccess(true);
-      
+
       // Notify parent component
       if (onUpdate) {
         onUpdate(updatedClub);
@@ -148,37 +170,40 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
 
   return (
     <motion.div
-      className="club-editor"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="club-editor full-page"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       style={{
-        backgroundColor: 'var(--dark-surface)',
-        borderRadius: '10px',
-        padding: '1.25rem',
-        maxWidth: '800px',
-        maxHeight: '90vh',
-        width: '90%',
-        margin: '0 auto',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-        overflowY: 'auto'
+        width: '100%',
+        minHeight: '100vh',
+        backgroundColor: 'var(--dark-bg)',
+        padding: '2rem 0'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Edit Club Profile</h2>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: '1.5rem',
-            cursor: 'pointer'
-          }}
-        >
-          ✕
-        </button>
-      </div>
+      <div className="container" style={{ maxWidth: '900px', margin: '0 auto', padding: '0 1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', backgroundColor: 'var(--dark-surface)', padding: '1rem', borderRadius: '8px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Edit Club Profile</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: 'var(--text-primary)',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span>Back</span> ↩
+          </button>
+        </div>
+
+        <div style={{ backgroundColor: 'var(--dark-surface)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
 
       {error && (
         <div
@@ -213,7 +238,7 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '1.1rem' }}>Basic Information</h3>
-          
+
           <div className="form-group" style={{ marginBottom: '0.75rem' }}>
             <label htmlFor="name" style={labelStyle}>
               Club Name <span style={{ color: 'var(--primary)' }}>*</span>
@@ -448,40 +473,42 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '0.6rem 1.2rem',
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '4px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              padding: '0.6rem 1.2rem',
-              backgroundColor: 'var(--primary)',
-              border: 'none',
-              borderRadius: '4px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              opacity: isLoading ? 0.7 : 1
-            }}
-          >
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '0.6rem 1.2rem',
+                backgroundColor: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '4px',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: '0.95rem'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              style={{
+                padding: '0.6rem 1.2rem',
+                backgroundColor: 'var(--primary)',
+                border: 'none',
+                borderRadius: '4px',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                opacity: isLoading ? 0.7 : 1
+              }}
+            >
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
         </div>
-      </form>
+      </div>
     </motion.div>
   );
 };

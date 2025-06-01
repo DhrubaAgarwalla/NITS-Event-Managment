@@ -3,10 +3,9 @@
  * This file handles image uploads to Cloudinary
  */
 
-// Hardcoded Cloudinary configuration from your .env file
-const CLOUDINARY_CLOUD_NAME = "dmsvblrzv";
-// Replace this with your newly created upload preset name
-const CLOUDINARY_UPLOAD_PRESET = "nits_preset"; // Update this with the preset name you created
+// Cloudinary configuration from environment variables
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Function to upload an image to Cloudinary
 export const uploadImage = async (file, folder = 'event-images', onProgress = null) => {

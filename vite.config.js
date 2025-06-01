@@ -7,6 +7,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks for better caching
+          'react-vendor': ['react', 'react-dom'],
+          'animation-vendor': ['framer-motion', 'gsap'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/database'],
+          'utils-vendor': ['date-fns', 'qrcode', 'jspdf', 'xlsx'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   },
   server: {
     port: 3000,

@@ -2117,7 +2117,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
             </div>
 
             {/* Custom Registration Fields */}
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="custom-fields-section" style={{ marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.5rem', width: '100%' }}>
                   Custom Registration Fields
@@ -2125,6 +2125,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                 <button
                   type="button"
                   onClick={addCustomField}
+                  className="add-custom-field-btn"
                   style={{
                     backgroundColor: 'rgba(52, 152, 219, 0.2)',
                     color: '#3498db',
@@ -2160,6 +2161,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                 formData.custom_fields.map((field, index) => (
                   <div
                     key={field.id}
+                    className="custom-field-item"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.03)',
                       borderRadius: '8px',
@@ -2168,11 +2170,12 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                       border: '1px solid rgba(255, 255, 255, 0.1)'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <div className="custom-field-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                       <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Field {index + 1}</h4>
                       <button
                         type="button"
                         onClick={() => removeCustomField(field.id)}
+                        className="custom-field-remove-btn"
                         style={{
                           backgroundColor: 'rgba(231, 76, 60, 0.2)',
                           color: '#e74c3c',
@@ -2187,7 +2190,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                       </button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="custom-field-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '1rem', marginBottom: '1rem' }}>
                       <div>
                         <label style={{
                           display: 'block',
@@ -2225,7 +2228,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         </label>
                         <select
                           value={field.type}
-                          onChange={(e) => updateCustomField(field.id, { type: e.target.value, options: e.target.value === 'select' || e.target.value === 'radio' || e.target.value === 'checkbox' ? [''] : [] })}
+                          onChange={(e) => updateCustomField(field.id, { type: e.target.value, options: e.target.value === 'select' ? [''] : [] })}
                           style={{
                             width: '100%',
                             padding: '0.8rem 1rem',
@@ -2242,10 +2245,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                           <option value="tel">Phone</option>
                           <option value="textarea">Long Text</option>
                           <option value="select">Dropdown</option>
-                          <option value="radio">Radio Buttons</option>
-                          <option value="checkbox">Checkboxes</option>
                           <option value="date">Date</option>
-                          <option value="file">File Upload</option>
                         </select>
                       </div>
 
@@ -2268,8 +2268,8 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                       </div>
                     </div>
 
-                    {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
-                      <div>
+                    {field.type === 'select' && (
+                      <div className="custom-field-options">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                           <label style={{
                             fontSize: '0.9rem',
@@ -2295,7 +2295,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         </div>
 
                         {field.options.map((option, optionIndex) => (
-                          <div key={optionIndex} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <div key={optionIndex} className="custom-field-option-item" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                             <input
                               type="text"
                               value={option}
@@ -2314,6 +2314,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                             <button
                               type="button"
                               onClick={() => removeCustomFieldOption(field.id, optionIndex)}
+                              className="custom-field-option-remove"
                               style={{
                                 backgroundColor: 'rgba(231, 76, 60, 0.2)',
                                 color: '#e74c3c',
@@ -2336,7 +2337,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
             </div>
 
             {/* Event Schedule */}
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="event-schedule-section" style={{ marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '0.5rem', width: '100%' }}>
                   Event Schedule
@@ -2344,6 +2345,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                 <button
                   type="button"
                   onClick={addScheduleDay}
+                  className="add-schedule-day-btn"
                   style={{
                     backgroundColor: 'rgba(52, 152, 219, 0.2)',
                     color: '#3498db',
@@ -2362,6 +2364,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
               {formData.schedule.map((day, dayIndex) => (
                 <div
                   key={dayIndex}
+                  className="schedule-day-item"
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.03)',
                     borderRadius: '8px',
@@ -2369,8 +2372,8 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                     marginBottom: '1rem'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div className="schedule-day-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div className="schedule-date-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <h4 style={{ margin: 0, minWidth: '60px' }}>Date:</h4>
                       <input
                         type="date"
@@ -2408,6 +2411,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         <button
                           type="button"
                           onClick={() => removeScheduleDay(dayIndex)}
+                          className="schedule-day-remove-btn"
                           style={{
                             backgroundColor: 'rgba(231, 76, 60, 0.2)',
                             color: '#e74c3c',
@@ -2427,6 +2431,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                   {day.events.map((event, eventIndex) => (
                     <div
                       key={eventIndex}
+                      className="schedule-event-row"
                       style={{
                         display: 'flex',
                         gap: '1rem',
@@ -2434,7 +2439,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         alignItems: 'center'
                       }}
                     >
-                      <div style={{ width: '100px' }}>
+                      <div className="schedule-event-time" style={{ width: '100px' }}>
                         <input
                           type="time"
                           value={event.time}
@@ -2451,7 +2456,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         />
                       </div>
 
-                      <div style={{ flex: 2 }}>
+                      <div className="schedule-event-title" style={{ flex: 2 }}>
                         <input
                           type="text"
                           value={event.title}
@@ -2469,7 +2474,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                         />
                       </div>
 
-                      <div style={{ flex: 1 }}>
+                      <div className="schedule-event-location" style={{ flex: 1 }}>
                         <input
                           type="text"
                           value={event.location}
@@ -2490,6 +2495,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
                       <button
                         type="button"
                         onClick={() => removeScheduleEvent(dayIndex, eventIndex)}
+                        className="schedule-event-remove"
                         style={{
                           backgroundColor: 'rgba(231, 76, 60, 0.2)',
                           color: '#e74c3c',

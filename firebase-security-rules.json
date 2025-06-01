@@ -23,8 +23,8 @@
     },
 
     "registrations": {
-      ".read": "true",
-      ".write": "true",
+      ".read": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
+      ".write": "auth != null",
       ".indexOn": ["event_id", "user_id"]
     },
 

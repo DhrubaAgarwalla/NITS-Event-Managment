@@ -253,6 +253,11 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       stopScanning();
       if (cooldownIntervalRef.current) {
         clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+      }
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
       }
     };
   }, []);
