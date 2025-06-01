@@ -260,12 +260,37 @@ class GoogleSheetsService {
         throw new Error(`Google Sheets backend is not available: ${healthCheck.error}`);
       }
 
+      // Debug: Log the incoming event data
+      console.log('📊 Google Sheets Export - Event Data:', {
+        eventId,
+        eventTitle,
+        customFieldsCount: eventData?.custom_fields?.length || 0,
+        customFields: eventData?.custom_fields,
+        hasPayment: !!eventData?.requires_payment,
+        paymentAmount: eventData?.payment_amount
+      });
+
       // Prepare event data for the backend
       const formattedEventData = {
         id: eventId,
         title: eventTitle,
-        custom_fields: eventData?.custom_fields || []
+        custom_fields: eventData?.custom_fields || [],
+        // Payment information
+        requires_payment: eventData?.requires_payment || false,
+        payment_required: eventData?.requires_payment || false, // Backward compatibility
+        payment_amount: eventData?.payment_amount || null,
+        payment_qr_code: eventData?.payment_qr_code || null,
+        payment_upi_id: eventData?.payment_upi_id || null,
+        payment_instructions: eventData?.payment_instructions || null,
+        // Additional event metadata
+        description: eventData?.description || '',
+        location: eventData?.location || '',
+        start_date: eventData?.start_date || '',
+        end_date: eventData?.end_date || '',
+        registration_method: eventData?.registration_method || 'internal'
       };
+
+      console.log('📊 Formatted Event Data for Backend:', formattedEventData);
 
       // Create the Google Sheet
       const result = await this.createEventSheet(formattedEventData, registrations);

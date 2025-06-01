@@ -1843,6 +1843,27 @@ const registrationService = {
           // Get event data for custom fields
           const eventData = await eventService.getEventById(eventId);
 
+          // Debug: Log the event data to see if custom fields are present
+          console.log('📊 Event data retrieved for Google Sheets export:', {
+            eventId,
+            eventTitle,
+            hasEventData: !!eventData,
+            customFieldsCount: eventData?.custom_fields?.length || 0,
+            customFields: eventData?.custom_fields,
+            hasPayment: !!eventData?.requires_payment
+          });
+
+          // Debug: Log a sample registration to see custom field data structure
+          if (registrations.length > 0) {
+            console.log('📊 Sample registration data:', {
+              participantName: registrations[0].participant_name,
+              hasAdditionalInfo: !!registrations[0].additional_info,
+              hasCustomFields: !!registrations[0].additional_info?.custom_fields,
+              customFieldsData: registrations[0].additional_info?.custom_fields,
+              additionalInfoKeys: registrations[0].additional_info ? Object.keys(registrations[0].additional_info) : []
+            });
+          }
+
           // Use the Google Sheets service
           const result = await googleSheetsService.exportRegistrationsToSheets(
             eventId,
