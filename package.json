@@ -16,6 +16,8 @@
     "@react-three/fiber": "^9.1.2",
     "@studio-freight/lenis": "^1.0.42",
     "@vercel/node": "^5.1.15",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "bcryptjs": "^3.0.2",
     "date-fns": "^3.6.0",
     "docker": "^1.0.0",
