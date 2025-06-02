@@ -369,7 +369,8 @@ class GoogleSheetsService {
       // Prepare event data for the backend - ensure all required fields are present
       const formattedEventData = {
         id: eventId,
-        title: eventTitle
+        title: eventTitle,
+        participation_type: eventData?.participation_type || 'individual' // Include participation type for sheet structure determination
       };
 
       // Only add custom fields if they exist and are valid

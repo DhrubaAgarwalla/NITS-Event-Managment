@@ -276,14 +276,17 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
   };
 
   return (
-    <div style={{
-      padding: '20px',
-      maxWidth: '1200px',
-      margin: '0 auto',
-      backgroundColor: 'var(--dark-bg)',
-      color: 'var(--text-primary)',
-      minHeight: '100vh'
-    }}>
+    <div
+      className="sheets-container"
+      style={{
+        padding: '20px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        backgroundColor: 'var(--dark-bg)',
+        color: 'var(--text-primary)',
+        minHeight: '100vh'
+      }}
+    >
       {/* Add CSS for animations */}
       <style>
         {`
@@ -307,6 +310,98 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
             .filter-buttons button {
               width: 100%;
               margin-bottom: 8px;
+            }
+
+            /* Mobile-specific event card optimizations */
+            .mobile-event-card {
+              padding: 16px !important;
+              margin-bottom: 12px !important;
+            }
+
+            .mobile-event-title {
+              font-size: 16px !important;
+              margin-bottom: 8px !important;
+              line-height: 1.3 !important;
+            }
+
+            .mobile-event-meta {
+              font-size: 13px !important;
+              gap: 10px !important;
+              margin-bottom: 10px !important;
+            }
+
+            .mobile-event-meta span {
+              display: flex !important;
+              align-items: center !important;
+              gap: 4px !important;
+            }
+
+            .mobile-status-badge {
+              font-size: 11px !important;
+              padding: 3px 8px !important;
+            }
+
+            .mobile-sync-status {
+              font-size: 11px !important;
+              padding: 2px 6px !important;
+              margin-bottom: 8px !important;
+            }
+
+            .mobile-buttons-container {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 8px !important;
+              width: 100% !important;
+            }
+
+            .mobile-button {
+              padding: 12px 16px !important;
+              font-size: 13px !important;
+              width: 100% !important;
+              justify-content: center !important;
+            }
+
+            .mobile-hidden {
+              display: none !important;
+            }
+
+            .mobile-compact-info {
+              display: block !important;
+              background-color: rgba(110, 68, 255, 0.05) !important;
+              padding: 8px !important;
+              border-radius: 6px !important;
+              font-size: 11px !important;
+              margin-top: 8px !important;
+            }
+
+            .mobile-compact-help {
+              display: block !important;
+            }
+
+            /* Desktop layout adjustments */
+            @media (min-width: 769px) {
+              .mobile-event-card > div {
+                flex-direction: row !important;
+                align-items: flex-start !important;
+              }
+
+              .mobile-buttons-container {
+                flex-direction: column !important;
+                width: auto !important;
+                justify-content: flex-start !important;
+              }
+
+              .mobile-button {
+                width: auto !important;
+              }
+
+              .mobile-compact-info {
+                display: none !important;
+              }
+
+              .mobile-compact-help {
+                display: none !important;
+              }
             }
           }
         `}
@@ -572,6 +667,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
           filteredEvents.map(event => (
             <div
               key={event.id}
+              className="mobile-event-card"
               style={{
                 padding: '20px',
                 borderBottom: '1px solid rgba(110, 68, 255, 0.1)',
@@ -591,59 +687,88 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
                   : 'var(--dark-surface)';
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{
-                    margin: '0 0 10px 0',
-                    color: 'var(--text-primary)',
-                    fontSize: '18px',
-                    fontWeight: '600'
-                  }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexDirection: 'column',
+                gap: '15px'
+              }}>
+                <div style={{ flex: 1, width: '100%' }}>
+                  <h3
+                    className="mobile-event-title"
+                    style={{
+                      margin: '0 0 10px 0',
+                      color: 'var(--text-primary)',
+                      fontSize: '18px',
+                      fontWeight: '600'
+                    }}
+                  >
                     {event.title}
                   </h3>
 
                   <div style={{ marginBottom: '8px' }}>
-                    {getStatusBadge(event)}
-                    <span style={{
-                      marginLeft: '10px',
-                      fontSize: '12px',
-                      color: 'var(--text-secondary)',
-                      fontFamily: 'monospace'
-                    }}>
+                    <span className="mobile-status-badge">
+                      {getStatusBadge(event)}
+                    </span>
+                    <span
+                      className="mobile-hidden"
+                      style={{
+                        marginLeft: '10px',
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'monospace'
+                      }}
+                    >
                       Event ID: {event.id}
                     </span>
                   </div>
 
-                  <div style={{
-                    fontSize: '14px',
-                    color: 'var(--text-secondary)',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '15px'
-                  }}>
+                  <div
+                    className="mobile-event-meta"
+                    style={{
+                      fontSize: '14px',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '15px'
+                    }}
+                  >
                     <span>📅 {new Date(event.start_date).toLocaleDateString()}</span>
                     <span>📍 {event.location || 'No location'}</span>
                     <span>👥 {event.participation_type || 'individual'}</span>
                   </div>
 
                   {getSyncStatus(event) && (
-                    <div style={{ marginBottom: '8px' }}>
+                    <div className="mobile-sync-status" style={{ marginBottom: '8px' }}>
                       {getSyncStatus(event)}
                     </div>
                   )}
 
                   {event.google_sheet_id && (
-                    <div style={{
-                      fontSize: '12px',
-                      color: 'var(--text-secondary)',
-                      fontFamily: 'monospace',
-                      backgroundColor: 'rgba(110, 68, 255, 0.1)',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      display: 'inline-block'
-                    }}>
+                    <div
+                      className="mobile-hidden"
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'monospace',
+                        backgroundColor: 'rgba(110, 68, 255, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block'
+                      }}
+                    >
                       Sheet ID: {event.google_sheet_id}
+                    </div>
+                  )}
+
+                  {/* Mobile compact info */}
+                  {event.google_sheet_id && (
+                    <div className="mobile-compact-info" style={{ display: 'none' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Sheet created • ID: {event.google_sheet_id.substring(0, 8)}...
+                      </div>
                     </div>
                   )}
 
@@ -663,8 +788,18 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
                 </div>
 
                 {event.google_sheet_url && (
-                  <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                  <div
+                    className="mobile-buttons-container"
+                    style={{
+                      display: 'flex',
+                      gap: '10px',
+                      flexDirection: 'row',
+                      width: '100%',
+                      justifyContent: 'flex-end'
+                    }}
+                  >
                     <button
+                      className="mobile-button"
                       onClick={() => syncAndOpenSheet(event)}
                       disabled={syncingSheets.has(event.id)}
                       style={{
@@ -718,6 +853,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
                     </button>
 
                     <button
+                      className="mobile-button"
                       onClick={() => copyToClipboard(event.google_sheet_url)}
                       style={{
                         padding: '10px 16px',
@@ -753,14 +889,17 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
       </div>
 
       {/* Help Section */}
-      <div style={{
-        marginTop: '20px',
-        padding: '20px',
-        backgroundColor: 'var(--dark-surface)',
-        borderRadius: '12px',
-        border: '1px solid rgba(68, 255, 210, 0.2)',
-        boxShadow: '0 4px 20px rgba(68, 255, 210, 0.1)'
-      }}>
+      <div
+        className="mobile-hidden"
+        style={{
+          marginTop: '20px',
+          padding: '20px',
+          backgroundColor: 'var(--dark-surface)',
+          borderRadius: '12px',
+          border: '1px solid rgba(68, 255, 210, 0.2)',
+          boxShadow: '0 4px 20px rgba(68, 255, 210, 0.1)'
+        }}
+      >
         <h4 style={{
           color: 'var(--accent)',
           marginBottom: '15px',
@@ -790,6 +929,27 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
         }}>
           <strong style={{ color: 'var(--primary)' }}>Note:</strong> If you don't see a sheet for an event, check the console logs for any creation errors.
         </p>
+      </div>
+
+      {/* Mobile Help Section - Compact */}
+      <div
+        style={{
+          marginTop: '15px',
+          padding: '12px',
+          backgroundColor: 'rgba(68, 255, 210, 0.05)',
+          borderRadius: '8px',
+          border: '1px solid rgba(68, 255, 210, 0.1)',
+          display: 'none'
+        }}
+        className="mobile-compact-help"
+      >
+        <div style={{
+          fontSize: '13px',
+          color: 'var(--text-secondary)',
+          textAlign: 'center'
+        }}>
+          💡 <strong style={{ color: 'var(--accent)' }}>Tip:</strong> Sheets auto-sync when you register, mark attendance, or verify payments
+        </div>
       </div>
         </>
       )}

@@ -145,6 +145,13 @@ const AttendanceManagement = () => {
       // Use the registration service to update attendance status properly
       const result = await registrationService.updateAttendanceStatus(registrationId, 'attended');
 
+      // Check if payment verification is required
+      if (result && !result.success && result.paymentNotVerified) {
+        setError(`Payment verification required for ${result.participantName}. Please verify their payment before marking attendance.`);
+        setMarkingAttendance(null);
+        return;
+      }
+
       if (result) {
         // Add to recent activity
         setRecentActivity(prev => [{

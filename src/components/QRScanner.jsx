@@ -199,6 +199,14 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             message: result.error,
             dataInconsistency: true
           });
+        } else if (result.paymentNotVerified) {
+          setScanResult({
+            success: false,
+            message: result.error,
+            paymentNotVerified: true,
+            participantName: result.participantName,
+            registrationId: result.registrationId
+          });
         }
       }
     } catch (err) {
@@ -219,6 +227,53 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     const qrData = prompt('Enter QR code data for testing:');
     if (qrData) {
       processQRCode(qrData);
+    }
+  };
+
+  // Handle payment verification
+  const handleVerifyPayment = async (registrationId) => {
+    try {
+      setIsProcessing(true);
+      setError(null);
+
+      // Update payment status to verified
+      const result = await registrationService.updatePaymentStatus(registrationId, 'verified');
+
+      if (result) {
+        // Clear the scan result and show success message
+        setScanResult({
+          success: true,
+          message: `Payment verified for ${scanResult.participantName}. You can now scan their QR code again to mark attendance.`,
+          participantName: scanResult.participantName,
+          paymentVerified: true
+        });
+      } else {
+        setError('Failed to verify payment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      setError('Failed to verify payment. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle viewing payment screenshot
+  const handleViewPayment = async (registrationId) => {
+    try {
+      // Get registration details to find payment screenshot URL
+      const registrations = await registrationService.getEventRegistrations(eventId);
+      const registration = registrations.find(r => r.id === registrationId);
+
+      if (registration && registration.payment_screenshot_url) {
+        // Open payment screenshot in new window
+        window.open(registration.payment_screenshot_url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+      } else {
+        setError('No payment screenshot found for this registration.');
+      }
+    } catch (error) {
+      console.error('Error viewing payment screenshot:', error);
+      setError('Failed to load payment screenshot. Please try again.');
     }
   };
 
@@ -356,13 +411,17 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 {scanResult.success ? '✅' :
                  scanResult.eventMismatch ? '🚫' :
                  scanResult.alreadyAttended ? '⚠️' :
-                 scanResult.dataInconsistency ? '🔧' : '❌'}
+                 scanResult.dataInconsistency ? '🔧' :
+                 scanResult.paymentNotVerified ? '💳' :
+                 scanResult.paymentVerified ? '💚' : '❌'}
               </div>
               <h3>
                 {scanResult.success ? 'Attendance Marked!' :
                  scanResult.eventMismatch ? 'Wrong Event QR Code' :
                  scanResult.alreadyAttended ? 'Already Attended' :
-                 scanResult.dataInconsistency ? 'Data Error' : 'Scan Failed'}
+                 scanResult.dataInconsistency ? 'Data Error' :
+                 scanResult.paymentNotVerified ? 'Payment Not Verified' :
+                 scanResult.paymentVerified ? 'Payment Verified!' : 'Scan Failed'}
               </h3>
               <p>{scanResult.message}</p>
 
@@ -379,6 +438,50 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   <p><strong>⚠️ Security Notice:</strong></p>
                   <p>This QR code belongs to a different event. Each event has unique QR codes for security purposes.</p>
                   <p><strong>Solution:</strong> Please use the QR code that was sent for this specific event.</p>
+                </div>
+              )}
+
+              {scanResult.paymentNotVerified && (
+                <div className="error-details">
+                  <p><strong>💳 Payment Verification Required:</strong></p>
+                  <p>Participant: <strong>{scanResult.participantName}</strong></p>
+                  <p>This event requires payment verification before attendance can be marked.</p>
+
+                  <div className="payment-action-buttons">
+                    <button
+                      className="verify-payment-button"
+                      onClick={() => handleVerifyPayment(scanResult.registrationId)}
+                      disabled={isProcessing}
+                    >
+                      ✅ Verify Payment
+                    </button>
+                    <button
+                      className="view-payment-button"
+                      onClick={() => handleViewPayment(scanResult.registrationId)}
+                    >
+                      👁️ View Payment Screenshot
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {scanResult.paymentVerified && (
+                <div className="success-details">
+                  <p><strong>✅ Payment Successfully Verified!</strong></p>
+                  <p>Participant: <strong>{scanResult.participantName}</strong></p>
+                  <p>You can now scan their QR code again to mark attendance.</p>
+                  <div className="payment-verified-actions">
+                    <button
+                      className="scan-again-button"
+                      onClick={() => {
+                        setScanResult(null);
+                        setError(null);
+                        // Reset scanner to allow new scan
+                      }}
+                    >
+                      🔄 Scan QR Code Again
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -878,6 +981,87 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           color: #ff4757;
         }
 
+        .payment-action-buttons {
+          display: flex;
+          gap: 12px;
+          margin-top: 15px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .verify-payment-button, .view-payment-button {
+          padding: 12px 20px;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 140px;
+          justify-content: center;
+        }
+
+        .verify-payment-button {
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .verify-payment-button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #16a34a, #15803d);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        .verify-payment-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .view-payment-button {
+          background: linear-gradient(135deg, var(--primary, #6e44ff), var(--accent, #44ffd2));
+          color: #000;
+          box-shadow: 0 4px 15px rgba(110, 68, 255, 0.3);
+        }
+
+        .view-payment-button:hover {
+          background: linear-gradient(135deg, var(--accent, #44ffd2), var(--primary, #6e44ff));
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(110, 68, 255, 0.4);
+        }
+
+        .payment-verified-actions {
+          display: flex;
+          justify-content: center;
+          margin-top: 15px;
+        }
+
+        .scan-again-button {
+          padding: 12px 24px;
+          background: linear-gradient(135deg, var(--accent, #44ffd2), var(--primary, #6e44ff));
+          color: #000;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 4px 15px rgba(68, 255, 210, 0.3);
+        }
+
+        .scan-again-button:hover {
+          background: linear-gradient(135deg, var(--primary, #6e44ff), var(--accent, #44ffd2));
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(68, 255, 210, 0.4);
+        }
+
         .result-actions {
           margin-top: 20px;
         }
@@ -983,6 +1167,24 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             flex-direction: column;
             gap: 10px;
             align-items: center;
+          }
+
+          .payment-action-buttons {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .verify-payment-button, .view-payment-button {
+            width: 100%;
+            min-width: auto;
+            padding: 10px 16px;
+            font-size: 13px;
+          }
+
+          .scan-again-button {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 13px;
           }
         }
 

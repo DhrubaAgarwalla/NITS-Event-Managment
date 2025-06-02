@@ -233,6 +233,41 @@ const registrationService = {
       console.log(`Updating attendance status to ${attendanceStatus} for registration ID: ${id}`);
       const registrationRef = ref(database, `registrations/${id}`);
 
+      // If marking as attended, check payment verification first
+      if (attendanceStatus === 'attended') {
+        // Get registration details
+        const snapshot = await get(registrationRef);
+
+        if (!snapshot.exists()) {
+          throw new Error('Registration not found');
+        }
+
+        const registration = snapshot.val();
+
+        // Get event data to check payment requirements
+        const eventRef = ref(database, `events/${registration.event_id}`);
+        const eventSnapshot = await get(eventRef);
+
+        if (!eventSnapshot.exists()) {
+          throw new Error('Event not found');
+        }
+
+        const eventData = eventSnapshot.val();
+
+        // Check payment verification if payment is required
+        if (eventData.requires_payment) {
+          if (!registration.payment_status || registration.payment_status !== 'verified') {
+            return {
+              success: false,
+              error: 'Payment verification required. Please ensure payment is verified before marking attendance.',
+              paymentNotVerified: true,
+              participantName: registration.participant_name || registration.name || 'Participant',
+              registrationId: id
+            };
+          }
+        }
+      }
+
       const updates = {
         attendance_status: attendanceStatus,
         updated_at: new Date().toISOString()
@@ -344,12 +379,37 @@ const registrationService = {
         };
       }
 
+      // Get event data to check payment requirements
+      const eventRef = ref(database, `events/${eventId}`);
+      const eventSnapshot = await get(eventRef);
+
+      if (!eventSnapshot.exists()) {
+        return {
+          success: false,
+          error: 'Event not found'
+        };
+      }
+
+      const eventData = eventSnapshot.val();
+
+      // Check payment verification if payment is required
+      if (eventData.requires_payment) {
+        if (!registration.payment_status || registration.payment_status !== 'verified') {
+          return {
+            success: false,
+            error: 'Payment verification required. Please ensure your payment is verified before marking attendance.',
+            paymentNotVerified: true,
+            participantName: registration.participant_name || registration.name || 'Participant',
+            registrationId: registrationId
+          };
+        }
+      }
+
       // Mark attendance
       const attendanceResult = await qrCodeService.markAttendance(registrationId);
 
       if (attendanceResult.success) {
-        // Get event details for confirmation email
-        const eventData = await eventService.getEventById(eventId);
+        // Use the event data we already fetched
 
         // Send attendance confirmation email
         try {
