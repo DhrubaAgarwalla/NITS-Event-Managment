@@ -66,6 +66,7 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
                   // Admin user
                   <>
                     <a href="#admin" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('admin-dashboard'); }}>Admin Dashboard</a>
+                    <a href="#sheets" className="navbar-link" onClick={(e) => { e.preventDefault(); setCurrentPage('sheets'); }}>📊 Google Sheets</a>
                     <a href="#logout" className="btn" onClick={(e) => {
                       e.preventDefault();
                       logoutAndRedirect(signOut);
@@ -114,6 +115,7 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
                 // Admin user
                 <>
                   <a href="#admin" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('admin-dashboard'); toggleMobileMenu(); }}>Admin Dashboard</a>
+                  <a href="#sheets" className="mobile-menu-link" onClick={(e) => { e.preventDefault(); setCurrentPage('sheets'); toggleMobileMenu(); }}>📊 Google Sheets</a>
                   <a href="#logout" className="btn btn-primary" onClick={(e) => {
                     e.preventDefault();
                     toggleMobileMenu();

@@ -14,41 +14,201 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cooldownActive, setCooldownActive] = useState(false);
   const [cooldownTime, setCooldownTime] = useState(0);
+  const [cameraQuality, setCameraQuality] = useState(null);
+  const [scanAttempts, setScanAttempts] = useState(0);
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  const [isLaptopFrontCamera, setIsLaptopFrontCamera] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
   const cooldownIntervalRef = useRef(null);
 
-  // Start camera and scanning
+  // Start camera and scanning with optimized settings
   const startScanning = async () => {
     try {
       setError(null);
       setIsScanning(true);
+      setScanAttempts(0); // Reset scan counter
 
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+      // Get available video devices to choose the best camera
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      // Store available cameras for switching
+      setAvailableCameras(videoDevices);
+      console.log('Available cameras:', videoDevices.map(d => ({ label: d.label, deviceId: d.deviceId })));
+
+      // Smart camera selection - prefer back camera on mobile, best quality camera on desktop
+      let preferredDeviceId = null;
+      let selectedCamera = null;
+
+      // Check if we're on mobile or desktop
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // On mobile, prefer back camera
+        const backCamera = videoDevices.find(device =>
+          device.label.toLowerCase().includes('back') ||
+          device.label.toLowerCase().includes('rear') ||
+          device.label.toLowerCase().includes('environment')
+        );
+        if (backCamera) {
+          preferredDeviceId = backCamera.deviceId;
+          selectedCamera = backCamera;
         }
+      } else {
+        // On desktop, prefer external cameras over built-in front cameras
+        const externalCamera = videoDevices.find(device =>
+          !device.label.toLowerCase().includes('integrated') &&
+          !device.label.toLowerCase().includes('built-in') &&
+          !device.label.toLowerCase().includes('facetime') &&
+          device.label.toLowerCase().includes('usb') ||
+          device.label.toLowerCase().includes('external')
+        );
+
+        if (externalCamera) {
+          preferredDeviceId = externalCamera.deviceId;
+          selectedCamera = externalCamera;
+          console.log('Using external camera:', externalCamera.label);
+        } else {
+          // If no external camera, use the first available (usually front camera)
+          selectedCamera = videoDevices[0];
+          if (selectedCamera) {
+            preferredDeviceId = selectedCamera.deviceId;
+            console.log('Using built-in camera:', selectedCamera.label);
+          }
+        }
+      }
+
+      // Enhanced camera constraints optimized for laptop front cameras
+      const detectedLaptopFrontCamera = !isMobile && selectedCamera &&
+        (selectedCamera.label.toLowerCase().includes('integrated') ||
+         selectedCamera.label.toLowerCase().includes('built-in') ||
+         selectedCamera.label.toLowerCase().includes('facetime') ||
+         selectedCamera.label.toLowerCase().includes('front'));
+
+      // Set the laptop front camera state
+      setIsLaptopFrontCamera(detectedLaptopFrontCamera);
+
+      const constraints = {
+        video: {
+          facingMode: preferredDeviceId ? undefined : (isMobile ? 'environment' : 'user'),
+          deviceId: preferredDeviceId ? { exact: preferredDeviceId } : undefined,
+          width: {
+            min: 640,
+            ideal: detectedLaptopFrontCamera ? 1280 : 1920, // Lower resolution for front cameras
+            max: detectedLaptopFrontCamera ? 1280 : 1920
+          },
+          height: {
+            min: 480,
+            ideal: detectedLaptopFrontCamera ? 720 : 1080, // Lower resolution for front cameras
+            max: detectedLaptopFrontCamera ? 720 : 1080
+          },
+          frameRate: {
+            min: 15,
+            ideal: 30,
+            max: detectedLaptopFrontCamera ? 30 : 60 // Limit frame rate for stability
+          },
+          // Focus optimization for laptop front cameras
+          focusMode: detectedLaptopFrontCamera ? 'manual' : 'continuous',
+          focusDistance: detectedLaptopFrontCamera ? 0.3 : undefined, // Set focus distance for close-up scanning
+          exposureMode: 'manual',
+          exposureCompensation: detectedLaptopFrontCamera ? 0.5 : 0, // Increase exposure for better QR visibility
+          whiteBalanceMode: 'manual',
+          colorTemperature: detectedLaptopFrontCamera ? 5500 : undefined, // Optimize for indoor lighting
+          // Additional settings for front camera optimization
+          torch: false, // Disable torch for front cameras
+          zoom: detectedLaptopFrontCamera ? 1.0 : undefined,
+          // Request high resolution and quality
+          aspectRatio: { ideal: 16/9 },
+          resizeMode: 'crop-and-scale'
+        }
+      };
+
+      console.log('Camera type detected:', {
+        isMobile,
+        isLaptopFrontCamera,
+        selectedCamera: selectedCamera?.label,
+        constraints: constraints.video
+      });
+
+      console.log('Requesting camera with constraints:', constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // Log actual camera settings and set quality indicator
+      const videoTrack = stream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      console.log('Camera settings:', settings);
+
+      // Determine camera quality based on resolution
+      const resolution = settings.width * settings.height;
+      let quality = 'Low';
+      if (resolution >= 1920 * 1080) {
+        quality = 'High (1080p+)';
+      } else if (resolution >= 1280 * 720) {
+        quality = 'Medium (720p)';
+      } else if (resolution >= 640 * 480) {
+        quality = 'Standard (480p)';
+      }
+
+      setCameraQuality({
+        resolution: `${settings.width}x${settings.height}`,
+        frameRate: settings.frameRate,
+        quality: quality,
+        facingMode: settings.facingMode
       });
 
       setCameraStream(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
 
-        // Start scanning after video loads
+        // Set video element properties for better quality
+        videoRef.current.setAttribute('playsinline', true);
+        videoRef.current.setAttribute('webkit-playsinline', true);
+        videoRef.current.muted = true;
+
+        await videoRef.current.play();
+
+        // Start scanning after video loads and is ready
         videoRef.current.onloadedmetadata = () => {
-          startQRDetection();
+          console.log('Video metadata loaded:', {
+            videoWidth: videoRef.current.videoWidth,
+            videoHeight: videoRef.current.videoHeight
+          });
+
+          // Small delay to ensure video is fully ready
+          setTimeout(() => {
+            startQRDetection();
+          }, 500);
         };
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
-      setError('Unable to access camera. Please check permissions.');
-      setIsScanning(false);
+
+      // Fallback to basic constraints if advanced ones fail
+      try {
+        console.log('Trying fallback camera constraints...');
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        setCameraStream(fallbackStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = fallbackStream;
+          videoRef.current.play();
+          videoRef.current.onloadedmetadata = () => startQRDetection();
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback camera access failed:', fallbackErr);
+        setError('Unable to access camera. Please check permissions and try again.');
+        setIsScanning(false);
+      }
     }
   };
 
@@ -71,7 +231,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     }
   };
 
-  // Start QR code detection
+  // Start QR code detection with optimized scanning
   const startQRDetection = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -79,45 +239,106 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
 
-    // Set canvas size to match video
+    // Set canvas size to match video with high quality
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Scan for QR codes every 500ms
-    scanIntervalRef.current = setInterval(() => {
-      if (isProcessing) return;
+    console.log('Starting QR detection with canvas size:', canvas.width, 'x', canvas.height);
+
+    // Use requestAnimationFrame for smoother scanning (60fps when possible)
+    const scanFrame = () => {
+      if (!isScanning || isProcessing) {
+        if (isScanning) {
+          requestAnimationFrame(scanFrame);
+        }
+        return;
+      }
 
       try {
+        // Clear canvas and draw video frame with high quality
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Use high-quality image rendering
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+
         // Draw video frame to canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Get image data
+        // Get image data for QR detection
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-        // Try to detect QR code using a simple approach
-        // Note: For production, you might want to use a proper QR code library like jsQR
+        // Increment scan attempts counter
+        setScanAttempts(prev => prev + 1);
+
+        // Try to detect QR code
         detectQRCode(imageData);
       } catch (err) {
         console.error('Error during QR detection:', err);
       }
-    }, 500);
+
+      // Continue scanning
+      requestAnimationFrame(scanFrame);
+    };
+
+    // Start the scanning loop
+    requestAnimationFrame(scanFrame);
   };
 
-  // QR code detection using jsQR library
+  // Enhanced QR code detection with multiple attempts and image processing
   const detectQRCode = async (imageData) => {
     try {
-      // Use jsQR to decode the QR code from image data
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
+      // Multiple detection attempts with different settings for better accuracy
+      const detectionAttempts = [
+        // Standard detection
+        {
+          inversionAttempts: "dontInvert",
+        },
+        // Try with inversion for better contrast
+        {
+          inversionAttempts: "onlyInvert",
+        },
+        // Try both inversion attempts
+        {
+          inversionAttempts: "attemptBoth",
+        },
+        // Try with different locator settings
+        {
+          inversionAttempts: "dontInvert",
+          locateOptions: {
+            tryHarder: true,
+            pureBarcode: false
+          }
+        }
+      ];
 
-      if (code) {
-        console.log('QR Code detected:', code.data);
+      // Try each detection method
+      for (const options of detectionAttempts) {
+        const code = jsQR(imageData.data, imageData.width, imageData.height, options);
 
-        // Process the detected QR code
-        await processQRCode(code.data);
+        if (code && code.data) {
+          console.log('QR Code detected with options:', options);
+          console.log('QR Code data:', code.data);
+          console.log('QR Code location:', code.location);
 
-        return true; // QR code found and processed
+          // Process the detected QR code
+          await processQRCode(code.data);
+          return true; // QR code found and processed
+        }
+      }
+
+      // If no QR code found with standard methods, try with image preprocessing
+      const preprocessedImageData = preprocessImage(imageData);
+      if (preprocessedImageData) {
+        const code = jsQR(preprocessedImageData.data, preprocessedImageData.width, preprocessedImageData.height, {
+          inversionAttempts: "attemptBoth",
+        });
+
+        if (code && code.data) {
+          console.log('QR Code detected after preprocessing:', code.data);
+          await processQRCode(code.data);
+          return true;
+        }
       }
 
       return false; // No QR code found
@@ -125,6 +346,46 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       console.error('Error detecting QR code:', error);
       return false;
     }
+  };
+
+  // Image preprocessing for better QR detection
+  const preprocessImage = (imageData) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+
+      // Put original image data
+      ctx.putImageData(imageData, 0, 0);
+
+      // Apply image enhancements
+      ctx.filter = 'contrast(150%) brightness(110%) saturate(120%)';
+      ctx.drawImage(canvas, 0, 0);
+
+      // Get enhanced image data
+      return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (error) {
+      console.error('Error preprocessing image:', error);
+      return null;
+    }
+  };
+
+  // Switch to next available camera
+  const switchCamera = async () => {
+    if (availableCameras.length <= 1) return;
+
+    // Stop current camera
+    stopScanning();
+
+    // Switch to next camera
+    const nextIndex = (currentCameraIndex + 1) % availableCameras.length;
+    setCurrentCameraIndex(nextIndex);
+
+    // Small delay before starting new camera
+    setTimeout(() => {
+      startScanning();
+    }, 500);
   };
 
   // Start cooldown timer
@@ -316,6 +577,23 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 <div className="scan-overlay">
                   <div className="scan-frame"></div>
                   <p>Position QR code within the frame</p>
+
+                  {/* Camera Quality Indicator */}
+                  {cameraQuality && (
+                    <div className="camera-quality-indicator">
+                      <div className="quality-badge">
+                        📹 {cameraQuality.quality}
+                      </div>
+                      <div className="quality-details">
+                        {cameraQuality.resolution} • {cameraQuality.frameRate}fps
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scan Attempts Counter */}
+                  <div className="scan-counter">
+                    🔍 Scans: {scanAttempts}
+                  </div>
                 </div>
               </div>
 
@@ -326,6 +604,18 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 >
                   Stop Scanning
                 </button>
+
+                {/* Camera Switch Button */}
+                {availableCameras.length > 1 && (
+                  <button
+                    className="switch-camera-button"
+                    onClick={switchCamera}
+                    title={`Switch to ${availableCameras[(currentCameraIndex + 1) % availableCameras.length]?.label || 'next camera'}`}
+                  >
+                    🔄 Switch Camera
+                  </button>
+                )}
+
                 <button
                   className="manual-input-button"
                   onClick={handleManualInput}
@@ -333,6 +623,22 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   Manual Input
                 </button>
               </div>
+
+              {/* Focus Assistance for Laptop Front Cameras */}
+              {isLaptopFrontCamera && (
+                <div className="focus-assistance">
+                  <div className="focus-tips">
+                    <h4>📷 Front Camera Focus Tips:</h4>
+                    <ul>
+                      <li>Hold QR code 8-12 inches from camera</li>
+                      <li>Ensure good lighting on the QR code</li>
+                      <li>Keep QR code flat and steady</li>
+                      <li>Try moving closer/farther if blurry</li>
+                      <li>Clean your camera lens if needed</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
 
               {isProcessing && (
                 <div className="processing-indicator">
@@ -658,9 +964,19 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
         .camera-video {
           width: 100%;
-          height: 300px;
+          height: 400px;
           object-fit: cover;
           border-radius: 14px;
+          /* Enhanced video quality settings */
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: crisp-edges;
+          image-rendering: pixelated;
+          /* Prevent video compression artifacts */
+          filter: contrast(110%) brightness(105%);
+          /* Smooth video playback */
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          perspective: 1000px;
         }
 
         .scan-overlay {
@@ -678,6 +994,45 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           font-weight: 600;
           background: rgba(0, 0, 0, 0.3);
           backdrop-filter: blur(2px);
+        }
+
+        .camera-quality-indicator {
+          position: absolute;
+          top: 15px;
+          left: 15px;
+          background: rgba(0, 0, 0, 0.8);
+          border-radius: 8px;
+          padding: 8px 12px;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(110, 68, 255, 0.3);
+        }
+
+        .quality-badge {
+          color: var(--accent);
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+
+        .quality-details {
+          color: var(--text-secondary);
+          font-size: 10px;
+          font-family: monospace;
+        }
+
+        .scan-counter {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          background: rgba(0, 0, 0, 0.8);
+          border-radius: 8px;
+          padding: 8px 12px;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(68, 255, 210, 0.3);
+          color: var(--accent);
+          font-size: 12px;
+          font-weight: 600;
+          font-family: monospace;
         }
 
         .scan-frame {
@@ -899,6 +1254,66 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           text-shadow: 0 0 20px rgba(255, 71, 87, 0.8);
         }
 
+        .scanner-controls {
+          display: flex;
+          gap: 15px;
+          justify-content: center;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+
+        .switch-camera-button {
+          padding: 12px 20px;
+          background: linear-gradient(135deg, var(--secondary, #ff44e3), var(--primary, #6e44ff));
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(110, 68, 255, 0.3);
+        }
+
+        .switch-camera-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(110, 68, 255, 0.4);
+        }
+
+        .switch-camera-button:active {
+          transform: translateY(0);
+        }
+
+        .focus-assistance {
+          background: rgba(255, 193, 7, 0.1);
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          border-radius: 12px;
+          padding: 20px;
+          margin: 20px 0;
+          backdrop-filter: blur(10px);
+        }
+
+        .focus-tips h4 {
+          color: #ffc107;
+          margin: 0 0 15px 0;
+          font-size: 16px;
+          text-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        }
+
+        .focus-tips ul {
+          margin: 0;
+          padding-left: 20px;
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+
+        .focus-tips li {
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+
         @media (max-width: 768px) {
           .qr-scanner-container {
             padding: 8px;
@@ -944,12 +1359,26 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           }
 
           .start-scan-button, .manual-input-button, .stop-scan-button,
-          .scan-another-button, .retry-button {
+          .scan-another-button, .retry-button, .switch-camera-button {
             padding: 12px 20px;
             font-size: 14px;
             margin: 6px;
             width: auto;
             min-width: 120px;
+          }
+
+          .focus-assistance {
+            padding: 15px;
+            margin: 15px 0;
+          }
+
+          .focus-tips h4 {
+            font-size: 14px;
+          }
+
+          .focus-tips li {
+            font-size: 13px;
+            margin-bottom: 6px;
           }
 
           .result-icon {

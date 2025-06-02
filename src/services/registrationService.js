@@ -126,6 +126,28 @@ const registrationService = {
         // Don't fail the registration if QR/email fails
       }
 
+      // Auto-sync Google Sheet with new registration (don't wait for it to complete)
+      try {
+        console.log('🔄 Initiating auto-sync for new registration...');
+        const { default: autoSyncService } = await import('./autoSyncService.js');
+
+        // Run auto-sync in background (don't await)
+        autoSyncService.autoSyncRegistrations(registrationData.event_id, 'registration')
+          .then(result => {
+            if (result.success) {
+              console.log(`✅ Google Sheet auto-synced for event ${registrationData.event_id} (new registration)`);
+            } else {
+              console.warn(`⚠️ Google Sheet auto-sync failed for event ${registrationData.event_id}: ${result.reason || result.error}`);
+            }
+          })
+          .catch(error => {
+            console.error(`❌ Google Sheet auto-sync error for event ${registrationData.event_id}:`, error);
+          });
+      } catch (error) {
+        console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+        // Don't fail registration if auto-sync fails
+      }
+
       return {
         id: newRegistrationRef.key,
         ...newRegistration
@@ -227,11 +249,36 @@ const registrationService = {
 
       // Get the updated registration
       const snapshot = await get(registrationRef);
-
-      return {
+      const updatedRegistration = {
         id: snapshot.key,
         ...snapshot.val()
       };
+
+      // Auto-sync Google Sheet with attendance update (don't wait for it to complete)
+      if (attendanceStatus === 'attended') {
+        try {
+          console.log('🔄 Initiating auto-sync for attendance update...');
+          const { default: autoSyncService } = await import('./autoSyncService.js');
+
+          // Run auto-sync in background (don't await)
+          autoSyncService.autoSyncRegistrations(updatedRegistration.event_id, 'attendance')
+            .then(result => {
+              if (result.success) {
+                console.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (attendance update)`);
+              } else {
+                console.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
+              }
+            })
+            .catch(error => {
+              console.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
+            });
+        } catch (error) {
+          console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+          // Don't fail attendance update if auto-sync fails
+        }
+      }
+
+      return updatedRegistration;
     } catch (error) {
       console.error('Error updating attendance status:', error);
       throw error;
@@ -353,11 +400,34 @@ const registrationService = {
 
       // Get the updated registration
       const snapshot = await get(registrationRef);
-
-      return {
+      const updatedRegistration = {
         id: snapshot.key,
         ...snapshot.val()
       };
+
+      // Auto-sync Google Sheet with payment update (don't wait for it to complete)
+      try {
+        console.log('🔄 Initiating auto-sync for payment status update...');
+        const { default: autoSyncService } = await import('./autoSyncService.js');
+
+        // Run auto-sync in background (don't await)
+        autoSyncService.autoSyncRegistrations(updatedRegistration.event_id, 'payment')
+          .then(result => {
+            if (result.success) {
+              console.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (payment update)`);
+            } else {
+              console.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
+            }
+          })
+          .catch(error => {
+            console.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
+          });
+      } catch (error) {
+        console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+        // Don't fail payment update if auto-sync fails
+      }
+
+      return updatedRegistration;
     } catch (error) {
       console.error('Error updating payment status:', error);
       throw error;

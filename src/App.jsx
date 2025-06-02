@@ -47,6 +47,7 @@ import ClubRequestForm from './components/ClubRequestForm';
 import EventCreationForm from './components/EventCreationForm';
 import ForgotPassword from './components/ForgotPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
+import AutoCreatedSheetsViewer from './components/AutoCreatedSheetsViewer';
 
 
 function App() {
@@ -100,6 +101,8 @@ function App() {
       setCurrentPage('login');
     } else if (path === '/request') {
       setCurrentPage('club-request');
+    } else if (path === '/sheets') {
+      setCurrentPage('sheets');
     }
   }, []);
 
@@ -266,6 +269,7 @@ function App() {
             {currentPage === 'club-request' && <ClubRequestForm setCurrentPage={setCurrentPage} />}
             {currentPage === 'create-event' && <EventCreationForm setCurrentPage={setCurrentPage} />}
             {currentPage === 'forgot-password' && <ForgotPassword setCurrentPage={setCurrentPage} />}
+            {currentPage === 'sheets' && <AutoCreatedSheetsViewer />}
           </div>
         )}
       </AnimatePresence>

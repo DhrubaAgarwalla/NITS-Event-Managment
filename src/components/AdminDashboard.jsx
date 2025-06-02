@@ -7,6 +7,7 @@ import eventService from '../services/eventService';
 import { logoutAndRedirect, navigateToHome } from '../utils/navigation';
 import AdminClubDetails from './AdminClubDetails';
 import AdminEventDetails from './AdminEventDetails';
+import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
 export default function AdminDashboard({ setCurrentPage }) {
   const { user, isAdmin, signOut } = useAuth();
@@ -400,6 +401,21 @@ export default function AdminDashboard({ setCurrentPage }) {
             }}
           >
             Manage Events
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'sheets' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sheets')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'sheets' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'sheets' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'sheets' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'sheets' ? '600' : '400'
+            }}
+          >
+            📊 Google Sheets
           </button>
         </div>
 
@@ -1259,6 +1275,13 @@ export default function AdminDashboard({ setCurrentPage }) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Google Sheets Tab */}
+        {activeTab === 'sheets' && (
+          <div className="sheets-tab">
+            <AutoCreatedSheetsViewer />
           </div>
         )}
       </div>

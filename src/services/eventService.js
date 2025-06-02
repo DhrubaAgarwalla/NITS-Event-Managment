@@ -438,10 +438,34 @@ const eventService = {
       await set(newEventRef, newEvent);
       console.log('Event created successfully with ID:', newEventRef.key);
 
-      return {
+      const createdEvent = {
         id: newEventRef.key,
         ...newEvent
       };
+
+      // Auto-create Google Sheet for the event (don't wait for it to complete)
+      try {
+        console.log('🚀 Initiating auto-creation of Google Sheet...');
+        const { default: autoSyncService } = await import('./autoSyncService.js');
+
+        // Run auto-creation in background (don't await)
+        autoSyncService.autoCreateSheetForEvent(newEventRef.key, newEvent)
+          .then(result => {
+            if (result.success) {
+              console.log(`✅ Google Sheet auto-created for event ${newEventRef.key}: ${result.data?.shareableLink}`);
+            } else {
+              console.warn(`⚠️ Google Sheet auto-creation failed for event ${newEventRef.key}: ${result.error}`);
+            }
+          })
+          .catch(error => {
+            console.error(`❌ Google Sheet auto-creation error for event ${newEventRef.key}:`, error);
+          });
+      } catch (error) {
+        console.warn('⚠️ Failed to initiate Google Sheet auto-creation:', error);
+        // Don't fail event creation if auto-sync fails
+      }
+
+      return createdEvent;
     } catch (error) {
       console.error('Error creating event:', error);
       throw error;

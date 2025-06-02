@@ -12,6 +12,7 @@ import GalleryManager from './GalleryManager';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
+import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
@@ -798,6 +799,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             }}
           >
             Manage Gallery
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'sheets' ? 'active' : ''}`}
+            onClick={() => setActiveTab('sheets')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'sheets' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'sheets' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'sheets' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'sheets' ? '600' : '400',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            📊 Google Sheets
           </button>
         </div>
 
@@ -2420,6 +2437,13 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         {activeTab === 'gallery' && (
           <div className="gallery-tab">
             <GalleryManager />
+          </div>
+        )}
+
+        {/* Google Sheets Tab Content */}
+        {activeTab === 'sheets' && (
+          <div className="sheets-tab">
+            <AutoCreatedSheetsViewer clubId={club?.id} />
           </div>
         )}
       </div>

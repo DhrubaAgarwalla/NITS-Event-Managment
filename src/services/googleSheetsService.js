@@ -19,9 +19,9 @@ class GoogleSheetsService {
   /**
    * Create a new Google Sheet with event registration data
    */
-  async createEventSheet(eventData, registrations) {
+  async createEventSheet(eventData, registrations, autoCreate = false) {
     try {
-      console.log(`Creating Google Sheet for event: ${eventData.title}`);
+      console.log(`Creating Google Sheet for event: ${eventData.title} (auto-create: ${autoCreate})`);
       console.log('Request URL:', `${this.baseUrl}/sheets/create`);
 
       // Enhanced debugging for the request payload
@@ -54,7 +54,8 @@ class GoogleSheetsService {
         },
         body: JSON.stringify({
           eventData,
-          registrations
+          registrations,
+          autoCreate
         })
       });
 
@@ -279,6 +280,55 @@ class GoogleSheetsService {
     } catch (error) {
       console.error('Error storing Google Sheets link in event:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Auto-sync Google Sheet with updated data
+   */
+  async autoSyncSheet(spreadsheetId, eventData, registrations, updateType = 'registration') {
+    try {
+      console.log(`🔄 Auto-syncing Google Sheet: ${spreadsheetId} (${updateType})`);
+
+      const response = await fetch(`${this.baseUrl}/sheets/auto-sync/${spreadsheetId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventData,
+          registrations,
+          updateType
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to auto-sync Google Sheet');
+      }
+
+      console.log(`✅ Auto-sync successful: ${result.message}`);
+      return {
+        success: true,
+        ...result.data,
+        updateType,
+        message: result.message
+      };
+
+    } catch (error) {
+      console.error('❌ Error auto-syncing Google Sheet:', error);
+      return {
+        success: false,
+        error: error.message,
+        updateType,
+        spreadsheetId
+      };
     }
   }
 
