@@ -1339,6 +1339,102 @@ const registrationService = {
     }
   },
 
+  // Smart Google Sheets generation - checks if sheet exists and updates or creates
+  smartGenerateGoogleSheet: async (eventId, eventTitle) => {
+    try {
+      console.log(`🔍 Smart sheet generation for event ${eventId}: ${eventTitle}`);
+
+      // Get event data to check if it already has a sheet
+      const eventData = await eventService.getEventById(eventId);
+      if (!eventData) {
+        throw new Error('Event not found');
+      }
+
+      // Get current registrations
+      const registrations = await registrationService.getEventRegistrations(eventId);
+
+      // Check if event already has an auto-generated sheet
+      if (eventData.google_sheet_id && eventData.google_sheet_url) {
+        console.log(`✅ Event already has a sheet (${eventData.google_sheet_id}), updating it...`);
+
+        // Update existing sheet
+        try {
+          const result = await googleSheetsService.updateEventSheet(
+            eventData.google_sheet_id,
+            eventData,
+            registrations
+          );
+
+          if (result.success) {
+            console.log(`✅ Successfully updated existing sheet: ${result.shareableLink}`);
+            return {
+              success: true,
+              action: 'updated',
+              url: result.shareableLink,
+              spreadsheetId: result.spreadsheetId,
+              message: `Updated existing Google Sheet with ${registrations.length} registrations`,
+              shareableLink: result.shareableLink,
+              rowCount: result.rowCount
+            };
+          } else {
+            throw new Error(result.message || 'Failed to update existing sheet');
+          }
+        } catch (updateError) {
+          console.warn(`⚠️ Failed to update existing sheet, creating new one: ${updateError.message}`);
+          // Fall through to create new sheet
+        }
+      }
+
+      // Create new sheet (either no existing sheet or update failed)
+      console.log(`📊 Creating new Google Sheet for event ${eventId}...`);
+
+      const result = await googleSheetsService.exportRegistrationsToSheets(
+        eventId,
+        eventTitle,
+        registrations,
+        eventData
+      );
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to create Google Sheet');
+      }
+
+      // Store sheet information in event data
+      try {
+        await eventService.updateEvent(eventId, {
+          google_sheet_id: result.spreadsheetId,
+          google_sheet_url: result.shareableLink,
+          auto_sync_enabled: true,
+          sheet_created_at: new Date().toISOString(),
+          last_sync_at: new Date().toISOString(),
+          last_sync_type: 'manual_creation'
+        });
+        console.log(`✅ Stored sheet info in event data`);
+      } catch (storeError) {
+        console.warn(`⚠️ Failed to store sheet info in event: ${storeError.message}`);
+        // Don't fail the whole operation if we can't store the info
+      }
+
+      return {
+        success: true,
+        action: 'created',
+        url: result.shareableLink,
+        spreadsheetId: result.spreadsheetId,
+        message: `Created new Google Sheet with ${registrations.length} registrations`,
+        shareableLink: result.shareableLink,
+        rowCount: result.rowCount
+      };
+
+    } catch (error) {
+      console.error('Error in smart sheet generation:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to generate Google Sheet: ${error.message}`
+      };
+    }
+  },
+
   // Export registrations as Excel or PDF
   exportRegistrationsAsCSV: async (eventId, eventTitle, format = 'excel') => {
     try {

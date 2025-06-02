@@ -288,10 +288,12 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         participant_phone: formData.phone,
         participant_id: formData.rollNumber,
         status: 'registered',
+        registration_type: formData.team, // Add registration_type at root level for better detection
         additional_info: {
           department: formData.department,
           year: formData.year,
           team_type: formData.team,
+          team_name: formData.team === 'team' ? `Team ${formData.name}` : null,
           team_members: formData.team === 'team' ? teamMembers : [],
           custom_fields: formData.custom_fields || {}
         },

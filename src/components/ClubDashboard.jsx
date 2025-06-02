@@ -2011,7 +2011,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           message.style.color = 'white';
                           message.style.marginTop = '20px';
                           message.style.fontWeight = 'bold';
-                          message.innerHTML = 'Creating Google Sheet...<br><span style="font-size: 0.8rem; font-weight: normal">This may take a few seconds</span>';
+                          message.innerHTML = 'Processing Google Sheet...<br><span style="font-size: 0.8rem; font-weight: normal">Checking for existing sheet and updating or creating as needed</span>';
 
                           // Add animation style
                           const style = document.createElement('style');
@@ -2026,16 +2026,15 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           // Set loading state
                           const button = document.querySelector('.export-google-sheets-btn');
                           const originalContent = button.innerHTML;
-                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Creating Google Sheet...';
+                          button.innerHTML = '<span style="font-size: 1.2rem">⏳</span> Processing Sheet...';
                           button.disabled = true;
                           button.style.opacity = '0.7';
                           button.style.cursor = 'wait';
 
-                          // Export registrations to Google Sheets
-                          const result = await registrationService.exportRegistrationsAsCSV(
+                          // Smart Google Sheets generation - checks if sheet exists and updates or creates
+                          const result = await registrationService.smartGenerateGoogleSheet(
                             selectedEvent.id,
-                            selectedEvent.title,
-                            'google_sheets'
+                            selectedEvent.title
                           );
 
                           // Remove the loading overlay
@@ -2048,12 +2047,21 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.cursor = 'pointer';
 
                           if (!result.success) {
-                            alert(result.message || 'Failed to create Google Sheet');
+                            alert(result.message || 'Failed to generate Google Sheet');
                             return;
                           }
 
-                          // Show the new Google Sheets success dialog
-                          setGoogleSheetsResult(result);
+                          // Update the result message to reflect the action taken
+                          const enhancedResult = {
+                            ...result,
+                            message: result.action === 'updated'
+                              ? `Updated existing Google Sheet with ${result.rowCount || 0} registrations`
+                              : `Created new Google Sheet with ${result.rowCount || 0} registrations`,
+                            filename: `${selectedEvent.title} - Event Registrations`
+                          };
+
+                          // Show the Google Sheets success dialog
+                          setGoogleSheetsResult(enhancedResult);
                           setShowGoogleSheetsDialog(true);
                         } catch (err) {
                           // Remove the loading overlay if it exists
