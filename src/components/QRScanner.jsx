@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import jsQR from 'jsqr';
 import registrationService from '../services/registrationService';
+// Enhanced QR Scanner with native browser optimizations
 
 /**
  * QR Scanner Component for Attendance Tracking
@@ -19,10 +20,200 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
   const [availableCameras, setAvailableCameras] = useState([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const [isLaptopFrontCamera, setIsLaptopFrontCamera] = useState(false);
+  const [focusMode, setFocusMode] = useState('auto');
+  const [isEnhancedMode, setIsEnhancedMode] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
   const cooldownIntervalRef = useRef(null);
+
+  // Initialize native camera enhancements for better focus control
+  const initializeNativeCameraEnhancements = async () => {
+    try {
+      console.log('Initializing native camera enhancements...');
+
+      // Check for advanced camera capabilities
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      let hasAdvancedCapabilities = false;
+
+      // Test for advanced camera features
+      for (const device of videoDevices) {
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: device.deviceId }
+          });
+
+          const track = testStream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities();
+
+          console.log(`Camera ${device.label} capabilities:`, capabilities);
+
+          if (capabilities.focusMode || capabilities.focusDistance || capabilities.exposureMode) {
+            hasAdvancedCapabilities = true;
+            setFocusMode('continuous');
+          }
+
+          testStream.getTracks().forEach(track => track.stop());
+          break;
+        } catch (error) {
+          console.warn(`Failed to test camera ${device.label}:`, error);
+        }
+      }
+
+      setIsEnhancedMode(hasAdvancedCapabilities);
+
+      console.log('Native camera enhancements initialized:', hasAdvancedCapabilities);
+      return hasAdvancedCapabilities;
+    } catch (error) {
+      console.warn('Failed to initialize native camera enhancements:', error);
+      setIsEnhancedMode(false);
+      return false;
+    }
+  };
+
+  // Enhanced camera constraints with better focus settings
+  const getEnhancedCameraConstraints = (selectedCamera, isMobile, detectedLaptopFrontCamera) => {
+    const baseConstraints = {
+      video: {
+        facingMode: selectedCamera ? undefined : (isMobile ? 'environment' : 'user'),
+        deviceId: selectedCamera ? { exact: selectedCamera.deviceId } : undefined,
+        width: {
+          min: 640,
+          ideal: detectedLaptopFrontCamera ? 1920 : 1920, // Higher resolution for better focus
+          max: 1920
+        },
+        height: {
+          min: 480,
+          ideal: detectedLaptopFrontCamera ? 1080 : 1080, // Higher resolution for better focus
+          max: 1080
+        },
+        frameRate: {
+          min: 15,
+          ideal: 30,
+          max: 60
+        },
+        // Enhanced focus settings
+        focusMode: 'continuous',
+        focusDistance: { min: 0.1, ideal: 0.3, max: 10 },
+        // Better exposure and white balance
+        exposureMode: 'continuous',
+        exposureCompensation: 0,
+        whiteBalanceMode: 'continuous',
+        // Image quality improvements
+        aspectRatio: { ideal: 16/9 },
+        resizeMode: 'crop-and-scale',
+        // Additional quality settings
+        torch: false,
+        zoom: { min: 1.0, ideal: 1.0, max: 3.0 }
+      }
+    };
+
+    // Add advanced constraints for supported browsers
+    if (navigator.userAgent.includes('Chrome')) {
+      baseConstraints.video.advanced = [
+        { focusMode: 'continuous' },
+        { exposureMode: 'continuous' },
+        { whiteBalanceMode: 'continuous' },
+        { imageStabilization: true },
+        { noiseSuppression: true }
+      ];
+    }
+
+    return baseConstraints;
+  };
+
+  // Apply manual focus adjustments using native browser APIs
+  const adjustFocus = async (distance) => {
+    try {
+      if (cameraStream) {
+        const videoTrack = cameraStream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities();
+
+        console.log('Camera capabilities for focus adjustment:', capabilities);
+
+        // Try different focus adjustment methods
+        const focusConstraints = {};
+
+        if (capabilities.focusDistance) {
+          focusConstraints.focusDistance = distance;
+        }
+
+        if (capabilities.focusMode) {
+          focusConstraints.focusMode = distance < 0.5 ? 'manual' : 'continuous';
+        }
+
+        if (Object.keys(focusConstraints).length > 0) {
+          await videoTrack.applyConstraints({
+            advanced: [focusConstraints]
+          });
+          console.log(`Focus adjusted - distance: ${distance}, constraints:`, focusConstraints);
+
+          // Update focus mode state
+          setFocusMode(focusConstraints.focusMode || 'manual');
+        } else {
+          console.warn('Camera does not support focus adjustments');
+
+          // Fallback: adjust video element properties for better clarity
+          if (videoRef.current) {
+            const video = videoRef.current;
+            video.style.filter = `contrast(${110 + distance * 20}%) brightness(${105 + distance * 10}%) saturate(${100 + distance * 20}%)`;
+            console.log(`Applied software focus enhancement for distance: ${distance}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to adjust focus:', error);
+
+      // Fallback software enhancement
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.style.filter = `contrast(${110 + distance * 20}%) brightness(${105 + distance * 10}%) saturate(${100 + distance * 20}%)`;
+        console.log(`Applied fallback software focus enhancement for distance: ${distance}`);
+      }
+    }
+  };
+
+  // Enhanced image preprocessing with multiple filters
+  const enhancedImagePreprocessing = (imageData) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+
+      // Put original image data
+      ctx.putImageData(imageData, 0, 0);
+
+      // Apply multiple enhancement filters
+      const filters = [
+        'contrast(150%) brightness(110%)',
+        'contrast(120%) brightness(105%) saturate(110%)',
+        'contrast(180%) brightness(115%) blur(0.5px)',
+        'contrast(140%) brightness(108%) hue-rotate(5deg)'
+      ];
+
+      const enhancedImages = [];
+
+      for (const filter of filters) {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+
+        tempCtx.filter = filter;
+        tempCtx.drawImage(canvas, 0, 0);
+
+        enhancedImages.push(tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height));
+      }
+
+      return enhancedImages;
+    } catch (error) {
+      console.error('Error in enhanced image preprocessing:', error);
+      return [imageData];
+    }
+  };
 
   // Start camera and scanning with optimized settings
   const startScanning = async () => {
@@ -30,6 +221,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       setError(null);
       setIsScanning(true);
       setScanAttempts(0); // Reset scan counter
+
+      // Try to initialize native camera enhancements first
+      await initializeNativeCameraEnhancements();
 
       // Get available video devices to choose the best camera
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -91,40 +285,41 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       // Set the laptop front camera state
       setIsLaptopFrontCamera(detectedLaptopFrontCamera);
 
-      const constraints = {
-        video: {
-          facingMode: preferredDeviceId ? undefined : (isMobile ? 'environment' : 'user'),
-          deviceId: preferredDeviceId ? { exact: preferredDeviceId } : undefined,
-          width: {
-            min: 640,
-            ideal: detectedLaptopFrontCamera ? 1280 : 1920, // Lower resolution for front cameras
-            max: detectedLaptopFrontCamera ? 1280 : 1920
-          },
-          height: {
-            min: 480,
-            ideal: detectedLaptopFrontCamera ? 720 : 1080, // Lower resolution for front cameras
-            max: detectedLaptopFrontCamera ? 720 : 1080
-          },
-          frameRate: {
-            min: 15,
-            ideal: 30,
-            max: detectedLaptopFrontCamera ? 30 : 60 // Limit frame rate for stability
-          },
-          // Focus optimization for laptop front cameras
-          focusMode: detectedLaptopFrontCamera ? 'manual' : 'continuous',
-          focusDistance: detectedLaptopFrontCamera ? 0.3 : undefined, // Set focus distance for close-up scanning
-          exposureMode: 'manual',
-          exposureCompensation: detectedLaptopFrontCamera ? 0.5 : 0, // Increase exposure for better QR visibility
-          whiteBalanceMode: 'manual',
-          colorTemperature: detectedLaptopFrontCamera ? 5500 : undefined, // Optimize for indoor lighting
-          // Additional settings for front camera optimization
-          torch: false, // Disable torch for front cameras
-          zoom: detectedLaptopFrontCamera ? 1.0 : undefined,
-          // Request high resolution and quality
-          aspectRatio: { ideal: 16/9 },
-          resizeMode: 'crop-and-scale'
-        }
-      };
+      // Use enhanced camera constraints for better focus and quality
+      const constraints = isEnhancedMode ?
+        getEnhancedCameraConstraints(selectedCamera, isMobile, detectedLaptopFrontCamera) :
+        {
+          video: {
+            facingMode: preferredDeviceId ? undefined : (isMobile ? 'environment' : 'user'),
+            deviceId: preferredDeviceId ? { exact: preferredDeviceId } : undefined,
+            width: {
+              min: 640,
+              ideal: detectedLaptopFrontCamera ? 1920 : 1920, // Higher resolution for better focus
+              max: 1920
+            },
+            height: {
+              min: 480,
+              ideal: detectedLaptopFrontCamera ? 1080 : 1080, // Higher resolution for better focus
+              max: 1080
+            },
+            frameRate: {
+              min: 15,
+              ideal: 30,
+              max: 60
+            },
+            // Enhanced focus optimization
+            focusMode: 'continuous',
+            focusDistance: { min: 0.1, ideal: 0.3, max: 10 },
+            exposureMode: 'continuous',
+            exposureCompensation: 0,
+            whiteBalanceMode: 'continuous',
+            // Additional quality settings
+            torch: false,
+            zoom: { min: 1.0, ideal: 1.0, max: 3.0 },
+            aspectRatio: { ideal: 16/9 },
+            resizeMode: 'crop-and-scale'
+          }
+        };
 
       console.log('Camera type detected:', {
         isMobile,
@@ -229,6 +424,10 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+
+    // Reset enhanced mode state
+    setIsEnhancedMode(false);
+    setFocusMode('auto');
   };
 
   // Start QR code detection with optimized scanning
@@ -327,7 +526,21 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         }
       }
 
-      // If no QR code found with standard methods, try with image preprocessing
+      // If no QR code found with standard methods, try with enhanced image preprocessing
+      const enhancedImages = enhancedImagePreprocessing(imageData);
+      for (const enhancedImageData of enhancedImages) {
+        const code = jsQR(enhancedImageData.data, enhancedImageData.width, enhancedImageData.height, {
+          inversionAttempts: "attemptBoth",
+        });
+
+        if (code && code.data) {
+          console.log('QR Code detected after enhanced preprocessing:', code.data);
+          await processQRCode(code.data);
+          return true;
+        }
+      }
+
+      // Fallback to original preprocessing method
       const preprocessedImageData = preprocessImage(imageData);
       if (preprocessedImageData) {
         const code = jsQR(preprocessedImageData.data, preprocessedImageData.width, preprocessedImageData.height, {
@@ -335,7 +548,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         });
 
         if (code && code.data) {
-          console.log('QR Code detected after preprocessing:', code.data);
+          console.log('QR Code detected after basic preprocessing:', code.data);
           await processQRCode(code.data);
           return true;
         }
@@ -582,10 +795,11 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   {cameraQuality && (
                     <div className="camera-quality-indicator">
                       <div className="quality-badge">
-                        📹 {cameraQuality.quality}
+                        📹 {cameraQuality.quality} {isEnhancedMode && '⚡'}
                       </div>
                       <div className="quality-details">
                         {cameraQuality.resolution} • {cameraQuality.frameRate}fps
+                        {isEnhancedMode && <div className="enhanced-mode">Enhanced Mode: {focusMode}</div>}
                       </div>
                     </div>
                   )}
@@ -615,6 +829,31 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                     🔄 Switch Camera
                   </button>
                 )}
+
+                {/* Focus Control Buttons */}
+                <div className="focus-controls">
+                  <button
+                    className="focus-button"
+                    onClick={() => adjustFocus(0.1)}
+                    title="Focus Close (0.1m)"
+                  >
+                    🔍 Near
+                  </button>
+                  <button
+                    className="focus-button"
+                    onClick={() => adjustFocus(0.3)}
+                    title="Focus Medium (0.3m)"
+                  >
+                    🎯 Medium
+                  </button>
+                  <button
+                    className="focus-button"
+                    onClick={() => adjustFocus(1.0)}
+                    title="Focus Far (1.0m)"
+                  >
+                    🔭 Far
+                  </button>
+                </div>
 
                 <button
                   className="manual-input-button"
@@ -1020,6 +1259,14 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           font-family: monospace;
         }
 
+        .enhanced-mode {
+          color: var(--accent);
+          font-size: 9px;
+          font-weight: 600;
+          margin-top: 2px;
+          text-shadow: 0 0 4px rgba(68, 255, 210, 0.6);
+        }
+
         .scan-counter {
           position: absolute;
           top: 15px;
@@ -1286,6 +1533,58 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           transform: translateY(0);
         }
 
+        .focus-controls {
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+          margin: 10px 0;
+          flex-wrap: wrap;
+        }
+
+        .focus-button {
+          padding: 8px 12px;
+          background: linear-gradient(135deg, var(--accent, #44ffd2), #00d4aa);
+          color: #000;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(68, 255, 210, 0.3);
+          min-width: 60px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .focus-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(68, 255, 210, 0.4);
+          background: linear-gradient(135deg, #44ffd2, #00e6c3);
+        }
+
+        .focus-button:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(68, 255, 210, 0.3);
+        }
+
+        .focus-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s;
+        }
+
+        .focus-button:hover::before {
+          left: 100%;
+        }
+
         .focus-assistance {
           background: rgba(255, 193, 7, 0.1);
           border: 1px solid rgba(255, 193, 7, 0.3);
@@ -1405,6 +1704,17 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             flex-direction: column;
             gap: 10px;
             align-items: center;
+          }
+
+          .focus-controls {
+            gap: 6px;
+            margin: 8px 0;
+          }
+
+          .focus-button {
+            padding: 6px 10px;
+            font-size: 11px;
+            min-width: 50px;
           }
 
           .result-actions {
