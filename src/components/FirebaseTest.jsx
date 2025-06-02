@@ -3,6 +3,7 @@ import { ref, set, get, onValue } from 'firebase/database';
 import { database, auth } from '../lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
+import logger from '../utils/logger';
 export default function FirebaseTest() {
   const [testMessage, setTestMessage] = useState('');
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
@@ -49,7 +50,7 @@ export default function FirebaseTest() {
 
       setTestMessage('Test data written successfully');
     } catch (error) {
-      console.error('Error writing test data:', error);
+      logger.error('Error writing test data:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ export default function FirebaseTest() {
         setTestMessage('No test data found');
       }
     } catch (error) {
-      console.error('Error reading test data:', error);
+      logger.error('Error reading test data:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -93,7 +94,7 @@ export default function FirebaseTest() {
       setUser(userCredential.user);
       setTestMessage(`User created: ${userCredential.user.email}`);
     } catch (error) {
-      console.error('Error creating user:', error);
+      logger.error('Error creating user:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -115,7 +116,7 @@ export default function FirebaseTest() {
       setUser(userCredential.user);
       setTestMessage(`User signed in: ${userCredential.user.email}`);
     } catch (error) {
-      console.error('Error signing in:', error);
+      logger.error('Error signing in:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -132,7 +133,7 @@ export default function FirebaseTest() {
       setUser(null);
       setTestMessage('User signed out');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out:', error);
       setError(error.message);
     } finally {
       setLoading(false);

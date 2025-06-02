@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import supabase from '../lib/supabase';
 
+import logger from '../utils/logger';
 const ConnectionStatus = () => {
   const [isConnected, setIsConnected] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
@@ -23,7 +24,7 @@ const ConnectionStatus = () => {
       setIsConnected(!error);
       setLastChecked(new Date());
     } catch (err) {
-      console.error('Connection check failed:', err);
+      logger.error('Connection check failed:', err);
       setIsConnected(false);
     } finally {
       setIsChecking(false);

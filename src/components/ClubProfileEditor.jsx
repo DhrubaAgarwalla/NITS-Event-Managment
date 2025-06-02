@@ -4,6 +4,7 @@ import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadImage } from '../lib/cloudinary';
 
+import logger from '../utils/logger';
 const ClubProfileEditor = ({ onClose, onUpdate }) => {
   const { club } = useAuth();
   const [formData, setFormData] = useState({
@@ -106,7 +107,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Upload progress: ${progress}%`);
+        logger.log(`Upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -120,7 +121,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
       setUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading image to Cloudinary:', err);
+      logger.error('Error uploading image to Cloudinary:', err);
       throw err;
     }
   };
@@ -182,7 +183,7 @@ const ClubProfileEditor = ({ onClose, onUpdate }) => {
         }
       }, 2000);
     } catch (err) {
-      console.error('Error updating club profile:', err);
+      logger.error('Error updating club profile:', err);
       setError(err.message || 'An error occurred while updating your profile');
     } finally {
       setIsLoading(false);

@@ -19,12 +19,38 @@
     "events": {
       ".read": "true",
       ".write": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
-      ".indexOn": ["club_id", "status", "category_id", "start_date"]
+      ".indexOn": ["club_id", "status", "category_id", "start_date"],
+      "$event_id": {
+        "google_sheet_id": {
+          ".write": "true"
+        },
+        "google_sheet_url": {
+          ".write": "true"
+        },
+        "sheet_created_at": {
+          ".write": "true"
+        },
+        "last_sync_at": {
+          ".write": "true"
+        },
+        "last_sync_type": {
+          ".write": "true"
+        },
+        "auto_sync_enabled": {
+          ".write": "true"
+        },
+        "sync_error": {
+          ".write": "true"
+        },
+        "updated_at": {
+          ".write": "true"
+        }
+      }
     },
 
     "registrations": {
-      ".read": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
-      ".write": "auth != null",
+      ".read": "true",
+      ".write": "true",
       ".indexOn": ["event_id", "user_id"]
     },
 
@@ -35,7 +61,7 @@
     },
 
     "club_requests": {
-      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".read": "true",
       ".write": "true",
       ".indexOn": ["status", "created_at"]
     },
@@ -48,7 +74,7 @@
 
     "event_tags": {
       ".read": "true",
-      ".write": "auth != null",
+      ".write": "true",
       ".indexOn": [".key"]
     }
   }

@@ -2,6 +2,7 @@ import { ref, get, set, update } from 'firebase/database';
 import { database } from '../lib/firebase';
 import googleSheetsService from './googleSheetsService';
 
+import logger from '../utils/logger';
 /**
  * Auto-Sync Service for Google Sheets
  * Handles automatic creation and real-time updates of Google Sheets
@@ -22,7 +23,7 @@ class AutoSyncService {
    */
   async autoCreateSheetForEvent(eventId, eventData) {
     try {
-      console.log(`🚀 Auto-creating Google Sheet for event: ${eventData.title}`);
+      logger.log(`🚀 Auto-creating Google Sheet for event: ${eventData.title}`);
 
       // Prepare event data for sheet creation
       const sheetEventData = {
@@ -50,14 +51,14 @@ class AutoSyncService {
           sheet_created_at: new Date().toISOString()
         });
 
-        console.log(`✅ Auto-created Google Sheet for event ${eventId}: ${result.shareableLink}`);
+        logger.log(`✅ Auto-created Google Sheet for event ${eventId}: ${result.shareableLink}`);
         return result;
       } else {
         throw new Error(result.error || 'Failed to create Google Sheet');
       }
 
     } catch (error) {
-      console.error(`❌ Failed to auto-create Google Sheet for event ${eventId}:`, error);
+      logger.error(`❌ Failed to auto-create Google Sheet for event ${eventId}:`, error);
 
       // Store error info but don't fail event creation
       await this.updateEventWithSheetInfo(eventId, {
@@ -83,7 +84,7 @@ class AutoSyncService {
    */
   async autoSyncRegistrations(eventId, updateType = 'registration') {
     try {
-      console.log(`🔄 Auto-syncing registrations for event ${eventId} (${updateType})`);
+      logger.log(`🔄 Auto-syncing registrations for event ${eventId} (${updateType})`);
 
       // Get event data
       const eventData = await this.getEventData(eventId);
@@ -93,7 +94,7 @@ class AutoSyncService {
 
       // Check if auto-sync is enabled and sheet exists
       if (!eventData.auto_sync_enabled || !eventData.google_sheet_id) {
-        console.log(`⏭️ Auto-sync disabled or no sheet for event ${eventId}`);
+        logger.log(`⏭️ Auto-sync disabled or no sheet for event ${eventId}`);
         return { success: false, reason: 'Auto-sync disabled or no sheet' };
       }
 
@@ -125,7 +126,7 @@ class AutoSyncService {
       });
 
     } catch (error) {
-      console.error(`❌ Failed to auto-sync event ${eventId}:`, error);
+      logger.error(`❌ Failed to auto-sync event ${eventId}:`, error);
       return {
         success: false,
         error: error.message,
@@ -185,7 +186,7 @@ class AutoSyncService {
       };
 
     } catch (error) {
-      console.error('❌ Error processing sync queue:', error);
+      logger.error('❌ Error processing sync queue:', error);
       return {
         success: false,
         error: error.message,
@@ -207,7 +208,7 @@ class AutoSyncService {
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        console.log(`🔄 Executing sync operation (attempt ${attempt}/${this.retryAttempts})`);
+        logger.log(`🔄 Executing sync operation (attempt ${attempt}/${this.retryAttempts})`);
 
         const result = await googleSheetsService.autoSyncSheet(
           operation.spreadsheetId,
@@ -217,7 +218,7 @@ class AutoSyncService {
         );
 
         if (result.success) {
-          console.log(`✅ Sync successful for event ${operation.eventId}`);
+          logger.log(`✅ Sync successful for event ${operation.eventId}`);
 
           // Update last sync timestamp
           await this.updateEventWithSheetInfo(operation.eventId, {
@@ -238,7 +239,7 @@ class AutoSyncService {
 
       } catch (error) {
         lastError = error;
-        console.warn(`⚠️ Sync attempt ${attempt} failed for event ${operation.eventId}:`, error.message);
+        logger.warn(`⚠️ Sync attempt ${attempt} failed for event ${operation.eventId}:`, error.message);
 
         if (attempt < this.retryAttempts) {
           await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
@@ -247,7 +248,7 @@ class AutoSyncService {
     }
 
     // All attempts failed
-    console.error(`❌ All sync attempts failed for event ${operation.eventId}:`, lastError.message);
+    logger.error(`❌ All sync attempts failed for event ${operation.eventId}:`, lastError.message);
 
     // Update event with error info
     await this.updateEventWithSheetInfo(operation.eventId, {
@@ -275,7 +276,7 @@ class AutoSyncService {
       const snapshot = await get(eventRef);
       return snapshot.exists() ? { id: eventId, ...snapshot.val() } : null;
     } catch (error) {
-      console.error(`Error getting event data for ${eventId}:`, error);
+      logger.error(`Error getting event data for ${eventId}:`, error);
       return null;
     }
   }
@@ -309,7 +310,7 @@ class AutoSyncService {
 
       return eventRegistrations;
     } catch (error) {
-      console.error(`Error getting registrations for event ${eventId}:`, error);
+      logger.error(`Error getting registrations for event ${eventId}:`, error);
       return [];
     }
   }
@@ -322,13 +323,40 @@ class AutoSyncService {
    */
   async updateEventWithSheetInfo(eventId, sheetInfo) {
     try {
-      const eventRef = ref(database, `events/${eventId}`);
-      await update(eventRef, {
-        ...sheetInfo,
+      // Only update Google Sheets-related fields that any authenticated user can modify
+      const allowedFields = {
+        google_sheet_id: sheetInfo.google_sheet_id,
+        google_sheet_url: sheetInfo.google_sheet_url,
+        sheet_created_at: sheetInfo.sheet_created_at,
+        last_sync_at: sheetInfo.last_sync_at,
+        last_sync_type: sheetInfo.last_sync_type,
+        auto_sync_enabled: sheetInfo.auto_sync_enabled,
+        sync_error: sheetInfo.sync_error,
+        auto_sync_disabled_at: sheetInfo.auto_sync_disabled_at,
+        auto_sync_enabled_at: sheetInfo.auto_sync_enabled_at,
         updated_at: new Date().toISOString()
+      };
+
+      // Remove undefined fields
+      const fieldsToUpdate = {};
+      Object.keys(allowedFields).forEach(key => {
+        if (allowedFields[key] !== undefined) {
+          fieldsToUpdate[key] = allowedFields[key];
+        }
       });
+
+      if (Object.keys(fieldsToUpdate).length === 0) {
+        logger.warn(`No valid fields to update for event ${eventId}`);
+        return;
+      }
+
+      const eventRef = ref(database, `events/${eventId}`);
+      await update(eventRef, fieldsToUpdate);
+
+      logger.warn(`Updated event ${eventId} with sheet info: ${Object.keys(fieldsToUpdate).join(', ')}`);
     } catch (error) {
-      console.error(`Error updating event ${eventId} with sheet info:`, error);
+      logger.error(`Error updating event ${eventId} with sheet info:`, error);
+      throw error; // Re-throw to handle in calling function
     }
   }
 

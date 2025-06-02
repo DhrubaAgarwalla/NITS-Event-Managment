@@ -1,15 +1,16 @@
 /**
  * Navigation utility functions for consistent page navigation
  */
+import logger from './logger';
 
 // Navigate to a page using the setCurrentPage function
 export const navigateTo = (setCurrentPage, page, params = {}) => {
   if (typeof setCurrentPage !== 'function') {
-    console.error('navigateTo: setCurrentPage is not a function');
+    logger.error('navigateTo: setCurrentPage is not a function');
     return;
   }
 
-  console.log(`Navigating to: ${page}`, params);
+  logger.log(`Navigating to: ${page}`, params);
 
   // Update browser URL for shareable links
   if (page === 'event-details' && params.eventId) {
@@ -58,11 +59,11 @@ export const hardRefresh = () => {
 // Logout and redirect
 export const logoutAndRedirect = async (signOutFn) => {
   try {
-    console.log('Logging out and redirecting...');
+    logger.log('Logging out and redirecting...');
 
     if (typeof signOutFn === 'function') {
       await signOutFn();
-      console.log('Sign out function completed');
+      logger.log('Sign out function completed');
     }
 
     // Store a flag in localStorage to indicate intentional logout
@@ -70,12 +71,12 @@ export const logoutAndRedirect = async (signOutFn) => {
 
     // Add a small delay to ensure state updates are processed
     setTimeout(() => {
-      console.log('Performing hard refresh to clear state');
+      logger.log('Performing hard refresh to clear state');
       // Force a complete page refresh to clear all state
       hardRefresh();
     }, 300); // Increased delay to ensure state updates
   } catch (error) {
-    console.error('Error during logout:', error);
+    logger.error('Error during logout:', error);
     // Even if there's an error, still redirect to home
     hardRefresh();
   }

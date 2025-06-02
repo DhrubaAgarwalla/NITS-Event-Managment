@@ -7,6 +7,7 @@ import AdminEventEditor from './AdminEventEditor';
 import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
 import GoogleSheetsInfo from './GoogleSheetsInfo';
 
+import logger from '../utils/logger';
 const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   const [event, setEvent] = useState(null);
   const [registrations, setRegistrations] = useState([]);
@@ -56,7 +57,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching event details:', err);
+        logger.error('Error fetching event details:', err);
         setError('Failed to load event details. Please try again later.');
       } finally {
         setLoading(false);
@@ -138,7 +139,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
         }
       }
     } catch (err) {
-      console.error('Error exporting registrations:', err);
+      logger.error('Error exporting registrations:', err);
       alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
     } finally {
       setExportLoading(false);
@@ -153,7 +154,7 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
       });
       setEvent(updatedEvent);
     } catch (err) {
-      console.error('Error toggling featured status:', err);
+      logger.error('Error toggling featured status:', err);
       alert('Failed to update featured status: ' + (err.message || 'Unknown error'));
     }
   };
@@ -180,11 +181,11 @@ const AdminEventDetails = ({ eventId, onBack, onViewClub }) => {
   };
 
   const handleShareWhatsApp = (whatsappUrl) => {
-    console.log('Opening WhatsApp URL:', whatsappUrl);
+    logger.log('Opening WhatsApp URL:', whatsappUrl);
     if (whatsappUrl) {
       window.open(whatsappUrl, '_blank');
     } else {
-      console.error('WhatsApp URL is empty or undefined');
+      logger.error('WhatsApp URL is empty or undefined');
       alert('WhatsApp URL is not available. Please try copying the link instead.');
     }
   };

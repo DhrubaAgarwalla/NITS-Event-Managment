@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import registrationService from '../services/registrationService';
 import { uploadImage } from '../services/cloudinaryService';
 
+import logger from '../utils/logger';
 // Event data and registrations will come from props
 
 const EventRegistration = ({ eventData, registrations = [] }) => {
@@ -18,9 +19,9 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
   };
 
   // Debug logs to check event data
-  console.log('Event participation type:', eventData?.participation_type);
-  console.log('Event min_participants:', eventData?.min_participants);
-  console.log('Event max_participants:', eventData?.max_participants);
+  logger.log('Event participation type:', eventData?.participation_type);
+  logger.log('Event min_participants:', eventData?.min_participants);
+  logger.log('Event max_participants:', eventData?.max_participants);
 
   // Get team size requirements
   const minTeamSize = eventData?.min_participants || 1;
@@ -61,10 +62,10 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
 
   // Update team value and re-initialize team members when event data changes
   useEffect(() => {
-    console.log('Event data changed or team value changed');
+    logger.log('Event data changed or team value changed');
 
     if (eventData?.participation_type === 'team') {
-      console.log('Setting team value to team for team-only event');
+      logger.log('Setting team value to team for team-only event');
       // If event is team-only, force team value to 'team'
       setFormData(prev => ({
         ...prev,
@@ -137,7 +138,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
       return;
     }
 
-    console.log(`Selected payment screenshot: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+    logger.log(`Selected payment screenshot: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
 
     // Preview the selected image
     const reader = new FileReader();
@@ -255,10 +256,10 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
       if (paymentScreenshot && eventData.requires_payment) {
         try {
           setPaymentUploadProgress(0);
-          console.log('Starting payment screenshot upload to Cloudinary...');
+          logger.log('Starting payment screenshot upload to Cloudinary...');
 
           const updateProgress = (progress) => {
-            console.log(`Payment screenshot upload progress: ${progress}%`);
+            logger.log(`Payment screenshot upload progress: ${progress}%`);
             setPaymentUploadProgress(progress);
           };
 
@@ -268,11 +269,11 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
             throw new Error('Payment screenshot upload failed: No URL returned from Cloudinary');
           }
 
-          console.log('Payment screenshot upload successful, URL:', result.url);
+          logger.log('Payment screenshot upload successful, URL:', result.url);
           setPaymentUploadProgress(100);
           paymentScreenshotUrl = result.url;
         } catch (uploadErr) {
-          console.error('Error uploading payment screenshot:', uploadErr);
+          logger.error('Error uploading payment screenshot:', uploadErr);
           setError(`Payment screenshot upload failed: ${uploadErr.message}. Please try again.`);
           setIsSubmitting(false);
           setPaymentUploadProgress(0);
@@ -328,7 +329,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         setIsSuccess(false);
       }, 3000);
     } catch (err) {
-      console.error('Error registering for event:', err);
+      logger.error('Error registering for event:', err);
       setError(err.message || 'Failed to register for event. Please try again.');
       setIsSubmitting(false);
     }

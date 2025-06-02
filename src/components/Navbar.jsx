@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { navigateToHome, logoutAndRedirect } from '../utils/navigation';
 
+import logger from '../utils/logger';
 const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }) => {
   const { user, isAdmin, signOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
@@ -32,11 +33,11 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
   // Hide navbar on club dashboard and admin dashboard pages
   // This ensures navbar is visible on all other pages, even after refresh
   if ((isClubLoggedIn && currentPage === 'club-dashboard') || currentPage === 'admin-dashboard') {
-    console.log('Hiding navbar on dashboard page:', currentPage);
+    logger.log('Hiding navbar on dashboard page:', currentPage);
     return null;
   }
 
-  console.log('Showing navbar', { isClubLoggedIn, currentPage, user });
+  logger.log('Showing navbar', { isClubLoggedIn, currentPage, user });
 
   return (
     <>

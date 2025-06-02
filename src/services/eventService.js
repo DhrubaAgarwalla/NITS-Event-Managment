@@ -1,18 +1,19 @@
 import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from 'firebase/database';
 import { database } from '../lib/firebase';
 import { uploadImage } from '../lib/cloudinary';
+import logger from '../utils/logger';
 
 // Event-related database operations
 const eventService = {
   // Get all categories
   getCategories: async () => {
     try {
-      console.log('Getting all categories from Firebase');
+      logger.log('Getting all categories from Firebase');
       const categoriesRef = ref(database, 'categories');
       const snapshot = await get(categoriesRef);
 
       if (!snapshot.exists()) {
-        console.log('No categories found');
+        logger.log('No categories found');
         return [];
       }
 
@@ -24,10 +25,10 @@ const eventService = {
         });
       });
 
-      console.log(`Found ${categories.length} categories`);
+      logger.log(`Found ${categories.length} categories`);
       return categories;
     } catch (error) {
-      console.error('Error getting categories:', error);
+      logger.error('Error getting categories:', error);
       throw error;
     }
   },
@@ -35,12 +36,12 @@ const eventService = {
   // Get all tags
   getAllTags: async () => {
     try {
-      console.log('Getting all tags from Firebase');
+      logger.log('Getting all tags from Firebase');
       const tagsRef = ref(database, 'tags');
       const snapshot = await get(tagsRef);
 
       if (!snapshot.exists()) {
-        console.log('No tags found');
+        logger.log('No tags found');
         return [];
       }
 
@@ -64,10 +65,10 @@ const eventService = {
       const tags = Array.from(uniqueTagsMap.values())
         .sort((a, b) => a.name.localeCompare(b.name));
 
-      console.log(`Found ${tags.length} unique tags`);
+      logger.log(`Found ${tags.length} unique tags`);
       return tags;
     } catch (error) {
-      console.error('Error getting tags:', error);
+      logger.error('Error getting tags:', error);
       throw error;
     }
   },
@@ -75,7 +76,7 @@ const eventService = {
   // Add tags to an event
   addTagsToEvent: async (eventId, tagIds) => {
     try {
-      console.log(`Adding tags to event ${eventId}:`, tagIds);
+      logger.log(`Adding tags to event ${eventId}:`, tagIds);
       const eventTagsRef = ref(database, `event_tags/${eventId}`);
 
       // Create an object with tag IDs as keys
@@ -85,10 +86,10 @@ const eventService = {
       });
 
       await set(eventTagsRef, tagsObject);
-      console.log('Tags added successfully');
+      logger.log('Tags added successfully');
       return true;
     } catch (error) {
-      console.error('Error adding tags to event:', error);
+      logger.error('Error adding tags to event:', error);
       throw error;
     }
   },
@@ -96,12 +97,12 @@ const eventService = {
   // Get tags for a specific event
   getEventTags: async (eventId) => {
     try {
-      console.log(`Getting tags for event ID: ${eventId}`);
+      logger.log(`Getting tags for event ID: ${eventId}`);
       const eventTagsRef = ref(database, `event_tags/${eventId}`);
       const eventTagsSnapshot = await get(eventTagsRef);
 
       if (!eventTagsSnapshot.exists()) {
-        console.log('No tags found for this event');
+        logger.log('No tags found for this event');
         return [];
       }
 
@@ -122,10 +123,10 @@ const eventService = {
       });
 
       const tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
-      console.log(`Found ${tags.length} tags for event ID: ${eventId}`);
+      logger.log(`Found ${tags.length} tags for event ID: ${eventId}`);
       return tags;
     } catch (error) {
-      console.error('Error getting event tags:', error);
+      logger.error('Error getting event tags:', error);
       throw error;
     }
   },
@@ -133,13 +134,13 @@ const eventService = {
   // Remove tags from an event
   removeTagsFromEvent: async (eventId, tagIds) => {
     try {
-      console.log(`Removing tags from event ${eventId}:`, tagIds);
+      logger.log(`Removing tags from event ${eventId}:`, tagIds);
       const eventTagsRef = ref(database, `event_tags/${eventId}`);
 
       // Get current tags
       const snapshot = await get(eventTagsRef);
       if (!snapshot.exists()) {
-        console.log('No tags found for this event');
+        logger.log('No tags found for this event');
         return true;
       }
 
@@ -155,22 +156,22 @@ const eventService = {
 
       // Update the event_tags node
       await set(eventTagsRef, updatedTags);
-      console.log('Tags removed successfully');
+      logger.log('Tags removed successfully');
       return true;
     } catch (error) {
-      console.error('Error removing tags from event:', error);
+      logger.error('Error removing tags from event:', error);
       throw error;
     }
   },
   // Get all events
   getAllEvents: async () => {
     try {
-      console.log('Getting all events from Firebase');
+      logger.log('Getting all events from Firebase');
       const eventsRef = ref(database, 'events');
       const snapshot = await get(eventsRef);
 
       if (!snapshot.exists()) {
-        console.log('No events found');
+        logger.log('No events found');
         return [];
       }
 
@@ -266,12 +267,12 @@ const eventService = {
         });
       });
 
-      console.log(`Found and processed ${events.length} events with related data`);
+      logger.log(`Found and processed ${events.length} events with related data`);
 
       // Sort by start_date descending
       return events.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
     } catch (error) {
-      console.error('Error getting all events:', error);
+      logger.error('Error getting all events:', error);
       throw error;
     }
   },
@@ -279,7 +280,7 @@ const eventService = {
   // Get upcoming events
   getUpcomingEvents: async (limit = 10) => {
     try {
-      console.log(`Getting upcoming events (limit: ${limit})`);
+      logger.log(`Getting upcoming events (limit: ${limit})`);
 
       // Get all events first
       const allEvents = await eventService.getAllEvents();
@@ -290,14 +291,14 @@ const eventService = {
         event.status === 'upcoming' && new Date(event.start_date) >= now
       );
 
-      console.log(`Found ${upcomingEvents.length} upcoming events`);
+      logger.log(`Found ${upcomingEvents.length} upcoming events`);
 
       // Sort by start_date ascending and limit
       return upcomingEvents
         .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
         .slice(0, limit);
     } catch (error) {
-      console.error('Error getting upcoming events:', error);
+      logger.error('Error getting upcoming events:', error);
       throw error;
     }
   },
@@ -305,12 +306,12 @@ const eventService = {
   // Get a specific event by ID
   getEventById: async (id) => {
     try {
-      console.log(`Getting event by ID: ${id}`);
+      logger.log(`Getting event by ID: ${id}`);
       const eventRef = ref(database, `events/${id}`);
       const snapshot = await get(eventRef);
 
       if (!snapshot.exists()) {
-        console.log('Event not found');
+        logger.log('Event not found');
         return null;
       }
 
@@ -319,7 +320,7 @@ const eventService = {
         ...snapshot.val()
       };
 
-      console.log('Found event data:', eventData);
+      logger.log('Found event data:', eventData);
 
       // Get club data if available
       let clubData = null;
@@ -332,9 +333,9 @@ const eventService = {
             id: clubSnapshot.key,
             ...clubSnapshot.val()
           };
-          console.log('Found club data for event:', clubData.name);
+          logger.log('Found club data for event:', clubData.name);
         } else {
-          console.log('Club not found for ID:', eventData.club_id);
+          logger.log('Club not found for ID:', eventData.club_id);
         }
       }
 
@@ -349,9 +350,9 @@ const eventService = {
             id: categorySnapshot.key,
             ...categorySnapshot.val()
           };
-          console.log('Found category data for event:', categoryData.name);
+          logger.log('Found category data for event:', categoryData.name);
         } else {
-          console.log('Category not found for ID:', eventData.category_id);
+          logger.log('Category not found for ID:', eventData.category_id);
         }
       }
 
@@ -361,7 +362,7 @@ const eventService = {
       const eventTagsSnapshot = await get(eventTagsRef);
 
       if (eventTagsSnapshot.exists()) {
-        console.log('Found event tags relationship');
+        logger.log('Found event tags relationship');
         const tagIds = Object.keys(eventTagsSnapshot.val());
 
         // Fetch each tag by ID
@@ -378,9 +379,9 @@ const eventService = {
         });
 
         tags = (await Promise.all(tagPromises)).filter(tag => tag !== null);
-        console.log(`Found ${tags.length} tags for event`);
+        logger.log(`Found ${tags.length} tags for event`);
       } else {
-        console.log('No tags found for event');
+        logger.log('No tags found for event');
       }
 
       // Return event with related data - use consistent naming
@@ -393,7 +394,7 @@ const eventService = {
         tags
       };
     } catch (error) {
-      console.error('Error getting event by ID:', error);
+      logger.error('Error getting event by ID:', error);
       throw error;
     }
   },
@@ -401,24 +402,24 @@ const eventService = {
   // Create a new event
   createEvent: async (eventData, imageFile = null, verticalImageFile = null) => {
     try {
-      console.log('Creating new event:', eventData.title);
+      logger.log('Creating new event:', eventData.title);
 
       // Upload horizontal banner if provided
       let imageUrl = eventData.image_url || null;
       if (imageFile) {
-        console.log('Uploading horizontal banner to Cloudinary');
+        logger.log('Uploading horizontal banner to Cloudinary');
         const uploadResult = await uploadImage(imageFile, 'event-images');
         imageUrl = uploadResult.url;
-        console.log('Horizontal banner uploaded successfully:', imageUrl);
+        logger.log('Horizontal banner uploaded successfully:', imageUrl);
       }
 
       // Upload vertical banner if provided
       let verticalImageUrl = eventData.vertical_image_url || null;
       if (verticalImageFile) {
-        console.log('Uploading vertical banner to Cloudinary');
+        logger.log('Uploading vertical banner to Cloudinary');
         const uploadResult = await uploadImage(verticalImageFile, 'event-images-vertical');
         verticalImageUrl = uploadResult.url;
-        console.log('Vertical banner uploaded successfully:', verticalImageUrl);
+        logger.log('Vertical banner uploaded successfully:', verticalImageUrl);
       }
 
       // Create event with image URLs
@@ -436,7 +437,7 @@ const eventService = {
 
       // Save to database
       await set(newEventRef, newEvent);
-      console.log('Event created successfully with ID:', newEventRef.key);
+      logger.log('Event created successfully with ID:', newEventRef.key);
 
       const createdEvent = {
         id: newEventRef.key,
@@ -445,29 +446,29 @@ const eventService = {
 
       // Auto-create Google Sheet for the event (don't wait for it to complete)
       try {
-        console.log('🚀 Initiating auto-creation of Google Sheet...');
+        logger.log('🚀 Initiating auto-creation of Google Sheet...');
         const { default: autoSyncService } = await import('./autoSyncService.js');
 
         // Run auto-creation in background (don't await)
         autoSyncService.autoCreateSheetForEvent(newEventRef.key, newEvent)
           .then(result => {
             if (result.success) {
-              console.log(`✅ Google Sheet auto-created for event ${newEventRef.key}: ${result.data?.shareableLink}`);
+              logger.log(`✅ Google Sheet auto-created for event ${newEventRef.key}: ${result.data?.shareableLink}`);
             } else {
-              console.warn(`⚠️ Google Sheet auto-creation failed for event ${newEventRef.key}: ${result.error}`);
+              logger.warn(`⚠️ Google Sheet auto-creation failed for event ${newEventRef.key}: ${result.error}`);
             }
           })
           .catch(error => {
-            console.error(`❌ Google Sheet auto-creation error for event ${newEventRef.key}:`, error);
+            logger.error(`❌ Google Sheet auto-creation error for event ${newEventRef.key}:`, error);
           });
       } catch (error) {
-        console.warn('⚠️ Failed to initiate Google Sheet auto-creation:', error);
+        logger.warn('⚠️ Failed to initiate Google Sheet auto-creation:', error);
         // Don't fail event creation if auto-sync fails
       }
 
       return createdEvent;
     } catch (error) {
-      console.error('Error creating event:', error);
+      logger.error('Error creating event:', error);
       throw error;
     }
   },
@@ -475,22 +476,22 @@ const eventService = {
   // Update an event
   updateEvent: async (id, updates, imageFile = null, verticalImageFile = null) => {
     try {
-      console.log(`Updating event with ID: ${id}`);
+      logger.log(`Updating event with ID: ${id}`);
 
       // Upload new horizontal banner if provided
       if (imageFile) {
-        console.log('Uploading new horizontal banner to Cloudinary');
+        logger.log('Uploading new horizontal banner to Cloudinary');
         const uploadResult = await uploadImage(imageFile, 'event-images');
         updates.image_url = uploadResult.url;
-        console.log('New horizontal banner uploaded successfully:', updates.image_url);
+        logger.log('New horizontal banner uploaded successfully:', updates.image_url);
       }
 
       // Upload new vertical banner if provided
       if (verticalImageFile) {
-        console.log('Uploading new vertical banner to Cloudinary');
+        logger.log('Uploading new vertical banner to Cloudinary');
         const uploadResult = await uploadImage(verticalImageFile, 'event-images-vertical');
         updates.vertical_image_url = uploadResult.url;
-        console.log('New vertical banner uploaded successfully:', updates.vertical_image_url);
+        logger.log('New vertical banner uploaded successfully:', updates.vertical_image_url);
       }
 
       // Update the event
@@ -500,7 +501,7 @@ const eventService = {
       updates.updated_at = new Date().toISOString();
 
       await update(eventRef, updates);
-      console.log('Event updated successfully');
+      logger.log('Event updated successfully');
 
       // Get the updated event
       const snapshot = await get(eventRef);
@@ -510,7 +511,7 @@ const eventService = {
         ...snapshot.val()
       };
     } catch (error) {
-      console.error('Error updating event:', error);
+      logger.error('Error updating event:', error);
       throw error;
     }
   },
@@ -518,13 +519,13 @@ const eventService = {
   // Delete an event
   deleteEvent: async (id) => {
     try {
-      console.log(`Deleting event with ID: ${id}`);
+      logger.log(`Deleting event with ID: ${id}`);
       const eventRef = ref(database, `events/${id}`);
       await remove(eventRef);
-      console.log('Event deleted successfully');
+      logger.log('Event deleted successfully');
       return true;
     } catch (error) {
-      console.error('Error deleting event:', error);
+      logger.error('Error deleting event:', error);
       throw error;
     }
   },
@@ -532,7 +533,7 @@ const eventService = {
   // Get events for a specific club
   getClubEvents: async (clubId) => {
     try {
-      console.log(`Getting events for club ID: ${clubId}`);
+      logger.log(`Getting events for club ID: ${clubId}`);
 
       // Get all events first (which includes categories and tags)
       const allEvents = await eventService.getAllEvents();
@@ -540,12 +541,12 @@ const eventService = {
       // Filter for events belonging to the specified club
       const clubEvents = allEvents.filter(event => event.club_id === clubId);
 
-      console.log(`Found ${clubEvents.length} events for club ID: ${clubId}`);
+      logger.log(`Found ${clubEvents.length} events for club ID: ${clubId}`);
 
       // Sort by start_date descending
       return clubEvents.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
     } catch (error) {
-      console.error('Error getting club events:', error);
+      logger.error('Error getting club events:', error);
       throw error;
     }
   },
@@ -553,7 +554,7 @@ const eventService = {
   // Get featured events
   getFeaturedEvents: async (limit = 5) => {
     try {
-      console.log(`Getting featured events (limit: ${limit})`);
+      logger.log(`Getting featured events (limit: ${limit})`);
 
       // Get all events first
       const allEvents = await eventService.getAllEvents();
@@ -561,7 +562,7 @@ const eventService = {
       // Filter for featured events
       const featuredEvents = allEvents.filter(event => event.is_featured);
 
-      console.log(`Found ${featuredEvents.length} featured events`);
+      logger.log(`Found ${featuredEvents.length} featured events`);
 
       // Sort by updated_at (most recently featured first) then by start_date
       return featuredEvents
@@ -576,7 +577,7 @@ const eventService = {
         })
         .slice(0, limit);
     } catch (error) {
-      console.error('Error getting featured events:', error);
+      logger.error('Error getting featured events:', error);
       throw error;
     }
   },
@@ -584,7 +585,7 @@ const eventService = {
   // Update event status
   updateEventStatus: async (id, status) => {
     try {
-      console.log(`Updating event status to ${status} for event ID: ${id}`);
+      logger.log(`Updating event status to ${status} for event ID: ${id}`);
       const eventRef = ref(database, `events/${id}`);
 
       await update(eventRef, {
@@ -592,7 +593,7 @@ const eventService = {
         updated_at: new Date().toISOString()
       });
 
-      console.log('Event status updated successfully');
+      logger.log('Event status updated successfully');
 
       // Get the updated event
       const snapshot = await get(eventRef);
@@ -606,7 +607,7 @@ const eventService = {
         ...snapshot.val()
       };
     } catch (error) {
-      console.error('Error updating event status:', error);
+      logger.error('Error updating event status:', error);
       throw error;
     }
   },
@@ -614,7 +615,7 @@ const eventService = {
   // Toggle registration status (open/closed)
   toggleRegistrationStatus: async (id, isOpen) => {
     try {
-      console.log(`Setting registration status to ${isOpen ? 'open' : 'closed'} for event ID: ${id}`);
+      logger.log(`Setting registration status to ${isOpen ? 'open' : 'closed'} for event ID: ${id}`);
       const eventRef = ref(database, `events/${id}`);
 
       await update(eventRef, {
@@ -622,7 +623,7 @@ const eventService = {
         updated_at: new Date().toISOString()
       });
 
-      console.log('Registration status updated successfully');
+      logger.log('Registration status updated successfully');
 
       // Get the updated event
       const snapshot = await get(eventRef);
@@ -636,7 +637,7 @@ const eventService = {
         ...snapshot.val()
       };
     } catch (error) {
-      console.error('Error updating registration status:', error);
+      logger.error('Error updating registration status:', error);
       throw error;
     }
   }

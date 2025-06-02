@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { navigateAfterLogin } from '../utils/navigation';
 
+import logger from '../utils/logger';
 export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
   const [formData, setFormData] = useState({
     email: '',
@@ -46,7 +47,7 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
         setError(authError || 'Invalid email or password');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      logger.error('Login error:', err);
       setError(err.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);

@@ -1,23 +1,23 @@
 import { ref, set, get } from 'firebase/database';
 import { database } from '../lib/firebase';
-
+import logger from './logger';
 /**
  * Initialize the Firebase database with the required structure and initial data
  * This function should be run once when setting up the application
  */
 export const initializeDatabase = async () => {
   try {
-    console.log('Initializing Firebase database...');
-    
+    logger.log('Initializing Firebase database...');
+
     // Check if database is already initialized
     const dbRef = ref(database, 'initialized');
     const snapshot = await get(dbRef);
-    
+
     if (snapshot.exists() && snapshot.val() === true) {
-      console.log('Database already initialized');
+      logger.log('Database already initialized');
       return { success: true, message: 'Database already initialized' };
     }
-    
+
     // Create categories
     const categories = [
       { id: 'technical', name: 'Technical', color: '#3498db' },
@@ -26,7 +26,7 @@ export const initializeDatabase = async () => {
       { id: 'academic', name: 'Academic', color: '#f39c12' },
       { id: 'workshop', name: 'Workshop', color: '#9b59b6' }
     ];
-    
+
     for (const category of categories) {
       const categoryRef = ref(database, `categories/${category.id}`);
       await set(categoryRef, {
@@ -36,16 +36,16 @@ export const initializeDatabase = async () => {
         updated_at: new Date().toISOString()
       });
     }
-    
-    console.log('Categories created successfully');
-    
+
+    logger.log('Categories created successfully');
+
     // Mark database as initialized
     await set(dbRef, true);
-    
-    console.log('Database initialized successfully');
+
+    logger.log('Database initialized successfully');
     return { success: true, message: 'Database initialized successfully' };
   } catch (error) {
-    console.error('Error initializing database:', error);
+    logger.error('Error initializing database:', error);
     return { success: false, error: error.message };
   }
 };
@@ -57,19 +57,19 @@ export const initializeDatabase = async () => {
  */
 export const createAdminUser = async (userId, name) => {
   try {
-    console.log(`Creating admin user with ID: ${userId}`);
-    
+    logger.log(`Creating admin user with ID: ${userId}`);
+
     const adminRef = ref(database, `admins/${userId}`);
     await set(adminRef, {
       name,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    
-    console.log('Admin user created successfully');
+
+    logger.log('Admin user created successfully');
     return { success: true };
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    logger.error('Error creating admin user:', error);
     return { success: false, error: error.message };
   }
 };
@@ -81,19 +81,19 @@ export const createAdminUser = async (userId, name) => {
  */
 export const createDemoClub = async (userId, clubData) => {
   try {
-    console.log(`Creating demo club with ID: ${userId}`);
-    
+    logger.log(`Creating demo club with ID: ${userId}`);
+
     const clubRef = ref(database, `clubs/${userId}`);
     await set(clubRef, {
       ...clubData,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    
-    console.log('Demo club created successfully');
+
+    logger.log('Demo club created successfully');
     return { success: true };
   } catch (error) {
-    console.error('Error creating demo club:', error);
+    logger.error('Error creating demo club:', error);
     return { success: false, error: error.message };
   }
 };

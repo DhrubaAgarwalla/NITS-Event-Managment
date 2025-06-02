@@ -1,4 +1,5 @@
 import React from 'react';
+import logger from '../utils/logger';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -13,8 +14,8 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error details
-    console.error('Error Boundary caught an error:', error, errorInfo);
-    
+    logger.error('Error Boundary caught an error:', error, errorInfo);
+
     this.setState({
       error: error,
       errorInfo: errorInfo
@@ -42,13 +43,13 @@ class ErrorBoundary extends React.Component {
         }}>
           <h2>🚨 Something went wrong</h2>
           <p>We're sorry, but something unexpected happened.</p>
-          
+
           {import.meta.env.DEV && (
             <details style={{ marginTop: '1rem', textAlign: 'left' }}>
               <summary>Error Details (Development Only)</summary>
-              <pre style={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.1)', 
-                padding: '1rem', 
+              <pre style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                padding: '1rem',
                 borderRadius: '4px',
                 overflow: 'auto',
                 fontSize: '0.8rem'
@@ -59,7 +60,7 @@ class ErrorBoundary extends React.Component {
               </pre>
             </details>
           )}
-          
+
           <button
             onClick={() => window.location.reload()}
             style={{

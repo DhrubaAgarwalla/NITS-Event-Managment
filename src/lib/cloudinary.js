@@ -3,6 +3,8 @@
  * This file handles image uploads to Cloudinary
  */
 
+import logger from '../utils/logger';
+
 // Cloudinary configuration from environment variables
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -11,9 +13,9 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 export const uploadImage = async (file, folder = 'event-images', onProgress = null) => {
   try {
     // Show progress in console
-    console.log(`Starting upload to Cloudinary (folder: ${folder})...`);
-    console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
-    console.log(`Using upload preset: ${CLOUDINARY_UPLOAD_PRESET}`);
+    logger.log(`Starting upload to Cloudinary (folder: ${folder})...`);
+    logger.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
+    logger.log(`Using upload preset: ${CLOUDINARY_UPLOAD_PRESET}`);
 
     // Create a FormData object to send the file
     const formData = new FormData();
@@ -26,8 +28,8 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
     }
 
     // Log file details for debugging
-    console.log(`File type: ${file.type}`);
-    console.log(`File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    logger.log(`File type: ${file.type}`);
+    logger.log(`File size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
     // Create XMLHttpRequest to track progress
     if (onProgress && typeof onProgress === 'function') {
@@ -39,7 +41,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
         xhr.onload = () => {
           if (xhr.status === 200) {
             const data = JSON.parse(xhr.responseText);
-            console.log('Upload to Cloudinary successful:', data.secure_url);
+            logger.log('Upload to Cloudinary successful:', data.secure_url);
             resolve({
               url: data.secure_url,
               publicId: data.public_id,
@@ -48,13 +50,13 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
               format: data.format
             });
           } else {
-            console.error('Upload failed with response:', xhr.responseText);
+            logger.error('Upload failed with response:', xhr.responseText);
             reject(new Error(`Upload failed with status: ${xhr.status}`));
           }
         };
 
         xhr.onerror = (e) => {
-          console.error('XHR error during upload:', e);
+          logger.error('XHR error during upload:', e);
           reject(new Error('Network error during upload'));
         };
 
@@ -79,7 +81,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
 
       // Log the full response for debugging
       const responseText = await response.text();
-      console.log('Cloudinary response:', responseText);
+      logger.log('Cloudinary response:', responseText);
 
       if (!response.ok) {
         let errorMessage = 'Unknown error';
@@ -93,7 +95,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
       }
 
       const data = JSON.parse(responseText);
-      console.log('Upload to Cloudinary successful:', data.secure_url);
+      logger.log('Upload to Cloudinary successful:', data.secure_url);
 
       return {
         url: data.secure_url,
@@ -104,7 +106,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
       };
     }
   } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
+    logger.error('Error uploading to Cloudinary:', error);
     throw error;
   }
 };
@@ -147,7 +149,7 @@ export const getPublicIdFromUrl = (url) => {
 
     return null;
   } catch (error) {
-    console.error('Error extracting public ID from URL:', error);
+    logger.error('Error extracting public ID from URL:', error);
     return null;
   }
 };

@@ -6,20 +6,20 @@
 import autoSyncService from '../services/autoSyncService';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
-
+import logger from './logger';
 /**
  * Test auto-sync functionality
  */
 export const testAutoSync = async () => {
-  console.log('🧪 Starting Auto-Sync Test...');
+  logger.log('🧪 Starting Auto-Sync Test...');
 
   try {
     // Test 1: Check if autoSyncService loads correctly
-    console.log('✅ Test 1: AutoSyncService loaded successfully');
+    logger.log('✅ Test 1: AutoSyncService loaded successfully');
 
     // Test 2: Create a test event (this should auto-create a Google Sheet)
-    console.log('🧪 Test 2: Creating test event...');
-    
+    logger.log('🧪 Test 2: Creating test event...');
+
     const testEventData = {
       title: 'Auto-Sync Test Event',
       description: 'This is a test event to verify auto-sync functionality',
@@ -36,29 +36,29 @@ export const testAutoSync = async () => {
 
     // Note: This will trigger auto-sheet creation in the background
     const createdEvent = await eventService.createEvent(testEventData);
-    console.log('✅ Test 2: Event created successfully:', createdEvent.id);
-    console.log('   📊 Google Sheet should be auto-creating in the background...');
+    logger.log('✅ Test 2: Event created successfully:', createdEvent.id);
+    logger.log('   📊 Google Sheet should be auto-creating in the background...');
 
     // Test 3: Wait a moment and check if sheet info was added to event
     setTimeout(async () => {
       try {
         const updatedEvent = await eventService.getEventById(createdEvent.id);
         if (updatedEvent.google_sheet_id) {
-          console.log('✅ Test 3: Google Sheet auto-created successfully!');
-          console.log('   📊 Sheet ID:', updatedEvent.google_sheet_id);
-          console.log('   🔗 Sheet URL:', updatedEvent.google_sheet_url);
+          logger.log('✅ Test 3: Google Sheet auto-created successfully!');
+          logger.log('   📊 Sheet ID:', updatedEvent.google_sheet_id);
+          logger.log('   🔗 Sheet URL:', updatedEvent.google_sheet_url);
         } else {
-          console.log('⏳ Test 3: Google Sheet creation still in progress...');
-          console.log('   💡 Check the console logs for auto-creation status');
+          logger.log('⏳ Test 3: Google Sheet creation still in progress...');
+          logger.log('   💡 Check the console logs for auto-creation status');
         }
       } catch (error) {
-        console.error('❌ Test 3 failed:', error);
+        logger.error('❌ Test 3 failed:', error);
       }
     }, 5000); // Wait 5 seconds
 
     // Test 4: Create a test registration (this should auto-sync the sheet)
-    console.log('🧪 Test 4: Creating test registration...');
-    
+    logger.log('🧪 Test 4: Creating test registration...');
+
     const testRegistrationData = {
       event_id: createdEvent.id,
       participant_name: 'Test Participant',
@@ -71,25 +71,25 @@ export const testAutoSync = async () => {
 
     // Note: This will trigger auto-sync in the background
     const registration = await registrationService.registerForEvent(testRegistrationData);
-    console.log('✅ Test 4: Registration created successfully:', registration.id);
-    console.log('   🔄 Google Sheet should be auto-syncing in the background...');
+    logger.log('✅ Test 4: Registration created successfully:', registration.id);
+    logger.log('   🔄 Google Sheet should be auto-syncing in the background...');
 
     // Test 5: Test attendance marking (this should also auto-sync)
     setTimeout(async () => {
       try {
-        console.log('🧪 Test 5: Marking attendance...');
-        
+        logger.log('🧪 Test 5: Marking attendance...');
+
         // Mark attendance
         const attendanceResult = await registrationService.updateAttendanceStatus(
-          registration.id, 
+          registration.id,
           'attended'
         );
-        
-        console.log('✅ Test 5: Attendance marked successfully');
-        console.log('   🔄 Google Sheet should be auto-syncing attendance...');
-        
+
+        logger.log('✅ Test 5: Attendance marked successfully');
+        logger.log('   🔄 Google Sheet should be auto-syncing attendance...');
+
       } catch (error) {
-        console.error('❌ Test 5 failed:', error);
+        logger.error('❌ Test 5 failed:', error);
       }
     }, 8000); // Wait 8 seconds
 
@@ -101,7 +101,7 @@ export const testAutoSync = async () => {
     };
 
   } catch (error) {
-    console.error('❌ Auto-Sync Test Failed:', error);
+    logger.error('❌ Auto-Sync Test Failed:', error);
     return {
       success: false,
       error: error.message
@@ -113,20 +113,20 @@ export const testAutoSync = async () => {
  * Test manual sync for an existing event
  */
 export const testManualSync = async (eventId) => {
-  console.log(`🧪 Testing manual sync for event: ${eventId}`);
+  logger.log(`🧪 Testing manual sync for event: ${eventId}`);
 
   try {
     const result = await autoSyncService.autoSyncRegistrations(eventId, 'manual_test');
-    
+
     if (result.success) {
-      console.log('✅ Manual sync test successful');
+      logger.log('✅ Manual sync test successful');
       return result;
     } else {
-      console.log('⚠️ Manual sync test failed:', result.reason || result.error);
+      logger.log('⚠️ Manual sync test failed:', result.reason || result.error);
       return result;
     }
   } catch (error) {
-    console.error('❌ Manual sync test error:', error);
+    logger.error('❌ Manual sync test error:', error);
     return {
       success: false,
       error: error.message
@@ -138,11 +138,11 @@ export const testManualSync = async (eventId) => {
  * Check auto-sync status for an event
  */
 export const checkAutoSyncStatus = async (eventId) => {
-  console.log(`🔍 Checking auto-sync status for event: ${eventId}`);
+  logger.log(`🔍 Checking auto-sync status for event: ${eventId}`);
 
   try {
     const eventData = await eventService.getEventById(eventId);
-    
+
     if (!eventData) {
       return {
         success: false,
@@ -163,14 +163,14 @@ export const checkAutoSyncStatus = async (eventId) => {
       syncError: eventData.sync_error || null
     };
 
-    console.log('📊 Auto-sync status:', status);
+    logger.log('📊 Auto-sync status:', status);
     return {
       success: true,
       status
     };
 
   } catch (error) {
-    console.error('❌ Error checking auto-sync status:', error);
+    logger.error('❌ Error checking auto-sync status:', error);
     return {
       success: false,
       error: error.message
@@ -182,14 +182,14 @@ export const checkAutoSyncStatus = async (eventId) => {
  * Disable auto-sync for an event
  */
 export const disableAutoSync = async (eventId) => {
-  console.log(`🔇 Disabling auto-sync for event: ${eventId}`);
+  logger.log(`🔇 Disabling auto-sync for event: ${eventId}`);
 
   try {
     await autoSyncService.disableAutoSync(eventId);
-    console.log('✅ Auto-sync disabled successfully');
+    logger.log('✅ Auto-sync disabled successfully');
     return { success: true };
   } catch (error) {
-    console.error('❌ Error disabling auto-sync:', error);
+    logger.error('❌ Error disabling auto-sync:', error);
     return {
       success: false,
       error: error.message
@@ -201,14 +201,14 @@ export const disableAutoSync = async (eventId) => {
  * Enable auto-sync for an event
  */
 export const enableAutoSync = async (eventId) => {
-  console.log(`🔊 Enabling auto-sync for event: ${eventId}`);
+  logger.log(`🔊 Enabling auto-sync for event: ${eventId}`);
 
   try {
     await autoSyncService.enableAutoSync(eventId);
-    console.log('✅ Auto-sync enabled successfully');
+    logger.log('✅ Auto-sync enabled successfully');
     return { success: true };
   } catch (error) {
-    console.error('❌ Error enabling auto-sync:', error);
+    logger.error('❌ Error enabling auto-sync:', error);
     return {
       success: false,
       error: error.message

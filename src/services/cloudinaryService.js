@@ -1,6 +1,8 @@
 // Cloudinary service for image uploads
 // This service handles uploading images to Cloudinary cloud storage
 
+import logger from '../utils/logger';
+
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
@@ -14,7 +16,7 @@ const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOU
  */
 export const uploadImage = async (file, folder = 'event-images', onProgress = null) => {
   try {
-    console.log(`Starting upload to Cloudinary for file: ${file.name}`);
+    logger.log(`Starting upload to Cloudinary for file: ${file.name}`);
 
     // Create FormData for the upload
     const formData = new FormData();
@@ -47,7 +49,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
         if (xhr.status === 200) {
           try {
             const response = JSON.parse(xhr.responseText);
-            console.log('Cloudinary upload successful:', response);
+            logger.log('Cloudinary upload successful:', response);
 
             resolve({
               url: response.secure_url,
@@ -59,24 +61,24 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
               created_at: response.created_at
             });
           } catch (parseError) {
-            console.error('Error parsing Cloudinary response:', parseError);
+            logger.error('Error parsing Cloudinary response:', parseError);
             reject(new Error('Failed to parse upload response'));
           }
         } else {
-          console.error('Cloudinary upload failed with status:', xhr.status);
+          logger.error('Cloudinary upload failed with status:', xhr.status);
           reject(new Error(`Upload failed with status: ${xhr.status}`));
         }
       });
 
       // Handle upload errors
       xhr.addEventListener('error', () => {
-        console.error('Cloudinary upload error');
+        logger.error('Cloudinary upload error');
         reject(new Error('Network error during upload'));
       });
 
       // Handle upload timeout
       xhr.addEventListener('timeout', () => {
-        console.error('Cloudinary upload timeout');
+        logger.error('Cloudinary upload timeout');
         reject(new Error('Upload timeout'));
       });
 
@@ -87,7 +89,7 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
     });
 
   } catch (error) {
-    console.error('Error in uploadImage:', error);
+    logger.error('Error in uploadImage:', error);
     throw error;
   }
 };
@@ -99,11 +101,11 @@ export const uploadImage = async (file, folder = 'event-images', onProgress = nu
  */
 export const deleteImage = async (publicId) => {
   try {
-    console.log(`Deleting image from Cloudinary: ${publicId}`);
+    logger.log(`Deleting image from Cloudinary: ${publicId}`);
 
     // Note: Deletion requires server-side implementation with API secret
     // This is a placeholder for client-side reference
-    console.warn('Image deletion should be implemented on the server side for security');
+    logger.warn('Image deletion should be implemented on the server side for security');
 
     return {
       success: false,
@@ -111,7 +113,7 @@ export const deleteImage = async (publicId) => {
     };
 
   } catch (error) {
-    console.error('Error in deleteImage:', error);
+    logger.error('Error in deleteImage:', error);
     throw error;
   }
 };
@@ -152,7 +154,7 @@ export const getOptimizedImageUrl = (imageUrl, transformations = {}) => {
     return imageUrl;
 
   } catch (error) {
-    console.error('Error in getOptimizedImageUrl:', error);
+    logger.error('Error in getOptimizedImageUrl:', error);
     return imageUrl;
   }
 };

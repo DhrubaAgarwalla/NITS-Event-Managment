@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getAnalytics } from 'firebase/analytics';
 
+import logger from '../utils/logger';
 // Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -50,7 +51,7 @@ export const forceSignOutAndRedirect = async () => {
     // Redirect to home page
     window.location.href = '/';
   } catch (err) {
-    console.error('Error during forced sign out:', err);
+    logger.error('Error during forced sign out:', err);
     // If all else fails, hard redirect to home
     window.location.href = '/';
   }

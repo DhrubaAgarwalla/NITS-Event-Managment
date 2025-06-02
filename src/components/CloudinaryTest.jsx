@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { uploadImage, getOptimizedImageUrl, getPublicIdFromUrl } from '../lib/cloudinary';
 
+import logger from '../utils/logger';
 export default function CloudinaryTest() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -42,7 +43,7 @@ export default function CloudinaryTest() {
         setOptimizedUrl(optimized);
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       setError(error.message);
     } finally {
       setUploading(false);

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
 import { navigateTo } from '../utils/navigation';
 
+import logger from '../utils/logger';
 const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clubs, setClubs] = useState([]);
@@ -18,7 +19,7 @@ const ClubsPage = ({ setCurrentPage, setSelectedClubId }) => {
         setClubs(clubsData);
         setError(null);
       } catch (err) {
-        console.error('Error fetching clubs:', err);
+        logger.error('Error fetching clubs:', err);
         setError('Failed to load clubs. Please try again later.');
       } finally {
         setLoading(false);

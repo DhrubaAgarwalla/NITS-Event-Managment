@@ -6,6 +6,7 @@ import { uploadImage } from '../lib/cloudinary';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 
+import logger from '../utils/logger';
 export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
   // Redirect to login if no club is logged in
   const { club, user } = useAuth();
@@ -87,7 +88,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       try {
         // Fetch categories from the database
         const categoriesList = await eventService.getCategories();
-        console.log('Categories loaded:', categoriesList);
+        logger.log('Categories loaded:', categoriesList);
 
         if (categoriesList && categoriesList.length > 0) {
           // Remove duplicate categories by name
@@ -101,9 +102,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
             ...prev,
             category_id: uniqueCategories[0].id
           }));
-          console.log('Set default category_id to:', uniqueCategories[0].id);
+          logger.log('Set default category_id to:', uniqueCategories[0].id);
         } else {
-          console.warn('No categories found in the database');
+          logger.warn('No categories found in the database');
           // Use hardcoded categories as fallback
           const fallbackCategories = [
             { id: '1', name: 'Technical', color: '#3498db' },
@@ -121,12 +122,12 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
         // Fetch tags from the database - already deduplicated and sorted in the service
         const tagsList = await eventService.getAllTags();
-        console.log('Tags loaded:', tagsList);
+        logger.log('Tags loaded:', tagsList);
 
         if (tagsList && tagsList.length > 0) {
           setTags(tagsList);
         } else {
-          console.warn('No tags found in the database');
+          logger.warn('No tags found in the database');
           // Use hardcoded tags as fallback
           const fallbackTags = [
             { id: '1', name: 'Technical', color: '#3498db' },
@@ -138,7 +139,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           setTags(fallbackTags);
         }
       } catch (err) {
-        console.error('Error loading categories and tags:', err);
+        logger.error('Error loading categories and tags:', err);
         setError('Failed to load event categories and tags. Using default values.');
 
         // Use hardcoded categories as fallback
@@ -193,7 +194,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
     // Special handling for participation_type
     if (name === 'participation_type') {
-      console.log('Changing participation type to:', value);
+      logger.log('Changing participation type to:', value);
       if (value === 'individual') {
         // For individual events, set min and max participants to 1
         setFormData(prev => ({
@@ -353,7 +354,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       return;
     }
 
-    console.log(`Selected horizontal banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+    logger.log(`Selected horizontal banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
 
     // Preview the selected image
     const reader = new FileReader();
@@ -392,7 +393,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       return;
     }
 
-    console.log(`Selected vertical banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+    logger.log(`Selected vertical banner: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
 
     // Preview the selected image
     const reader = new FileReader();
@@ -431,7 +432,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       return;
     }
 
-    console.log(`Selected payment QR code: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
+    logger.log(`Selected payment QR code: ${file.name}, type: ${file.type}, size: ${fileSizeMB.toFixed(2)}MB`);
 
     // Preview the selected image
     const reader = new FileReader();
@@ -551,11 +552,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     try {
       // Set initial upload progress
       setUploadProgress(0);
-      console.log('Starting horizontal banner upload process to Cloudinary...');
+      logger.log('Starting horizontal banner upload process to Cloudinary...');
 
       // Check file size
       const fileSizeMB = imageFile.size / (1024 * 1024);
-      console.log(`Horizontal banner file size: ${fileSizeMB.toFixed(2)} MB`);
+      logger.log(`Horizontal banner file size: ${fileSizeMB.toFixed(2)} MB`);
 
       if (fileSizeMB > 10) {
         throw new Error(`File size (${fileSizeMB.toFixed(2)} MB) exceeds the 10 MB limit`);
@@ -563,7 +564,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Horizontal banner upload progress: ${progress}%`);
+        logger.log(`Horizontal banner upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -574,13 +575,13 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         throw new Error('Horizontal banner upload failed: No URL returned from Cloudinary');
       }
 
-      console.log('Horizontal banner upload successful, URL:', result.url);
+      logger.log('Horizontal banner upload successful, URL:', result.url);
       setUploadProgress(100);
 
       // Return the public URL
       return result.url;
     } catch (err) {
-      console.error('Error uploading horizontal banner to Cloudinary:', err);
+      logger.error('Error uploading horizontal banner to Cloudinary:', err);
       // Return null instead of throwing to allow event creation to continue
       setError(`Horizontal banner upload failed: ${err.message}. Event will be created without a horizontal banner.`);
       setUploadProgress(0); // Reset progress
@@ -595,11 +596,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     try {
       // Set initial upload progress
       setVerticalUploadProgress(0);
-      console.log('Starting vertical banner upload process to Cloudinary...');
+      logger.log('Starting vertical banner upload process to Cloudinary...');
 
       // Check file size
       const fileSizeMB = verticalImageFile.size / (1024 * 1024);
-      console.log(`Vertical banner file size: ${fileSizeMB.toFixed(2)} MB`);
+      logger.log(`Vertical banner file size: ${fileSizeMB.toFixed(2)} MB`);
 
       if (fileSizeMB > 10) {
         throw new Error(`Vertical banner file size (${fileSizeMB.toFixed(2)} MB) exceeds the 10 MB limit`);
@@ -607,7 +608,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Vertical banner upload progress: ${progress}%`);
+        logger.log(`Vertical banner upload progress: ${progress}%`);
         setVerticalUploadProgress(progress);
       };
 
@@ -618,13 +619,13 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         throw new Error('Vertical banner upload failed: No URL returned from Cloudinary');
       }
 
-      console.log('Vertical banner upload successful, URL:', result.url);
+      logger.log('Vertical banner upload successful, URL:', result.url);
       setVerticalUploadProgress(100);
 
       // Return the public URL
       return result.url;
     } catch (err) {
-      console.error('Error uploading vertical banner to Cloudinary:', err);
+      logger.error('Error uploading vertical banner to Cloudinary:', err);
       // Return null instead of throwing to allow event creation to continue
       setError(`Vertical banner upload failed: ${err.message}. Event will be created without a vertical banner.`);
       setVerticalUploadProgress(0); // Reset progress
@@ -639,11 +640,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
     try {
       // Set initial upload progress
       setPaymentQRUploadProgress(0);
-      console.log('Starting payment QR code upload process to Cloudinary...');
+      logger.log('Starting payment QR code upload process to Cloudinary...');
 
       // Check file size
       const fileSizeMB = paymentQRFile.size / (1024 * 1024);
-      console.log(`Payment QR code file size: ${fileSizeMB.toFixed(2)} MB`);
+      logger.log(`Payment QR code file size: ${fileSizeMB.toFixed(2)} MB`);
 
       if (fileSizeMB > 5) {
         throw new Error(`Payment QR code file size (${fileSizeMB.toFixed(2)} MB) exceeds the 5 MB limit`);
@@ -651,7 +652,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Payment QR code upload progress: ${progress}%`);
+        logger.log(`Payment QR code upload progress: ${progress}%`);
         setPaymentQRUploadProgress(progress);
       };
 
@@ -662,13 +663,13 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         throw new Error('Payment QR code upload failed: No URL returned from Cloudinary');
       }
 
-      console.log('Payment QR code upload successful, URL:', result.url);
+      logger.log('Payment QR code upload successful, URL:', result.url);
       setPaymentQRUploadProgress(100);
 
       // Return the public URL
       return result.url;
     } catch (err) {
-      console.error('Error uploading payment QR code to Cloudinary:', err);
+      logger.error('Error uploading payment QR code to Cloudinary:', err);
       // Return null instead of throwing to allow event creation to continue
       setError(`Payment QR code upload failed: ${err.message}. Event will be created without QR code.`);
       setPaymentQRUploadProgress(0); // Reset progress
@@ -704,7 +705,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         }
       }
 
-      console.log('Form data being submitted:', formData);
+      logger.log('Form data being submitted:', formData);
 
       // Combine date and time
       setCreationStep('processing_dates');
@@ -724,11 +725,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           imageUrl = await handleImageUpload();
           // If upload failed but didn't throw (returned null), we can continue without an image
           if (!imageUrl) {
-            console.warn('Horizontal banner upload returned null, continuing without horizontal banner');
+            logger.warn('Horizontal banner upload returned null, continuing without horizontal banner');
           }
         } catch (uploadErr) {
           // Log the error but continue with event creation
-          console.error('Horizontal banner upload error (continuing without image):', uploadErr);
+          logger.error('Horizontal banner upload error (continuing without image):', uploadErr);
           setError(`Horizontal banner upload failed: ${uploadErr.message}. Continuing without horizontal banner.`);
         }
       }
@@ -741,11 +742,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           verticalImageUrl = await handleVerticalImageUpload();
           // If upload failed but didn't throw (returned null), we can continue without a vertical image
           if (!verticalImageUrl) {
-            console.warn('Vertical banner upload returned null, continuing without vertical banner');
+            logger.warn('Vertical banner upload returned null, continuing without vertical banner');
           }
         } catch (uploadErr) {
           // Log the error but continue with event creation
-          console.error('Vertical banner upload error (continuing without image):', uploadErr);
+          logger.error('Vertical banner upload error (continuing without image):', uploadErr);
           setError(`Vertical banner upload failed: ${uploadErr.message}. Continuing without vertical banner.`);
         }
       }
@@ -758,11 +759,11 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           paymentQRUrl = await handlePaymentQRUpload();
           // If upload failed but didn't throw (returned null), we can continue without QR code
           if (!paymentQRUrl) {
-            console.warn('Payment QR code upload returned null, continuing without QR code');
+            logger.warn('Payment QR code upload returned null, continuing without QR code');
           }
         } catch (uploadErr) {
           // Log the error but continue with event creation
-          console.error('Payment QR code upload error (continuing without QR code):', uploadErr);
+          logger.error('Payment QR code upload error (continuing without QR code):', uploadErr);
           setError(`Payment QR code upload failed: ${uploadErr.message}. Continuing without QR code.`);
         }
       }
@@ -802,10 +803,10 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
       setCreationStep('processing_schedule');
       try {
         // Use the actual schedule data from the form
-        console.log('Using schedule from form:', formData.schedule);
+        logger.log('Using schedule from form:', formData.schedule);
         eventData.additional_info = { schedule: formData.schedule };
       } catch (err) {
-        console.warn('Error processing schedule data:', err);
+        logger.warn('Error processing schedule data:', err);
         // Provide a simple default schedule if there's an error
         eventData.additional_info = {
           schedule: [{
@@ -815,7 +816,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         };
       }
 
-      console.log('Event data being sent to server:', eventData);
+      logger.log('Event data being sent to server:', eventData);
 
       // First check Firebase connection before attempting to create the event
       setCreationStep('checking_connection');
@@ -845,9 +846,9 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
 
         // Race the connection check against the timeout
         await Promise.race([connectionCheckPromise, connectionTimeoutPromise]);
-        console.log('Connection check passed, proceeding with event creation');
+        logger.log('Connection check passed, proceeding with event creation');
       } catch (connectionError) {
-        console.error('Connection check failed:', connectionError);
+        logger.error('Connection check failed:', connectionError);
         setError(`Cannot connect to database: ${connectionError.message}. Please try again later.`);
         throw connectionError;
       }
@@ -872,10 +873,10 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
           // Then add tags if any are selected
           if (formData.selectedTags && formData.selectedTags.length > 0) {
             try {
-              console.log('Adding tags to event:', formData.selectedTags);
+              logger.log('Adding tags to event:', formData.selectedTags);
               await eventService.addTagsToEvent(newEvent.id, formData.selectedTags);
             } catch (tagError) {
-              console.error('Error adding tags to event:', tagError);
+              logger.error('Error adding tags to event:', tagError);
               // Don't fail the whole operation if tags fail
             }
           }
@@ -884,7 +885,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         })(),
         timeoutPromise
       ]).catch(error => {
-        console.warn('Event creation promise rejected:', error);
+        logger.warn('Event creation promise rejected:', error);
 
         // If it's a timeout error, we'll show a different message but continue
         if (error.message.includes('timed out')) {
@@ -972,7 +973,7 @@ export default function EventCreationForm({ setCurrentPage, onEventCreated }) {
         setError('Failed to create event: No valid event data returned');
       }
     } catch (err) {
-      console.error('Error creating event:', err);
+      logger.error('Error creating event:', err);
       setCreationStep('error');
 
       // Provide more helpful error messages

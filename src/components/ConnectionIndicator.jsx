@@ -4,6 +4,7 @@ import { database } from '../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
+import logger from '../utils/logger';
 const ConnectionIndicator = () => {
   const { user, sessionStatus, refreshSession } = useAuth();
   const [isConnected, setIsConnected] = useState(null);
@@ -26,16 +27,16 @@ const ConnectionIndicator = () => {
 
       // Check if user is authenticated in Firebase
       if (user.uid) {
-        console.log('Session is valid');
+        logger.log('Session is valid');
         setErrorMessage(null);
         return true;
       } else {
-        console.warn('Session is invalid');
+        logger.warn('Session is invalid');
         setErrorMessage('Session is invalid. Try refreshing the session.');
         return false;
       }
     } catch (err) {
-      console.error('Error checking session:', err);
+      logger.error('Error checking session:', err);
       setErrorMessage('Error checking session status');
       return false;
     } finally {
@@ -86,14 +87,14 @@ const ConnectionIndicator = () => {
         return newHistory.slice(0, 10); // Keep only last 10 entries
       });
 
-      console.log(`Firebase connection successful (${pingTimeMs}ms)`);
+      logger.log(`Firebase connection successful (${pingTimeMs}ms)`);
 
       // If ping time is high, add a warning
       if (pingTimeMs > 1000) {
         setErrorMessage(`Connection is slow (${pingTimeMs}ms). This may affect application performance.`);
       }
     } catch (err) {
-      console.error('Error checking Firebase connection:', err);
+      logger.error('Error checking Firebase connection:', err);
       setIsConnected(false);
 
       // Handle timeout specifically
@@ -136,13 +137,13 @@ const ConnectionIndicator = () => {
 
     // Check connection when the network status changes
     const handleOnline = () => {
-      console.log('Network is online, checking connection...');
+      logger.log('Network is online, checking connection...');
       setIsConnected(true); // Optimistically set to true
       setTimeout(() => checkConnection(), 1000); // Verify after a short delay
     };
 
     const handleOffline = () => {
-      console.log('Network is offline');
+      logger.log('Network is offline');
       setIsConnected(false);
       setErrorMessage('Your device is offline. Please check your internet connection.');
     };
@@ -163,7 +164,7 @@ const ConnectionIndicator = () => {
   // Check connection when session status changes
   useEffect(() => {
     if (user) {
-      console.log('Session status changed to:', sessionStatus);
+      logger.log('Session status changed to:', sessionStatus);
       // If session status changes, check connection
       if (sessionStatus === 'refreshed' || sessionStatus === 'active') {
         // Short delay to allow session to stabilize
@@ -325,14 +326,14 @@ const ConnectionIndicator = () => {
                           setIsChecking(true);
                           const result = await refreshSession();
                           if (result.success) {
-                            console.log('Session refreshed manually');
+                            logger.log('Session refreshed manually');
                             setErrorMessage(null);
                           } else {
-                            console.error('Failed to refresh session:', result.error);
+                            logger.error('Failed to refresh session:', result.error);
                             setErrorMessage('Session refresh failed');
                           }
                         } catch (err) {
-                          console.error('Error refreshing session:', err);
+                          logger.error('Error refreshing session:', err);
                           setErrorMessage('Session refresh error');
                         } finally {
                           setIsChecking(false);

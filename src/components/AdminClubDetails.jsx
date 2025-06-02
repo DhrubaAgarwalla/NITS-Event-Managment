@@ -5,6 +5,7 @@ import clubService from '../services/clubService';
 import eventService from '../services/eventService';
 import AdminClubEditor from './AdminClubEditor';
 
+import logger from '../utils/logger';
 const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
   const [club, setClub] = useState(null);
   const [clubEvents, setClubEvents] = useState([]);
@@ -51,7 +52,7 @@ const AdminClubDetails = ({ clubId, onBack, onViewEvent }) => {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching club details:', err);
+        logger.error('Error fetching club details:', err);
         setError('Failed to load club details. Please try again later.');
       } finally {
         setLoading(false);

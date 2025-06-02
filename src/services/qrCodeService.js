@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import { database } from '../lib/firebase';
 import { ref, update } from 'firebase/database';
 
+import logger from '../utils/logger';
 /**
  * QR Code Service for RSVP Attendance Tracking
  * Generates unique, secure QR codes for event registrations
@@ -43,7 +44,7 @@ class QRCodeService {
         timestamp
       };
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      logger.error('Error generating QR code:', error);
       throw new Error(`Failed to generate QR code: ${error.message}`);
     }
   }
@@ -108,9 +109,9 @@ class QRCodeService {
       };
 
       await update(registrationRef, updates);
-      console.log(`QR code saved for registration: ${registrationId}`);
+      logger.log(`QR code saved for registration: ${registrationId}`);
     } catch (error) {
-      console.error('Error saving QR code to registration:', error);
+      logger.error('Error saving QR code to registration:', error);
       throw error;
     }
   }
@@ -155,7 +156,7 @@ class QRCodeService {
         timestamp: qrData.timestamp
       };
     } catch (error) {
-      console.error('Error verifying QR code:', error);
+      logger.error('Error verifying QR code:', error);
       return {
         valid: false,
         error: 'Failed to parse QR code data'
@@ -203,7 +204,7 @@ class QRCodeService {
         timestamp: updates.attendance_timestamp
       };
     } catch (error) {
-      console.error('Error marking attendance:', error);
+      logger.error('Error marking attendance:', error);
       throw new Error(`Failed to mark attendance: ${error.message}`);
     }
   }
@@ -232,7 +233,7 @@ class QRCodeService {
     try {
       return await QRCode.toDataURL(data, qrOptions);
     } catch (error) {
-      console.error('Error generating QR code image:', error);
+      logger.error('Error generating QR code image:', error);
       throw new Error(`Failed to generate QR code image: ${error.message}`);
     }
   }

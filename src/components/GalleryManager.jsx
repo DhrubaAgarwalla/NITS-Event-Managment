@@ -4,6 +4,7 @@ import { uploadImage } from '../lib/cloudinary';
 import clubService from '../services/clubService';
 import { useAuth } from '../contexts/AuthContext';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
+import logger from '../utils/logger';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
 const GalleryManager = () => {
@@ -59,7 +60,7 @@ const GalleryManager = () => {
     // Still count this as "loaded" for the loading state
     handleImageLoad(index);
 
-    console.error(`Failed to load image at index ${index}: ${imageUrl}`);
+    logger.error(`Failed to load image at index ${index}: ${imageUrl}`);
   }, [handleImageLoad]);
 
   // Handle image file selection
@@ -87,7 +88,7 @@ const GalleryManager = () => {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Upload progress: ${progress}%`);
+        logger.log(`Upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -101,7 +102,7 @@ const GalleryManager = () => {
       setUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading image to Cloudinary:', err);
+      logger.error('Error uploading image to Cloudinary:', err);
       throw err;
     }
   };

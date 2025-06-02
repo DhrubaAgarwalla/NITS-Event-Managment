@@ -21,6 +21,14 @@ import './styles/mobile3D.css'
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
+// Suppress GSAP warnings in production
+if (import.meta.env.PROD) {
+  gsap.config({
+    nullTargetWarn: false,
+    trialWarn: false
+  });
+}
+
 // Auth Context
 import { useAuth } from './contexts/AuthContext';
 
@@ -50,6 +58,7 @@ import Mobile3DEffects from './components/Mobile3DEffects';
 import AutoCreatedSheetsViewer from './components/AutoCreatedSheetsViewer';
 
 
+import logger from './utils/logger';
 function App() {
   const { user, club, isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -66,13 +75,13 @@ function App() {
     const hash = window.location.hash;
     const query = window.location.search;
 
-    console.log('App.jsx - URL check:', { path, hash, query, currentPage });
+    logger.log('App.jsx - URL check:', { path, hash, query, currentPage });
 
     // Handle direct event URLs: /event/:id
     const eventMatch = path.match(/\/event\/([\w-]+)/);
     if (eventMatch && eventMatch[1]) {
       const eventId = eventMatch[1];
-      console.log('Direct event URL detected:', eventId);
+      logger.log('Direct event URL detected:', eventId);
       setSelectedEventId(eventId);
       setCurrentPage('event-details');
       return;
@@ -82,7 +91,7 @@ function App() {
     const clubMatch = path.match(/\/club\/([\w-]+)/);
     if (clubMatch && clubMatch[1]) {
       const clubId = clubMatch[1];
-      console.log('Direct club URL detected:', clubId);
+      logger.log('Direct club URL detected:', clubId);
       setSelectedClubId(clubId);
       setCurrentPage('club-details');
       return;
@@ -108,10 +117,10 @@ function App() {
 
   // Update isClubLoggedIn based on auth context and handle redirects
   useEffect(() => {
-    console.log('Auth state changed:', { user, club, isAdmin, authLoading });
+    logger.log('Auth state changed:', { user, club, isAdmin, authLoading });
 
     if (user && club) {
-      console.log('Setting isClubLoggedIn to true');
+      logger.log('Setting isClubLoggedIn to true');
       setIsClubLoggedIn(true);
 
       // If user is on login page and already logged in, redirect to appropriate dashboard
@@ -119,7 +128,7 @@ function App() {
         navigateAfterLogin(setCurrentPage, user, isAdmin, true);
       }
     } else {
-      console.log('Setting isClubLoggedIn to false');
+      logger.log('Setting isClubLoggedIn to false');
       setIsClubLoggedIn(false);
 
       // If user is on a protected page but not logged in, redirect to login

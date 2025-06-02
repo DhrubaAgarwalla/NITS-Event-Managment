@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import jsQR from 'jsqr';
 import registrationService from '../services/registrationService';
 
+import logger from '../utils/logger';
 /**
  * QR Scanner Component for Attendance Tracking
  * Mobile-friendly interface for scanning QR codes
@@ -46,7 +47,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         };
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      logger.error('Error accessing camera:', err);
       setError('Unable to access camera. Please check permissions.');
       setIsScanning(false);
     }
@@ -98,7 +99,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         // Note: For production, you might want to use a proper QR code library like jsQR
         detectQRCode(imageData);
       } catch (err) {
-        console.error('Error during QR detection:', err);
+        logger.error('Error during QR detection:', err);
       }
     }, 500);
   };
@@ -112,7 +113,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       });
 
       if (code) {
-        console.log('QR Code detected:', code.data);
+        logger.log('QR Code detected:', code.data);
 
         // Process the detected QR code
         await processQRCode(code.data);
@@ -122,7 +123,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
       return false; // No QR code found
     } catch (error) {
-      console.error('Error detecting QR code:', error);
+      logger.error('Error detecting QR code:', error);
       return false;
     }
   };
@@ -152,8 +153,8 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     setError(null);
 
     try {
-      console.log('Processing QR code:', qrData);
-      console.log('Expected event ID:', eventId);
+      logger.log('Processing QR code:', qrData);
+      logger.log('Expected event ID:', eventId);
 
       // Mark attendance using the registration service with event ID validation
       const result = await registrationService.markAttendanceByQR(qrData, eventId);
@@ -210,7 +211,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         }
       }
     } catch (err) {
-      console.error('Error processing QR code:', err);
+      logger.error('Error processing QR code:', err);
       setError('Failed to process QR code. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -251,7 +252,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         setError('Failed to verify payment. Please try again.');
       }
     } catch (error) {
-      console.error('Error verifying payment:', error);
+      logger.error('Error verifying payment:', error);
       setError('Failed to verify payment. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -272,7 +273,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         setError('No payment screenshot found for this registration.');
       }
     } catch (error) {
-      console.error('Error viewing payment screenshot:', error);
+      logger.error('Error viewing payment screenshot:', error);
       setError('Failed to load payment screenshot. Please try again.');
     }
   };

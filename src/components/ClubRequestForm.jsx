@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
 import { uploadImage } from '../lib/cloudinary';
 
+import logger from '../utils/logger';
 export default function ClubRequestForm({ setCurrentPage }) {
   const [formData, setFormData] = useState({
     club_name: '',
@@ -126,7 +127,7 @@ export default function ClubRequestForm({ setCurrentPage }) {
         fileInputRef.current.value = '';
       }
     } catch (err) {
-      console.error('Error submitting club request:', err);
+      logger.error('Error submitting club request:', err);
       setError(err.message || 'An error occurred while submitting your request');
     } finally {
       setIsLoading(false);

@@ -5,6 +5,7 @@ import EventRegistration from './EventRegistration';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
 import QRCode from 'qrcode';
+import logger from '../utils/logger';
 import './MobileTabs.css';
 import './EventDetails.css';
 
@@ -42,10 +43,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
         // Fetch event details
         const eventData = await eventService.getEventById(eventId);
-        console.log('Fetched event data:', eventData);
-        console.log('Participation type:', eventData?.participation_type);
-        console.log('Min participants:', eventData?.min_participants);
-        console.log('Max participants:', eventData?.max_participants);
+        logger.log('Fetched event data:', eventData);
+        logger.log('Participation type:', eventData?.participation_type);
+        logger.log('Min participants:', eventData?.min_participants);
+        logger.log('Max participants:', eventData?.max_participants);
         setEvent(eventData);
 
         // Fetch registrations count
@@ -54,7 +55,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching event details:', err);
+        logger.error('Error fetching event details:', err);
         setError('Failed to load event details. Please try again later.');
       } finally {
         setLoading(false);
@@ -80,7 +81,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     try {
       return format(new Date(date), 'MMMM d, yyyy');
     } catch (err) {
-      console.error('Error formatting date:', err);
+      logger.error('Error formatting date:', err);
       return 'Date not available';
     }
   };
@@ -99,7 +100,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
         return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
       }
     } catch (err) {
-      console.error('Error formatting date:', err);
+      logger.error('Error formatting date:', err);
       return 'Date not available';
     }
   };
@@ -111,7 +112,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
       const end = new Date(endDate);
       return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
     } catch (err) {
-      console.error('Error formatting time:', err);
+      logger.error('Error formatting time:', err);
       return 'Time not available';
     }
   };
@@ -123,7 +124,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
       const date = new Date(dateString);
       return format(date, 'MMMM d, yyyy');
     } catch (err) {
-      console.error('Error formatting schedule date:', err);
+      logger.error('Error formatting schedule date:', err);
       return 'Invalid date';
     }
   };
@@ -170,7 +171,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
     // First, copy the event URL to clipboard
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        console.log('Event URL copied to clipboard successfully');
+        logger.log('Event URL copied to clipboard successfully');
 
         // Generate Instagram Story image
         return generateInstagramStory();
@@ -219,7 +220,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 window.open('https://www.instagram.com', '_blank');
               }
             } catch (e) {
-              console.error('Failed to open Instagram:', e);
+              logger.error('Failed to open Instagram:', e);
               // Fallback to opening the website
               window.open('https://www.instagram.com', '_blank');
             }
@@ -227,13 +228,13 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
         }, 500);
       })
       .catch(err => {
-        console.error('Error in Instagram sharing process:', err);
+        logger.error('Error in Instagram sharing process:', err);
         setIsGeneratingStory(false);
         alert('There was an error creating your Instagram story. Please try again.');
 
         // Fallback to simpler sharing method
         const fallbackMessage = 'Could not generate Instagram Story. Using simple sharing instead.';
-        console.warn(fallbackMessage);
+        logger.warn(fallbackMessage);
 
         // Copy the URL to clipboard
         navigator.clipboard.writeText(shareUrl).then(() => {
@@ -267,12 +268,12 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
               window.open('https://www.instagram.com', '_blank');
             }
           } catch (e) {
-            console.error('Failed to open Instagram:', e);
+            logger.error('Failed to open Instagram:', e);
             // Fallback to opening the website
             window.open('https://www.instagram.com', '_blank');
           }
         }).catch(clipboardErr => {
-          console.error('Failed to copy URL for Instagram sharing:', clipboardErr);
+          logger.error('Failed to copy URL for Instagram sharing:', clipboardErr);
           alert('Failed to share. Please try again or use another sharing method.');
         });
       });
@@ -288,7 +289,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          console.error('Could not get canvas context');
+          logger.error('Could not get canvas context');
           reject(new Error('Could not get canvas context'));
           return;
         }
@@ -367,7 +368,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
           };
 
           verticalImg.onerror = () => {
-            console.error('Failed to load vertical banner');
+            logger.error('Failed to load vertical banner');
             // Fall back to horizontal banner or default background
             loadHorizontalBanner();
           };
@@ -424,7 +425,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             };
 
             img.onerror = () => {
-              console.error('Failed to load event image');
+              logger.error('Failed to load event image');
               // Continue without the image
               finishStoryImage();
             };
@@ -661,7 +662,7 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             ctx.textAlign = 'center';
             ctx.fillText('Scan to register', qrX + qrSize/2, qrY + qrSize + 30);
           } catch (err) {
-            console.error('Failed to generate QR code:', err);
+            logger.error('Failed to generate QR code:', err);
 
             // Fallback to a message if QR code generation fails
             ctx.font = 'bold 24px Arial';
@@ -691,15 +692,15 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
       setShowShareTooltip(true);
       setTimeout(() => setShowShareTooltip(false), 2000);
     }).catch(err => {
-      console.error('Failed to copy URL: ', err);
+      logger.error('Failed to copy URL: ', err);
     });
   };
 
   // Debug event data
   useEffect(() => {
     if (event) {
-      console.log('Event data loaded:', event);
-      console.log('Mobile view:', isMobileView);
+      logger.log('Event data loaded:', event);
+      logger.log('Mobile view:', isMobileView);
     }
   }, [event, isMobileView]);
 

@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import clubService from '../services/clubService';
 import { navigateTo } from '../utils/navigation';
 
+import logger from '../utils/logger';
 const Clubs = ({ setCurrentPage, setSelectedClubId }) => {
   const sectionRef = useRef(null);
   const [clubs, setClubs] = useState([]);
@@ -19,7 +20,7 @@ const Clubs = ({ setCurrentPage, setSelectedClubId }) => {
         setClubs(clubsData);
         setError(null);
       } catch (err) {
-        console.error('Error fetching clubs:', err);
+        logger.error('Error fetching clubs:', err);
         setError('Failed to load clubs. Please try again later.');
       } finally {
         setLoading(false);

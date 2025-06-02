@@ -3,6 +3,7 @@ import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
 import { useAuth } from '../contexts/AuthContext';
 
+import logger from '../utils/logger';
 /**
  * Component to view and access auto-created Google Sheets
  * @param {string} clubId - Optional club ID to filter events for specific club
@@ -46,7 +47,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
 
       setEvents(sortedEvents);
     } catch (error) {
-      console.error('Error loading events:', error);
+      logger.error('Error loading events:', error);
     } finally {
       setLoading(false);
     }
@@ -70,7 +71,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
       // Add this sheet to syncing state
       setSyncingSheets(prev => new Set([...prev, event.id]));
 
-      console.log(`🔄 Auto-syncing sheet for event ${event.id} before opening...`);
+      logger.log(`🔄 Auto-syncing sheet for event ${event.id} before opening...`);
 
       // Use the smart generation function which will update the existing sheet
       const result = await registrationService.smartGenerateGoogleSheet(
@@ -79,7 +80,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
       );
 
       if (result.success) {
-        console.log(`✅ Sheet synced successfully, opening: ${result.shareableLink}`);
+        logger.log(`✅ Sheet synced successfully, opening: ${result.shareableLink}`);
 
         // Update the event in our local state with any new info
         setEvents(prevEvents =>
@@ -98,12 +99,12 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
         // Open the sheet
         window.open(result.shareableLink, '_blank');
       } else {
-        console.warn(`⚠️ Failed to sync sheet, opening anyway: ${result.message}`);
+        logger.warn(`⚠️ Failed to sync sheet, opening anyway: ${result.message}`);
         // If sync fails, still open the existing sheet
         window.open(event.google_sheet_url, '_blank');
       }
     } catch (error) {
-      console.error('Error syncing sheet:', error);
+      logger.error('Error syncing sheet:', error);
       // If there's an error, still try to open the existing sheet
       window.open(event.google_sheet_url, '_blank');
     } finally {

@@ -1,5 +1,6 @@
 import React from 'react';
 
+import logger from '../utils/logger';
 const GoogleSheetsSuccessDialog = ({
   result,
   onClose,
@@ -10,7 +11,7 @@ const GoogleSheetsSuccessDialog = ({
   if (!result) return null;
 
   // Debug: Log the result to console
-  console.log('GoogleSheetsSuccessDialog result:', result);
+  logger.log('GoogleSheetsSuccessDialog result:', result);
 
   const handleOpenSheet = () => {
     onOpenSheet(result.shareableLink);
@@ -23,8 +24,8 @@ const GoogleSheetsSuccessDialog = ({
   };
 
   const handleShareWhatsApp = () => {
-    console.log('WhatsApp URL:', result.whatsappUrl);
-    console.log('WhatsApp Message:', result.whatsappMessage);
+    logger.log('WhatsApp URL:', result.whatsappUrl);
+    logger.log('WhatsApp Message:', result.whatsappMessage);
 
     if (result.whatsappUrl) {
       onShareWhatsApp(result.whatsappUrl);
@@ -37,7 +38,7 @@ const GoogleSheetsSuccessDialog = ({
         `✨ Anyone can edit this sheet without requesting access.`
       );
       const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
-      console.log('Generated fallback WhatsApp URL:', whatsappUrl);
+      logger.log('Generated fallback WhatsApp URL:', whatsappUrl);
       onShareWhatsApp(whatsappUrl);
     }
     onClose();

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import qrCodeService from '../services/qrCodeService';
 
+import logger from '../utils/logger';
 /**
  * QR Code Demo Component
  * For testing QR code generation and verification
@@ -30,7 +31,7 @@ const QRCodeDemo = () => {
         setVerificationResult(null);
       }
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      logger.error('Error generating QR code:', error);
     }
   };
 
@@ -42,7 +43,7 @@ const QRCodeDemo = () => {
       const result = await qrCodeService.verifyQRCode(qrCodeData);
       setVerificationResult(result);
     } catch (error) {
-      console.error('Error verifying QR code:', error);
+      logger.error('Error verifying QR code:', error);
     }
   };
 

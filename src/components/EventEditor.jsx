@@ -5,6 +5,7 @@ import eventService from '../services/eventService';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadImage } from '../lib/cloudinary';
 
+import logger from '../utils/logger';
 const EventEditor = ({ event, onClose, onUpdate }) => {
   const { club } = useAuth();
   const [categories, setCategories] = useState([]);
@@ -78,7 +79,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         const tagsData = await eventService.getAllTags();
         setTags(tagsData);
       } catch (err) {
-        console.error('Error loading categories or tags:', err);
+        logger.error('Error loading categories or tags:', err);
         setError('Failed to load categories or tags');
       }
     };
@@ -108,7 +109,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             selectedTags: selectedTagIds
           }));
         } catch (err) {
-          console.error('Error loading event tags:', err);
+          logger.error('Error loading event tags:', err);
         }
       };
 
@@ -441,7 +442,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Horizontal banner upload progress: ${progress}%`);
+        logger.log(`Horizontal banner upload progress: ${progress}%`);
         setUploadProgress(progress);
       };
 
@@ -455,7 +456,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       setUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading horizontal banner to Cloudinary:', err);
+      logger.error('Error uploading horizontal banner to Cloudinary:', err);
       throw err;
     }
   };
@@ -467,7 +468,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Vertical banner upload progress: ${progress}%`);
+        logger.log(`Vertical banner upload progress: ${progress}%`);
         setVerticalUploadProgress(progress);
       };
 
@@ -481,7 +482,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       setVerticalUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading vertical banner to Cloudinary:', err);
+      logger.error('Error uploading vertical banner to Cloudinary:', err);
       throw err;
     }
   };
@@ -493,7 +494,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
 
       // Update progress callback function
       const updateProgress = (progress) => {
-        console.log(`Payment QR code upload progress: ${progress}%`);
+        logger.log(`Payment QR code upload progress: ${progress}%`);
         setPaymentQRUploadProgress(progress);
       };
 
@@ -507,7 +508,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
       setPaymentQRUploadProgress(100);
       return result.url;
     } catch (err) {
-      console.error('Error uploading payment QR code to Cloudinary:', err);
+      logger.error('Error uploading payment QR code to Cloudinary:', err);
       throw err;
     }
   };
@@ -588,7 +589,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
           paymentQRUrl = await uploadPaymentQRToCloudinary(paymentQRFile);
         } catch (uploadError) {
           // Don't fail the whole operation if QR code upload fails
-          console.error('Payment QR code upload failed:', uploadError);
+          logger.error('Payment QR code upload failed:', uploadError);
           setError(`Payment QR code upload failed: ${uploadError.message}. Event will be updated without QR code.`);
           paymentQRUrl = formData.payment_qr_code; // Keep existing QR code
         }
@@ -650,7 +651,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
             await eventService.addTagsToEvent(event.id, tagsToAdd);
           }
         } catch (tagError) {
-          console.error('Error updating event tags:', tagError);
+          logger.error('Error updating event tags:', tagError);
           // Don't fail the whole operation if tags update fails
         }
       }
@@ -672,7 +673,7 @@ const EventEditor = ({ event, onClose, onUpdate }) => {
         }
       }, 2000);
     } catch (err) {
-      console.error('Error updating event:', err);
+      logger.error('Error updating event:', err);
       setError(err.message || 'An error occurred while updating the event');
     } finally {
       setIsLoading(false);

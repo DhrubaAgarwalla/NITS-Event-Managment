@@ -5,6 +5,7 @@ import clubService from '../services/clubService';
 import eventService from '../services/eventService';
 import { navigateTo } from '../utils/navigation';
 import ClubGallery from './ClubGallery';
+import logger from '../utils/logger';
 import './MobileTabs.css';
 
 const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId = () => {} }) => {
@@ -47,7 +48,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId = () => {} }) 
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching club details:', err);
+        logger.error('Error fetching club details:', err);
         setError('Failed to load club details. Please try again later.');
       } finally {
         setLoading(false);
@@ -73,7 +74,7 @@ const ClubDetails = ({ setCurrentPage, clubId, setSelectedEventId = () => {} }) 
         return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
       }
     } catch (err) {
-      console.error('Error formatting date:', err);
+      logger.error('Error formatting date:', err);
       return 'Date not available';
     }
   };

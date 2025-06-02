@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
 
+import logger from '../utils/logger';
 const RegistrationDetails = ({ registration, onClose }) => {
   const [eventData, setEventData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,7 @@ const RegistrationDetails = ({ registration, onClose }) => {
           const data = await eventService.getEventById(registration.event_id);
           setEventData(data);
         } catch (error) {
-          console.error('Error loading event data:', error);
+          logger.error('Error loading event data:', error);
         }
       }
       setLoading(false);

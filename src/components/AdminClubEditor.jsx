@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import clubService from '../services/clubService';
 
+import logger from '../utils/logger';
 const AdminClubEditor = ({ club, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -127,7 +128,7 @@ const AdminClubEditor = ({ club, onClose, onUpdate }) => {
         }
       }, 2000);
     } catch (err) {
-      console.error('Error updating club profile:', err);
+      logger.error('Error updating club profile:', err);
       setError(err.message || 'An error occurred while updating the club profile');
     } finally {
       setIsLoading(false);

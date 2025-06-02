@@ -10,12 +10,13 @@ import googleSheetsService from './googleSheetsService';
 import qrCodeService from './qrCodeService.js';
 import emailService from './emailService.js';
 
+import logger from '../utils/logger';
 // Registration-related database operations
 const registrationService = {
   // Get all registrations for an event
   getEventRegistrations: async (eventId) => {
     try {
-      console.log(`Getting registrations for event ID: ${eventId}`);
+      logger.log(`Getting registrations for event ID: ${eventId}`);
       const registrationsRef = ref(database, 'registrations');
       const eventRegistrationsQuery = query(
         registrationsRef,
@@ -26,7 +27,7 @@ const registrationService = {
       const snapshot = await get(eventRegistrationsQuery);
 
       if (!snapshot.exists()) {
-        console.log('No registrations found for this event');
+        logger.log('No registrations found for this event');
         return [];
       }
 
@@ -38,12 +39,12 @@ const registrationService = {
         });
       });
 
-      console.log(`Found ${registrations.length} registrations for event`);
+      logger.log(`Found ${registrations.length} registrations for event`);
 
       // Sort by creation date (newest first)
       return registrations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } catch (error) {
-      console.error('Error getting event registrations:', error);
+      logger.error('Error getting event registrations:', error);
       throw error;
     }
   },
@@ -51,7 +52,7 @@ const registrationService = {
   // Register for an event (internal registration)
   registerForEvent: async (registrationData) => {
     try {
-      console.log(`Registering for event ID: ${registrationData.event_id}`);
+      logger.log(`Registering for event ID: ${registrationData.event_id}`);
 
       // Create registration
       const registrationsRef = ref(database, 'registrations');
@@ -68,11 +69,11 @@ const registrationService = {
 
       // Save to database first
       await set(newRegistrationRef, newRegistration);
-      console.log('Registration created successfully with ID:', newRegistrationRef.key);
+      logger.log('Registration created successfully with ID:', newRegistrationRef.key);
 
       // Generate QR code for attendance tracking
       try {
-        console.log('Generating QR code for registration...');
+        logger.log('Generating QR code for registration...');
         const qrResult = await qrCodeService.generateQRCode(
           newRegistrationRef.key,
           registrationData.event_id,
@@ -80,14 +81,14 @@ const registrationService = {
         );
 
         if (qrResult.success) {
-          console.log('QR code generated successfully');
+          logger.log('QR code generated successfully');
 
           // Get event details for email
           const eventData = await eventService.getEventById(registrationData.event_id);
 
           // Send QR code email
-          console.log('🔄 Sending QR code email...');
-          console.log('🔄 Event data for email:', {
+          logger.log('🔄 Sending QR code email...');
+          logger.log('🔄 Event data for email:', {
             title: eventData.title,
             start_date: eventData.start_date,
             location: eventData.location
@@ -105,13 +106,13 @@ const registrationService = {
           });
 
           if (emailResult.success) {
-            console.log('✅ QR code email sent successfully:', emailResult.messageId);
+            logger.log('✅ QR code email sent successfully:', emailResult.messageId);
           } else {
-            console.error('❌ Failed to send QR code email:', emailResult.error);
-            console.error('❌ Email error details:', emailResult.details);
+            logger.error('❌ Failed to send QR code email:', emailResult.error);
+            logger.error('❌ Email error details:', emailResult.details);
 
             // Log additional debugging info
-            console.error('❌ Registration data:', {
+            logger.error('❌ Registration data:', {
               email: registrationData.participant_email,
               name: registrationData.participant_name,
               eventId: registrationData.event_id,
@@ -119,32 +120,32 @@ const registrationService = {
             });
           }
         } else {
-          console.warn('Failed to generate QR code');
+          logger.warn('Failed to generate QR code');
         }
       } catch (qrError) {
-        console.error('Error in QR code generation or email sending:', qrError);
+        logger.error('Error in QR code generation or email sending:', qrError);
         // Don't fail the registration if QR/email fails
       }
 
       // Auto-sync Google Sheet with new registration (don't wait for it to complete)
       try {
-        console.log('🔄 Initiating auto-sync for new registration...');
+        logger.log('🔄 Initiating auto-sync for new registration...');
         const { default: autoSyncService } = await import('./autoSyncService.js');
 
         // Run auto-sync in background (don't await)
         autoSyncService.autoSyncRegistrations(registrationData.event_id, 'registration')
           .then(result => {
             if (result.success) {
-              console.log(`✅ Google Sheet auto-synced for event ${registrationData.event_id} (new registration)`);
+              logger.log(`✅ Google Sheet auto-synced for event ${registrationData.event_id} (new registration)`);
             } else {
-              console.warn(`⚠️ Google Sheet auto-sync failed for event ${registrationData.event_id}: ${result.reason || result.error}`);
+              logger.warn(`⚠️ Google Sheet auto-sync failed for event ${registrationData.event_id}: ${result.reason || result.error}`);
             }
           })
           .catch(error => {
-            console.error(`❌ Google Sheet auto-sync error for event ${registrationData.event_id}:`, error);
+            logger.error(`❌ Google Sheet auto-sync error for event ${registrationData.event_id}:`, error);
           });
       } catch (error) {
-        console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+        logger.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
         // Don't fail registration if auto-sync fails
       }
 
@@ -153,7 +154,7 @@ const registrationService = {
         ...newRegistration
       };
     } catch (error) {
-      console.error('Error registering for event:', error);
+      logger.error('Error registering for event:', error);
       throw error;
     }
   },
@@ -161,7 +162,7 @@ const registrationService = {
   // Check if a participant is already registered
   checkExistingRegistration: async (eventId, email) => {
     try {
-      console.log(`Checking if ${email} is already registered for event ID: ${eventId}`);
+      logger.log(`Checking if ${email} is already registered for event ID: ${eventId}`);
       const registrationsRef = ref(database, 'registrations');
 
       // We need to get all registrations for the event first
@@ -174,7 +175,7 @@ const registrationService = {
       const snapshot = await get(eventRegistrationsQuery);
 
       if (!snapshot.exists()) {
-        console.log('No registrations found for this event');
+        logger.log('No registrations found for this event');
         return null;
       }
 
@@ -193,10 +194,10 @@ const registrationService = {
         }
       });
 
-      console.log(`Existing registration found: ${!!existingRegistration}`);
+      logger.log(`Existing registration found: ${!!existingRegistration}`);
       return existingRegistration;
     } catch (error) {
-      console.error('Error checking existing registration:', error);
+      logger.error('Error checking existing registration:', error);
       throw error;
     }
   },
@@ -204,7 +205,7 @@ const registrationService = {
   // Update registration status
   updateRegistrationStatus: async (id, status) => {
     try {
-      console.log(`Updating registration status to ${status} for registration ID: ${id}`);
+      logger.log(`Updating registration status to ${status} for registration ID: ${id}`);
       const registrationRef = ref(database, `registrations/${id}`);
 
       await update(registrationRef, {
@@ -212,7 +213,7 @@ const registrationService = {
         updated_at: new Date().toISOString()
       });
 
-      console.log('Registration status updated successfully');
+      logger.log('Registration status updated successfully');
 
       // Get the updated registration
       const snapshot = await get(registrationRef);
@@ -222,7 +223,7 @@ const registrationService = {
         ...snapshot.val()
       };
     } catch (error) {
-      console.error('Error updating registration status:', error);
+      logger.error('Error updating registration status:', error);
       throw error;
     }
   },
@@ -230,7 +231,7 @@ const registrationService = {
   // Update attendance status specifically
   updateAttendanceStatus: async (id, attendanceStatus) => {
     try {
-      console.log(`Updating attendance status to ${attendanceStatus} for registration ID: ${id}`);
+      logger.log(`Updating attendance status to ${attendanceStatus} for registration ID: ${id}`);
       const registrationRef = ref(database, `registrations/${id}`);
 
       // If marking as attended, check payment verification first
@@ -280,7 +281,7 @@ const registrationService = {
 
       await update(registrationRef, updates);
 
-      console.log('Attendance status updated successfully');
+      logger.log('Attendance status updated successfully');
 
       // Get the updated registration
       const snapshot = await get(registrationRef);
@@ -292,30 +293,30 @@ const registrationService = {
       // Auto-sync Google Sheet with attendance update (don't wait for it to complete)
       if (attendanceStatus === 'attended') {
         try {
-          console.log('🔄 Initiating auto-sync for attendance update...');
+          logger.log('🔄 Initiating auto-sync for attendance update...');
           const { default: autoSyncService } = await import('./autoSyncService.js');
 
           // Run auto-sync in background (don't await)
           autoSyncService.autoSyncRegistrations(updatedRegistration.event_id, 'attendance')
             .then(result => {
               if (result.success) {
-                console.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (attendance update)`);
+                logger.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (attendance update)`);
               } else {
-                console.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
+                logger.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
               }
             })
             .catch(error => {
-              console.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
+              logger.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
             });
         } catch (error) {
-          console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+          logger.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
           // Don't fail attendance update if auto-sync fails
         }
       }
 
       return updatedRegistration;
     } catch (error) {
-      console.error('Error updating attendance status:', error);
+      logger.error('Error updating attendance status:', error);
       throw error;
     }
   },
@@ -323,7 +324,7 @@ const registrationService = {
   // Mark attendance using QR code
   markAttendanceByQR: async (qrCodeData, expectedEventId = null) => {
     try {
-      console.log('Processing QR code for attendance marking...');
+      logger.log('Processing QR code for attendance marking...');
 
       // Verify QR code
       const verification = await qrCodeService.verifyQRCode(qrCodeData);
@@ -339,7 +340,7 @@ const registrationService = {
 
       // CRITICAL SECURITY CHECK: Validate event ID matches
       if (expectedEventId && eventId !== expectedEventId) {
-        console.warn(`QR code event mismatch: Expected ${expectedEventId}, got ${eventId}`);
+        logger.warn(`QR code event mismatch: Expected ${expectedEventId}, got ${eventId}`);
         return {
           success: false,
           error: 'This QR code is for a different event. Please use the correct QR code for this event.',
@@ -362,7 +363,7 @@ const registrationService = {
 
       // Double-check event ID from registration data
       if (registration.event_id !== eventId) {
-        console.error(`Registration event mismatch: Registration has ${registration.event_id}, QR has ${eventId}`);
+        logger.error(`Registration event mismatch: Registration has ${registration.event_id}, QR has ${eventId}`);
         return {
           success: false,
           error: 'Registration data inconsistency detected. Please contact support.',
@@ -420,7 +421,7 @@ const registrationService = {
             attendanceTimestamp: attendanceResult.timestamp
           });
         } catch (emailError) {
-          console.warn('Failed to send attendance confirmation email:', emailError);
+          logger.warn('Failed to send attendance confirmation email:', emailError);
         }
 
         return {
@@ -437,7 +438,7 @@ const registrationService = {
         };
       }
     } catch (error) {
-      console.error('Error marking attendance by QR:', error);
+      logger.error('Error marking attendance by QR:', error);
       return {
         success: false,
         error: error.message || 'Failed to process QR code'
@@ -448,7 +449,7 @@ const registrationService = {
   // Update payment status
   updatePaymentStatus: async (id, paymentStatus) => {
     try {
-      console.log(`Updating payment status to ${paymentStatus} for registration ID: ${id}`);
+      logger.log(`Updating payment status to ${paymentStatus} for registration ID: ${id}`);
       const registrationRef = ref(database, `registrations/${id}`);
 
       await update(registrationRef, {
@@ -456,7 +457,7 @@ const registrationService = {
         updated_at: new Date().toISOString()
       });
 
-      console.log('Payment status updated successfully');
+      logger.log('Payment status updated successfully');
 
       // Get the updated registration
       const snapshot = await get(registrationRef);
@@ -467,29 +468,29 @@ const registrationService = {
 
       // Auto-sync Google Sheet with payment update (don't wait for it to complete)
       try {
-        console.log('🔄 Initiating auto-sync for payment status update...');
+        logger.log('🔄 Initiating auto-sync for payment status update...');
         const { default: autoSyncService } = await import('./autoSyncService.js');
 
         // Run auto-sync in background (don't await)
         autoSyncService.autoSyncRegistrations(updatedRegistration.event_id, 'payment')
           .then(result => {
             if (result.success) {
-              console.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (payment update)`);
+              logger.log(`✅ Google Sheet auto-synced for event ${updatedRegistration.event_id} (payment update)`);
             } else {
-              console.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
+              logger.warn(`⚠️ Google Sheet auto-sync failed for event ${updatedRegistration.event_id}: ${result.reason || result.error}`);
             }
           })
           .catch(error => {
-            console.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
+            logger.error(`❌ Google Sheet auto-sync error for event ${updatedRegistration.event_id}:`, error);
           });
       } catch (error) {
-        console.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+        logger.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
         // Don't fail payment update if auto-sync fails
       }
 
       return updatedRegistration;
     } catch (error) {
-      console.error('Error updating payment status:', error);
+      logger.error('Error updating payment status:', error);
       throw error;
     }
   },
@@ -497,13 +498,13 @@ const registrationService = {
   // Delete a registration
   deleteRegistration: async (id) => {
     try {
-      console.log(`Deleting registration with ID: ${id}`);
+      logger.log(`Deleting registration with ID: ${id}`);
       const registrationRef = ref(database, `registrations/${id}`);
       await remove(registrationRef);
-      console.log('Registration deleted successfully');
+      logger.log('Registration deleted successfully');
       return true;
     } catch (error) {
-      console.error('Error deleting registration:', error);
+      logger.error('Error deleting registration:', error);
       throw error;
     }
   },
@@ -511,7 +512,7 @@ const registrationService = {
   // Get registration statistics for an event
   getRegistrationStats: async (eventId) => {
     try {
-      console.log(`Getting registration statistics for event ID: ${eventId}`);
+      logger.log(`Getting registration statistics for event ID: ${eventId}`);
       const registrations = await registrationService.getEventRegistrations(eventId);
 
       // Calculate statistics
@@ -522,10 +523,10 @@ const registrationService = {
         cancelled: registrations.filter(r => r.status === 'cancelled').length
       };
 
-      console.log('Registration statistics:', stats);
+      logger.log('Registration statistics:', stats);
       return stats;
     } catch (error) {
-      console.error('Error getting registration statistics:', error);
+      logger.error('Error getting registration statistics:', error);
       throw error;
     }
   },
@@ -533,7 +534,7 @@ const registrationService = {
   // Add external registrations (for Google Form registrations)
   addExternalRegistrations: async (registrationsData) => {
     try {
-      console.log(`Adding ${registrationsData.length} external registrations`);
+      logger.log(`Adding ${registrationsData.length} external registrations`);
 
       const registrationsRef = ref(database, 'registrations');
       const results = [];
@@ -558,10 +559,10 @@ const registrationService = {
         });
       }
 
-      console.log(`Added ${results.length} external registrations successfully`);
+      logger.log(`Added ${results.length} external registrations successfully`);
       return results;
     } catch (error) {
-      console.error('Error adding external registrations:', error);
+      logger.error('Error adding external registrations:', error);
       throw error;
     }
   },
@@ -569,15 +570,15 @@ const registrationService = {
   // Export registrations as professionally styled Excel using ExcelJS
   exportStyledExcel: async (eventId, eventTitle) => {
     try {
-      console.log(`Exporting professionally styled Excel for event ID: ${eventId} using ExcelJS`);
+      logger.log(`Exporting professionally styled Excel for event ID: ${eventId} using ExcelJS`);
 
       // Check if ExcelJSModule is properly imported
       if (!ExcelJSModule) {
-        console.error('ExcelJSModule is not properly imported:', ExcelJSModule);
+        logger.error('ExcelJSModule is not properly imported:', ExcelJSModule);
         throw new Error('ExcelJS library is not properly imported or initialized');
       }
 
-      console.log(`ExcelJSModule imported successfully:`, ExcelJSModule); // Log ExcelJSModule
+      logger.log(`ExcelJSModule imported successfully:`, ExcelJSModule); // Log ExcelJSModule
 
       // Get all registrations for the event
       const registrations = await registrationService.getEventRegistrations(eventId);
@@ -595,7 +596,7 @@ const registrationService = {
 
       // Create a new workbook using the ExcelJSModule
       const workbook = new ExcelJSModule.Workbook();
-      console.log('Workbook created successfully:', workbook);
+      logger.log('Workbook created successfully:', workbook);
 
       // Set workbook properties
       workbook.creator = 'NIT Silchar Event Management';
@@ -769,7 +770,7 @@ const registrationService = {
             minute: '2-digit'
           });
         } catch (e) {
-          console.error('Error formatting date:', e);
+          logger.error('Error formatting date:', e);
         }
 
         // Determine registration type
@@ -789,7 +790,7 @@ const registrationService = {
               minute: '2-digit'
             });
           } catch (e) {
-            console.error('Error formatting attendance timestamp:', e);
+            logger.error('Error formatting attendance timestamp:', e);
             formattedAttendanceTime = 'Invalid Date';
           }
         }
@@ -1368,19 +1369,19 @@ const registrationService = {
       ];
 
       // Generate Excel file
-      console.log('Generating Excel buffer with ExcelJS...');
+      logger.log('Generating Excel buffer with ExcelJS...');
       const buffer = await workbook.xlsx.writeBuffer();
-      console.log('Excel buffer generated successfully, creating blob...');
+      logger.log('Excel buffer generated successfully, creating blob...');
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
       // Create download link
       const url = URL.createObjectURL(blob);
       const filename = `${eventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_registrations.xlsx`;
 
-      console.log('Returning styled Excel export with URL:', url);
+      logger.log('Returning styled Excel export with URL:', url);
       return { success: true, url, filename, type: 'excel_styled' };
     } catch (error) {
-      console.error('Error creating styled Excel export:', error);
+      logger.error('Error creating styled Excel export:', error);
 
       // Create a more detailed error message
       const errorDetails = {
@@ -1389,7 +1390,7 @@ const registrationService = {
         name: error.name
       };
 
-      console.error('Detailed error information:', JSON.stringify(errorDetails, null, 2));
+      logger.error('Detailed error information:', JSON.stringify(errorDetails, null, 2));
 
       // Return a fallback response
       return {
@@ -1402,7 +1403,7 @@ const registrationService = {
   // Smart Google Sheets generation - checks if sheet exists and updates or creates
   smartGenerateGoogleSheet: async (eventId, eventTitle) => {
     try {
-      console.log(`🔍 Smart sheet generation for event ${eventId}: ${eventTitle}`);
+      logger.log(`🔍 Smart sheet generation for event ${eventId}: ${eventTitle}`);
 
       // Get event data to check if it already has a sheet
       const eventData = await eventService.getEventById(eventId);
@@ -1415,7 +1416,7 @@ const registrationService = {
 
       // Check if event already has an auto-generated sheet
       if (eventData.google_sheet_id && eventData.google_sheet_url) {
-        console.log(`✅ Event already has a sheet (${eventData.google_sheet_id}), updating it...`);
+        logger.log(`✅ Event already has a sheet (${eventData.google_sheet_id}), updating it...`);
 
         // Update existing sheet
         try {
@@ -1426,7 +1427,7 @@ const registrationService = {
           );
 
           if (result.success) {
-            console.log(`✅ Successfully updated existing sheet: ${result.shareableLink}`);
+            logger.log(`✅ Successfully updated existing sheet: ${result.shareableLink}`);
             return {
               success: true,
               action: 'updated',
@@ -1440,13 +1441,13 @@ const registrationService = {
             throw new Error(result.message || 'Failed to update existing sheet');
           }
         } catch (updateError) {
-          console.warn(`⚠️ Failed to update existing sheet, creating new one: ${updateError.message}`);
+          logger.warn(`⚠️ Failed to update existing sheet, creating new one: ${updateError.message}`);
           // Fall through to create new sheet
         }
       }
 
       // Create new sheet (either no existing sheet or update failed)
-      console.log(`📊 Creating new Google Sheet for event ${eventId}...`);
+      logger.log(`📊 Creating new Google Sheet for event ${eventId}...`);
 
       const result = await googleSheetsService.exportRegistrationsToSheets(
         eventId,
@@ -1469,9 +1470,9 @@ const registrationService = {
           last_sync_at: new Date().toISOString(),
           last_sync_type: 'manual_creation'
         });
-        console.log(`✅ Stored sheet info in event data`);
+        logger.log(`✅ Stored sheet info in event data`);
       } catch (storeError) {
-        console.warn(`⚠️ Failed to store sheet info in event: ${storeError.message}`);
+        logger.warn(`⚠️ Failed to store sheet info in event: ${storeError.message}`);
         // Don't fail the whole operation if we can't store the info
       }
 
@@ -1486,7 +1487,7 @@ const registrationService = {
       };
 
     } catch (error) {
-      console.error('Error in smart sheet generation:', error);
+      logger.error('Error in smart sheet generation:', error);
       return {
         success: false,
         error: error.message,
@@ -1498,11 +1499,11 @@ const registrationService = {
   // Export registrations as Excel or PDF
   exportRegistrationsAsCSV: async (eventId, eventTitle, format = 'excel') => {
     try {
-      console.log(`Exporting registrations for event ID: ${eventId} as ${format}`);
+      logger.log(`Exporting registrations for event ID: ${eventId} as ${format}`);
 
       // Use the professionally styled Excel export if format is 'excel_styled'
       if (format === 'excel_styled') {
-        console.log('Using exportStyledExcel for professionally styled Excel export');
+        logger.log('Using exportStyledExcel for professionally styled Excel export');
         return await registrationService.exportStyledExcel(eventId, eventTitle);
       }
 
@@ -1540,7 +1541,7 @@ const registrationService = {
             minute: '2-digit'
           });
         } catch (e) {
-          console.error('Error formatting date:', e);
+          logger.error('Error formatting date:', e);
         }
 
         // Format attendance timestamp
@@ -1555,7 +1556,7 @@ const registrationService = {
               minute: '2-digit'
             });
           } catch (e) {
-            console.error('Error formatting attendance timestamp:', e);
+            logger.error('Error formatting attendance timestamp:', e);
           }
         }
 
@@ -2066,13 +2067,13 @@ const registrationService = {
       } else if (format === 'google_sheets') {
         // Export to Google Sheets using the backend service
         try {
-          console.log('Exporting to Google Sheets via backend service');
+          logger.log('Exporting to Google Sheets via backend service');
 
           // Get event data for custom fields
           const eventData = await eventService.getEventById(eventId);
 
           // Debug: Log the event data to see if custom fields are present
-          console.log('📊 Event data retrieved for Google Sheets export:', {
+          logger.log('📊 Event data retrieved for Google Sheets export:', {
             eventId,
             eventTitle,
             hasEventData: !!eventData,
@@ -2083,7 +2084,7 @@ const registrationService = {
 
           // Debug: Log a sample registration to see custom field data structure
           if (registrations.length > 0) {
-            console.log('📊 Sample registration data:', {
+            logger.log('📊 Sample registration data:', {
               participantName: registrations[0].participant_name,
               hasAdditionalInfo: !!registrations[0].additional_info,
               hasCustomFields: !!registrations[0].additional_info?.custom_fields,
@@ -2116,7 +2117,7 @@ const registrationService = {
           };
 
         } catch (error) {
-          console.error('Error creating Google Sheet:', error);
+          logger.error('Error creating Google Sheet:', error);
           return {
             success: false,
             error: error.message,
@@ -2125,7 +2126,7 @@ const registrationService = {
         }
       } else if (format === 'sheets') {
         try {
-          console.log('Creating professional Excel file with styling');
+          logger.log('Creating professional Excel file with styling');
 
           // Create a new workbook
           const workbook = XLSX.utils.book_new();
@@ -2356,27 +2357,27 @@ const registrationService = {
             // Extract and organize team member data
 
             // Debug the registrations data
-            console.log('All registrations count:', registrations.length);
+            logger.log('All registrations count:', registrations.length);
 
             // Log team registrations (case-insensitive)
             const teamRegs = registrations.filter(reg =>
               (reg.registration_type && reg.registration_type.toLowerCase() === 'team') ||
               (reg.additional_info && reg.additional_info.team_members && reg.additional_info.team_members.length > 0)
             );
-            console.log('Team registrations count:', teamRegs.length);
+            logger.log('Team registrations count:', teamRegs.length);
 
             // Detailed logging of team data structure
             if (teamRegs.length > 0) {
-              console.log('First team registration data structure:', JSON.stringify(teamRegs[0], null, 2));
+              logger.log('First team registration data structure:', JSON.stringify(teamRegs[0], null, 2));
 
               // Check team members structure
               if (teamRegs[0].additional_info && teamRegs[0].additional_info.team_members) {
-                console.log('Team members array:', teamRegs[0].additional_info.team_members);
+                logger.log('Team members array:', teamRegs[0].additional_info.team_members);
               } else {
-                console.log('No team_members found in the first team registration');
+                logger.log('No team_members found in the first team registration');
               }
             } else {
-              console.log('No team registrations found');
+              logger.log('No team registrations found');
             }
 
             // Group registrations by team for better organization
@@ -2391,7 +2392,7 @@ const registrationService = {
 
               // Log each team registration for debugging
               if (isTeam) {
-                console.log(`Processing team registration for: ${reg.participant_name}`);
+                logger.log(`Processing team registration for: ${reg.participant_name}`);
               }
 
               if (isTeam) {
@@ -2417,12 +2418,12 @@ const registrationService = {
                         notes: '' // Empty notes column
                       });
                     } else {
-                      console.log('Invalid team member data:', member);
+                      logger.log('Invalid team member data:', member);
                     }
                   });
                 } else {
                   // If no valid team members array, add a placeholder for the team
-                  console.log('Team registration without valid team_members array:', reg.participant_name);
+                  logger.log('Team registration without valid team_members array:', reg.participant_name);
                   teamMembers.push({
                     teamName,
                     teamLead: reg.participant_name || 'N/A',
@@ -2485,7 +2486,7 @@ const registrationService = {
             });
 
             // If no team members were found, add a placeholder row
-            console.log('Team data rows:', teamData.length);
+            logger.log('Team data rows:', teamData.length);
             if (teamData.length <= 1) { // No data rows or only header row exists
               // Add a team header
               teamData.push([
@@ -2679,7 +2680,7 @@ const registrationService = {
           let allTeamMemberDepts = {};
           let allTeamMemberYears = {};
 
-          console.log('Starting team member counting...');
+          logger.log('Starting team member counting...');
 
           // Process all registrations to count team members - use case-insensitive check
           registrations.forEach(reg => {
@@ -2703,7 +2704,7 @@ const registrationService = {
 
             // Process team members if this is a team registration
             if (isTeam) {
-              console.log(`Processing team registration for: ${reg.participant_name || reg.Name || 'Unknown'}`);
+              logger.log(`Processing team registration for: ${reg.participant_name || reg.Name || 'Unknown'}`);
 
               // Check for team members in additional_info
               if (reg.additional_info && reg.additional_info.team_members &&
@@ -2999,11 +3000,11 @@ const registrationService = {
           };
 
         } catch (error) {
-          console.error('Error creating Excel file:', error);
+          logger.error('Error creating Excel file:', error);
 
           // Fall back to regular Excel export if the enhanced export fails
           try {
-            console.log('Falling back to simple Excel export');
+            logger.log('Falling back to simple Excel export');
 
             // Use the existing Excel export code
             const result = await registrationService.exportRegistrationsAsCSV(eventId, eventTitle, 'excel');
@@ -3017,7 +3018,7 @@ const registrationService = {
               throw new Error('Excel fallback also failed');
             }
           } catch (fallbackError) {
-            console.error('Error with Excel fallback:', fallbackError);
+            logger.error('Error with Excel fallback:', fallbackError);
             return {
               success: false,
               message: `Failed to create Excel file: ${error.message}`
@@ -3028,7 +3029,7 @@ const registrationService = {
 
       return { success: false, message: 'Invalid export format' };
     } catch (error) {
-      console.error('Error exporting registrations:', error);
+      logger.error('Error exporting registrations:', error);
       throw error;
     }
   }

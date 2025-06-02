@@ -14,6 +14,7 @@ import MultiSelect from './MultiSelect';
 import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
+import logger from '../utils/logger';
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'attendance', 'gallery'
@@ -68,7 +69,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
     // Set a timeout to cancel the operation if it takes too long
     const timeoutId = setTimeout(() => {
       isCanceled = true;
-      console.warn('Loading club events timed out');
+      logger.warn('Loading club events timed out');
       setError('Loading events is taking longer than expected. Please refresh the page.');
       setIsLoading(false);
     }, 10000); // 10 seconds timeout
@@ -85,7 +86,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         clearTimeout(timeoutId); // Clear the timeout since we got the data
       }
     } catch (err) {
-      console.error('Error loading club events:', err);
+      logger.error('Error loading club events:', err);
 
       // Only update state if the operation wasn't canceled
       if (!isCanceled) {
@@ -150,7 +151,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
           }
         }
       } catch (err) {
-        console.error('Error loading data:', err);
+        logger.error('Error loading data:', err);
 
         // Only update state if the component is still mounted
         if (isMounted) {
@@ -188,7 +189,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
     // Set a timeout to cancel the operation if it takes too long
     const timeoutId = setTimeout(() => {
       isCanceled = true;
-      console.warn('Loading registrations timed out');
+      logger.warn('Loading registrations timed out');
       setError('Loading registrations is taking longer than expected. Please try again.');
       setIsLoading(false);
     }, 10000); // 10 seconds timeout
@@ -219,7 +220,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         clearTimeout(timeoutId); // Clear the timeout since we got the data
       }
     } catch (err) {
-      console.error('Error loading registrations:', err);
+      logger.error('Error loading registrations:', err);
 
       // Only update state if the operation wasn't canceled
       if (!isCanceled) {
@@ -303,7 +304,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         additional_info: newEvent.additional_info || null
       };
 
-      console.log('Creating event with data:', eventData);
+      logger.log('Creating event with data:', eventData);
 
       // Create the event
       const createdEvent = await eventService.createEvent(eventData);
@@ -346,7 +347,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       setIsCreatingEvent(false);
       loadClubEvents();
     } catch (err) {
-      console.error('Error creating event:', err);
+      logger.error('Error creating event:', err);
       setError(err.message || 'Failed to create event');
     } finally {
       setIsLoading(false);
@@ -362,7 +363,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         setEvents(events.filter(event => event.id !== eventId));
         setError(null);
       } catch (err) {
-        console.error('Error deleting event:', err);
+        logger.error('Error deleting event:', err);
         setError('Failed to delete event');
       } finally {
         setIsLoading(false);
@@ -391,9 +392,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         setSelectedEvent(updatedEvent);
       }
 
-      console.log(`Event status updated to ${newStatus} successfully`);
+      logger.log(`Event status updated to ${newStatus} successfully`);
     } catch (err) {
-      console.error('Error updating event status:', err);
+      logger.error('Error updating event status:', err);
       setError(`Failed to update event status: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -422,9 +423,9 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         setSelectedEvent(updatedEvent);
       }
 
-      console.log(`Registration ${newStatus ? 'opened' : 'closed'} successfully for event ID: ${eventId}`);
+      logger.log(`Registration ${newStatus ? 'opened' : 'closed'} successfully for event ID: ${eventId}`);
     } catch (err) {
-      console.error('Error toggling registration status:', err);
+      logger.error('Error toggling registration status:', err);
       setError(`Failed to update registration status: ${err.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
@@ -434,7 +435,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      console.log('Logging out from club dashboard');
+      logger.log('Logging out from club dashboard');
       // First set isClubLoggedIn to false to show the navbar
       setIsClubLoggedIn(false);
       // Set current page to home
@@ -442,7 +443,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       // Then perform the logout and redirect
       await logoutAndRedirect(signOut);
     } catch (err) {
-      console.error('Error signing out:', err);
+      logger.error('Error signing out:', err);
       setError('Failed to sign out');
     }
   };
@@ -464,12 +465,12 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       const date = new Date(dateString);
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date:', dateString);
+        logger.warn('Invalid date:', dateString);
         return 'Invalid date';
       }
       return format(date, formatStr);
     } catch (err) {
-      console.error('Error formatting date:', err);
+      logger.error('Error formatting date:', err);
       return 'Date error';
     }
   };
@@ -501,11 +502,11 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   };
 
   const handleShareWhatsApp = (whatsappUrl) => {
-    console.log('Opening WhatsApp URL:', whatsappUrl);
+    logger.log('Opening WhatsApp URL:', whatsappUrl);
     if (whatsappUrl) {
       window.open(whatsappUrl, '_blank');
     } else {
-      console.error('WhatsApp URL is empty or undefined');
+      logger.error('WhatsApp URL is empty or undefined');
       alert('WhatsApp URL is not available. Please try copying the link instead.');
     }
   };
@@ -1955,7 +1956,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '1';
                           button.style.cursor = 'pointer';
 
-                          console.error('Error exporting registrations:', err);
+                          logger.error('Error exporting registrations:', err);
                           alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
                       }}
@@ -2077,7 +2078,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '1';
                           button.style.cursor = 'pointer';
 
-                          console.error('Error exporting registrations to Google Sheets:', err);
+                          logger.error('Error exporting registrations to Google Sheets:', err);
                           alert('Failed to create Google Sheet: ' + (err.message || 'Unknown error'));
                         }
                       }}
@@ -2202,7 +2203,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           button.style.opacity = '1';
                           button.style.cursor = 'pointer';
 
-                          console.error('Error exporting registrations to Excel:', err);
+                          logger.error('Error exporting registrations to Excel:', err);
                           alert('Failed to export registrations: ' + (err.message || 'Unknown error'));
                         }
                       }}
@@ -2379,7 +2380,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                             loadEventRegistrations(selectedEvent.id);
                                           })
                                           .catch(err => {
-                                            console.error('Error updating payment status:', err);
+                                            logger.error('Error updating payment status:', err);
                                             setError('Failed to update payment status');
                                           });
                                       }}
@@ -2401,7 +2402,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                                             loadEventRegistrations(selectedEvent.id);
                                           })
                                           .catch(err => {
-                                            console.error('Error deleting registration:', err);
+                                            logger.error('Error deleting registration:', err);
                                             setError('Failed to delete registration');
                                           });
                                       }

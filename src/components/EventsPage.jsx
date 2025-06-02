@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import eventService from '../services/eventService';
 import { navigateTo } from '../utils/navigation';
 
+import logger from '../utils/logger';
 const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +29,7 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
 
         setError(null);
       } catch (err) {
-        console.error('Error fetching events:', err);
+        logger.error('Error fetching events:', err);
         setError('Failed to load events. Please try again later.');
       } finally {
         setLoading(false);
@@ -52,7 +53,7 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
         return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
       }
     } catch (err) {
-      console.error('Error formatting date:', err);
+      logger.error('Error formatting date:', err);
       return 'Date not available';
     }
   };

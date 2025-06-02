@@ -9,6 +9,7 @@ import AdminClubDetails from './AdminClubDetails';
 import AdminEventDetails from './AdminEventDetails';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
+import logger from '../utils/logger';
 export default function AdminDashboard({ setCurrentPage }) {
   const { user, isAdmin, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('requests');
@@ -50,7 +51,7 @@ export default function AdminDashboard({ setCurrentPage }) {
             const requests = await adminService.getClubRequests();
             setClubRequests(requests || []);
           } catch (requestErr) {
-            console.error('Error loading club requests:', requestErr);
+            logger.error('Error loading club requests:', requestErr);
             setClubRequests([]);
             setError('Failed to load club requests. This might be due to a database policy issue.');
           }
@@ -59,7 +60,7 @@ export default function AdminDashboard({ setCurrentPage }) {
             const clubsList = await clubService.getAllClubs();
             setClubs(clubsList || []);
           } catch (clubsErr) {
-            console.error('Error loading clubs:', clubsErr);
+            logger.error('Error loading clubs:', clubsErr);
             setClubs([]);
             setError('Failed to load clubs. Please try again later.');
           }
@@ -68,13 +69,13 @@ export default function AdminDashboard({ setCurrentPage }) {
             const eventsList = await adminService.getAllEvents();
             setEvents(eventsList || []);
           } catch (eventsErr) {
-            console.error('Error loading events:', eventsErr);
+            logger.error('Error loading events:', eventsErr);
             setEvents([]);
             setError('Failed to load events. Please try again later.');
           }
         }
       } catch (err) {
-        console.error(`General error loading ${activeTab}:`, err);
+        logger.error(`General error loading ${activeTab}:`, err);
         setError(`Failed to load data: ${err.message}`);
       } finally {
         setLoading(false);
@@ -142,7 +143,7 @@ export default function AdminDashboard({ setCurrentPage }) {
         }
       }
     } catch (err) {
-      console.error('Error creating club account:', err);
+      logger.error('Error creating club account:', err);
       setError(err.message || 'Failed to create club account');
     } finally {
       setLoading(false);
@@ -191,7 +192,7 @@ export default function AdminDashboard({ setCurrentPage }) {
           const requests = await adminService.getClubRequests();
           setClubRequests(requests);
         } catch (refreshErr) {
-          console.error('Error refreshing requests:', refreshErr);
+          logger.error('Error refreshing requests:', refreshErr);
           // Don't show an error for this, as the main operation succeeded
         }
 
@@ -199,7 +200,7 @@ export default function AdminDashboard({ setCurrentPage }) {
         setSelectedRequest(null);
       }
     } catch (err) {
-      console.error('Error approving request:', err);
+      logger.error('Error approving request:', err);
       setError(err.message || 'Failed to approve request');
     } finally {
       setLoading(false);
@@ -221,7 +222,7 @@ export default function AdminDashboard({ setCurrentPage }) {
 
       setSuccess('Request rejected successfully');
     } catch (err) {
-      console.error('Error rejecting request:', err);
+      logger.error('Error rejecting request:', err);
       setError(err.message || 'Failed to reject request');
     } finally {
       setLoading(false);
@@ -242,7 +243,7 @@ export default function AdminDashboard({ setCurrentPage }) {
 
       setSuccess(`Event ${currentStatus ? 'unfeatured' : 'featured'} successfully`);
     } catch (err) {
-      console.error('Error toggling event feature status:', err);
+      logger.error('Error toggling event feature status:', err);
       setError(err.message || 'Failed to update event');
     } finally {
       setLoading(false);

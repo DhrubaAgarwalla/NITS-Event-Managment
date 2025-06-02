@@ -2,10 +2,13 @@
  * Email Service for RSVP Attendance Tracking
  * Sends QR codes and event notifications using Gmail API with Firebase
  */
+
+import logger from '../utils/logger';
+
 class EmailService {
   constructor() {
     this.backendUrl = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app';
-    console.log('🔧 EmailService initialized with backend URL:', this.backendUrl);
+    logger.log('🔧 EmailService initialized with backend URL:', this.backendUrl);
   }
 
   /**
@@ -15,8 +18,8 @@ class EmailService {
    */
   async sendQRCodeEmail(emailData) {
     try {
-      console.log('📧 EmailService: Starting QR code email send process...');
-      console.log('📧 Backend URL:', this.backendUrl);
+      logger.log('📧 EmailService: Starting QR code email send process...');
+      logger.log('📧 Backend URL:', this.backendUrl);
 
       const {
         participantEmail,
@@ -29,7 +32,7 @@ class EmailService {
         eventId
       } = emailData;
 
-      console.log('📧 Email data received:', {
+      logger.log('📧 Email data received:', {
         participantEmail,
         participantName,
         eventTitle,
@@ -57,7 +60,7 @@ class EmailService {
         registrationId
       });
 
-      console.log('📧 Email content generated, length:', emailContent.length);
+      logger.log('📧 Email content generated, length:', emailContent.length);
 
       // Prepare request payload
       const requestPayload = {
@@ -74,7 +77,7 @@ class EmailService {
         ]
       };
 
-      console.log('📧 Sending request to:', `${this.backendUrl}/api/v1/send-email`);
+      logger.log('📧 Sending request to:', `${this.backendUrl}/api/v1/send-email`);
 
       // Send email via backend service
       const response = await fetch(`${this.backendUrl}/api/v1/send-email`, {
@@ -85,8 +88,8 @@ class EmailService {
         body: JSON.stringify(requestPayload)
       });
 
-      console.log('📧 Response status:', response.status);
-      console.log('📧 Response headers:', Object.fromEntries(response.headers.entries()));
+      logger.log('📧 Response status:', response.status);
+      logger.log('📧 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         let errorData;
@@ -94,17 +97,17 @@ class EmailService {
           errorData = await response.json();
         } catch (parseError) {
           const errorText = await response.text();
-          console.error('📧 Failed to parse error response:', parseError);
-          console.error('📧 Raw error response:', errorText);
+          logger.error('📧 Failed to parse error response:', parseError);
+          logger.error('📧 Raw error response:', errorText);
           throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
         }
 
-        console.error('📧 Email sending failed:', errorData);
+        logger.error('📧 Email sending failed:', errorData);
         throw new Error(errorData.message || `HTTP ${response.status}: Failed to send email`);
       }
 
       const result = await response.json();
-      console.log('📧 Email sent successfully:', result);
+      logger.log('📧 Email sent successfully:', result);
 
       return {
         success: true,
@@ -112,8 +115,8 @@ class EmailService {
         message: 'QR code email sent successfully'
       };
     } catch (error) {
-      console.error('📧 Error sending QR code email:', error);
-      console.error('📧 Error stack:', error.stack);
+      logger.error('📧 Error sending QR code email:', error);
+      logger.error('📧 Error stack:', error.stack);
 
       return {
         success: false,
@@ -372,7 +375,7 @@ class EmailService {
         message: 'Attendance confirmation email sent successfully'
       };
     } catch (error) {
-      console.error('Error sending attendance confirmation email:', error);
+      logger.error('Error sending attendance confirmation email:', error);
       return {
         success: false,
         error: error.message || 'Failed to send attendance confirmation email'

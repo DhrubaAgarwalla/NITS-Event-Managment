@@ -4,6 +4,7 @@ import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
 import QRScanner from './QRScanner';
 
+import logger from '../utils/logger';
 /**
  * Attendance Management Component
  * Interface for club members to manage event attendance
@@ -44,28 +45,28 @@ const AttendanceManagement = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('Loading events for club:', club);
+      logger.log('Loading events for club:', club);
 
       if (!club?.id) {
         throw new Error('No club ID available');
       }
 
       const clubEvents = await eventService.getClubEvents(club.id);
-      console.log('Loaded club events:', clubEvents);
+      logger.log('Loaded club events:', clubEvents);
 
       // Filter for upcoming and ongoing events
       const activeEvents = clubEvents.filter(event =>
         event.status === 'upcoming' || event.status === 'ongoing'
       );
 
-      console.log('Active events for attendance:', activeEvents);
+      logger.log('Active events for attendance:', activeEvents);
       setEvents(activeEvents);
 
       if (activeEvents.length > 0 && !selectedEvent) {
         setSelectedEvent(activeEvents[0]);
       }
     } catch (err) {
-      console.error('Error loading club events:', err);
+      logger.error('Error loading club events:', err);
       setError(`Failed to load events: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -94,7 +95,7 @@ const AttendanceManagement = () => {
 
       setAttendanceStats(stats);
     } catch (err) {
-      console.error('Error loading event registrations:', err);
+      logger.error('Error loading event registrations:', err);
       setError('Failed to load registrations');
     } finally {
       setIsLoading(false);
@@ -174,7 +175,7 @@ const AttendanceManagement = () => {
         setError('Failed to mark attendance');
       }
     } catch (err) {
-      console.error('Error marking attendance manually:', err);
+      logger.error('Error marking attendance manually:', err);
       setError('Failed to mark attendance');
     } finally {
       setMarkingAttendance(null);

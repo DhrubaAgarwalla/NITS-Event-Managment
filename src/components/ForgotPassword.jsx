@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
+import logger from '../utils/logger';
 const ForgotPassword = ({ setCurrentPage }) => {
   const { sendPasswordResetEmail, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ const ForgotPassword = ({ setCurrentPage }) => {
       // Show success message
       setSuccess(true);
     } catch (err) {
-      console.error('Password reset error:', err);
+      logger.error('Password reset error:', err);
       setError(err.message || 'An error occurred while sending the password reset email');
     } finally {
       setIsLoading(false);

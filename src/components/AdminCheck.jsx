@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ref, get } from 'firebase/database';
 import { database } from '../lib/firebase';
 
+import logger from '../utils/logger';
 export default function AdminCheck({ setCurrentPage }) {
   const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,7 @@ export default function AdminCheck({ setCurrentPage }) {
 
         setAdminStatus(snapshot.exists());
       } catch (err) {
-        console.error('Error checking admin status:', err);
+        logger.error('Error checking admin status:', err);
         setError(err.message);
       } finally {
         setLoading(false);

@@ -3,9 +3,11 @@
  * Handles communication with the Google Sheets backend service
  */
 
+import logger from '../utils/logger';
+
 // Backend service configuration
 const BACKEND_BASE_URL = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app';
-console.log('🔧 Google Sheets Service using backend URL:', BACKEND_BASE_URL);
+logger.log('🔧 Google Sheets Service using backend URL:', BACKEND_BASE_URL);
 const API_PREFIX = '/api/v1';
 
 class GoogleSheetsService {
@@ -13,7 +15,7 @@ class GoogleSheetsService {
     // Remove trailing slash from BACKEND_BASE_URL if present
     const baseUrl = BACKEND_BASE_URL.endsWith('/') ? BACKEND_BASE_URL.slice(0, -1) : BACKEND_BASE_URL;
     this.baseUrl = `${baseUrl}${API_PREFIX}`;
-    console.log('Google Sheets Service initialized with base URL:', this.baseUrl);
+    logger.log('Google Sheets Service initialized with base URL:', this.baseUrl);
   }
 
   /**
@@ -21,25 +23,25 @@ class GoogleSheetsService {
    */
   async createEventSheet(eventData, registrations, autoCreate = false) {
     try {
-      console.log(`Creating Google Sheet for event: ${eventData.title} (auto-create: ${autoCreate})`);
-      console.log('Request URL:', `${this.baseUrl}/sheets/create`);
+      logger.log(`Creating Google Sheet for event: ${eventData.title} (auto-create: ${autoCreate})`);
+      logger.log('Request URL:', `${this.baseUrl}/sheets/create`);
 
       // Enhanced debugging for the request payload
-      console.log('📊 Detailed Request Payload:');
-      console.log('Event Data:', JSON.stringify(eventData, null, 2));
-      console.log('Registrations count:', registrations.length);
+      logger.log('📊 Detailed Request Payload:');
+      logger.log('Event Data:', JSON.stringify(eventData, null, 2));
+      logger.log('Registrations count:', registrations.length);
       if (registrations.length > 0) {
-        console.log('Sample registration structure:', JSON.stringify(registrations[0], null, 2));
+        logger.log('Sample registration structure:', JSON.stringify(registrations[0], null, 2));
 
         // Check for custom fields in registrations
         const sampleReg = registrations[0];
         if (sampleReg.additional_info?.custom_fields) {
-          console.log('Custom fields in sample registration:', JSON.stringify(sampleReg.additional_info.custom_fields, null, 2));
+          logger.log('Custom fields in sample registration:', JSON.stringify(sampleReg.additional_info.custom_fields, null, 2));
         }
 
         // Check for payment fields
         if (sampleReg.payment_status || sampleReg.payment_amount || sampleReg.payment_screenshot_url) {
-          console.log('Payment fields in sample registration:', {
+          logger.log('Payment fields in sample registration:', {
             payment_status: sampleReg.payment_status,
             payment_amount: sampleReg.payment_amount,
             payment_screenshot_url: sampleReg.payment_screenshot_url
@@ -64,32 +66,32 @@ class GoogleSheetsService {
         let errorDetails = null;
         try {
           const errorData = await response.json();
-          console.error('❌ Backend Error Response:', JSON.stringify(errorData, null, 2));
+          logger.error('❌ Backend Error Response:', JSON.stringify(errorData, null, 2));
           errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
           errorDetails = errorData.details || errorData.receivedData || null;
 
           // If it's a validation error, provide more specific information
           if (errorData.error === 'Validation error' && errorData.details) {
-            console.error('🔍 Validation Error Details:', errorData.details);
+            logger.error('🔍 Validation Error Details:', errorData.details);
             errorMessage = `Validation failed: ${errorData.details.map(d => d.message).join(', ')}`;
           }
         } catch (parseError) {
-          console.error('❌ Failed to parse error response:', parseError);
+          logger.error('❌ Failed to parse error response:', parseError);
           errorMessage = `HTTP error! status: ${response.status} - ${response.statusText}`;
         }
-        console.error('❌ HTTP Error Response:', response.status, response.statusText);
-        console.error('❌ Error Details:', errorDetails);
+        logger.error('❌ HTTP Error Response:', response.status, response.statusText);
+        logger.error('❌ Error Details:', errorDetails);
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('Backend response:', result);
+      logger.log('Backend response:', result);
 
       if (!result.success) {
         throw new Error(result.message || 'Failed to create Google Sheet');
       }
 
-      console.log('Google Sheet created successfully:', result.data);
+      logger.log('Google Sheet created successfully:', result.data);
       return {
         success: true,
         ...result.data,
@@ -97,7 +99,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('Error creating Google Sheet:', error);
+      logger.error('Error creating Google Sheet:', error);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Network error: Unable to connect to Google Sheets backend. Please check your internet connection and try again.`);
       }
@@ -110,7 +112,7 @@ class GoogleSheetsService {
    */
   async updateEventSheet(spreadsheetId, eventData, registrations) {
     try {
-      console.log(`Updating Google Sheet: ${spreadsheetId}`);
+      logger.log(`Updating Google Sheet: ${spreadsheetId}`);
 
       const response = await fetch(`${this.baseUrl}/sheets/${spreadsheetId}/update`, {
         method: 'PUT',
@@ -134,7 +136,7 @@ class GoogleSheetsService {
         throw new Error(result.message || 'Failed to update Google Sheet');
       }
 
-      console.log('Google Sheet updated successfully:', result.data);
+      logger.log('Google Sheet updated successfully:', result.data);
       return {
         success: true,
         ...result.data,
@@ -142,7 +144,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('Error updating Google Sheet:', error);
+      logger.error('Error updating Google Sheet:', error);
       throw new Error(`Failed to update Google Sheet: ${error.message}`);
     }
   }
@@ -152,7 +154,7 @@ class GoogleSheetsService {
    */
   async getSheetInfo(spreadsheetId) {
     try {
-      console.log(`Getting info for Google Sheet: ${spreadsheetId}`);
+      logger.log(`Getting info for Google Sheet: ${spreadsheetId}`);
 
       const response = await fetch(`${this.baseUrl}/sheets/${spreadsheetId}`, {
         method: 'GET',
@@ -178,7 +180,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('Error getting sheet info:', error);
+      logger.error('Error getting sheet info:', error);
       throw new Error(`Failed to get sheet information: ${error.message}`);
     }
   }
@@ -188,7 +190,7 @@ class GoogleSheetsService {
    */
   async deleteSheet(spreadsheetId) {
     try {
-      console.log(`Deleting Google Sheet: ${spreadsheetId}`);
+      logger.log(`Deleting Google Sheet: ${spreadsheetId}`);
 
       const response = await fetch(`${this.baseUrl}/sheets/${spreadsheetId}`, {
         method: 'DELETE',
@@ -214,7 +216,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('Error deleting sheet:', error);
+      logger.error('Error deleting sheet:', error);
       throw new Error(`Failed to delete Google Sheet: ${error.message}`);
     }
   }
@@ -224,7 +226,7 @@ class GoogleSheetsService {
    */
   async checkBackendHealth() {
     try {
-      console.log('Checking backend health at:', `${this.baseUrl}/health`);
+      logger.log('Checking backend health at:', `${this.baseUrl}/health`);
 
       const response = await fetch(`${this.baseUrl}/health`, {
         method: 'GET',
@@ -233,14 +235,14 @@ class GoogleSheetsService {
         }
       });
 
-      console.log('Health check response status:', response.status);
+      logger.log('Health check response status:', response.status);
 
       if (!response.ok) {
         return { available: false, error: `HTTP error! status: ${response.status} - ${response.statusText}` };
       }
 
       const result = await response.json();
-      console.log('Health check result:', result);
+      logger.log('Health check result:', result);
 
       return {
         available: result.status === 'healthy',
@@ -249,7 +251,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('Backend health check failed:', error);
+      logger.error('Backend health check failed:', error);
       return { available: false, error: error.message };
     }
   }
@@ -274,11 +276,11 @@ class GoogleSheetsService {
       };
 
       await eventService.updateEvent(eventId, updates);
-      console.log('Google Sheets link stored in event data successfully');
+      logger.log('Google Sheets link stored in event data successfully');
 
       return { success: true };
     } catch (error) {
-      console.error('Error storing Google Sheets link in event:', error);
+      logger.error('Error storing Google Sheets link in event:', error);
       return { success: false, error: error.message };
     }
   }
@@ -288,7 +290,7 @@ class GoogleSheetsService {
    */
   async autoSyncSheet(spreadsheetId, eventData, registrations, updateType = 'registration') {
     try {
-      console.log(`🔄 Auto-syncing Google Sheet: ${spreadsheetId} (${updateType})`);
+      logger.log(`🔄 Auto-syncing Google Sheet: ${spreadsheetId} (${updateType})`);
 
       const response = await fetch(`${this.baseUrl}/sheets/auto-sync/${spreadsheetId}`, {
         method: 'POST',
@@ -313,7 +315,7 @@ class GoogleSheetsService {
         throw new Error(result.message || 'Failed to auto-sync Google Sheet');
       }
 
-      console.log(`✅ Auto-sync successful: ${result.message}`);
+      logger.log(`✅ Auto-sync successful: ${result.message}`);
       return {
         success: true,
         ...result.data,
@@ -322,7 +324,7 @@ class GoogleSheetsService {
       };
 
     } catch (error) {
-      console.error('❌ Error auto-syncing Google Sheet:', error);
+      logger.error('❌ Error auto-syncing Google Sheet:', error);
       return {
         success: false,
         error: error.message,
@@ -344,7 +346,7 @@ class GoogleSheetsService {
       }
 
       // Debug: Log the incoming event data
-      console.log('📊 Google Sheets Export - Event Data:', {
+      logger.log('📊 Google Sheets Export - Event Data:', {
         eventId,
         eventTitle,
         customFieldsCount: eventData?.custom_fields?.length || 0,
@@ -355,7 +357,7 @@ class GoogleSheetsService {
 
       // Debug: Log sample registration data
       if (registrations.length > 0) {
-        console.log('📊 Sample Registration Data:', {
+        logger.log('📊 Sample Registration Data:', {
           participantName: registrations[0].participant_name,
           participantEmail: registrations[0].participant_email,
           hasAdditionalInfo: !!registrations[0].additional_info,
@@ -389,9 +391,9 @@ class GoogleSheetsService {
 
         if (validCustomFields.length > 0) {
           formattedEventData.custom_fields = validCustomFields;
-          console.log('📊 Valid custom fields added:', validCustomFields.length);
+          logger.log('📊 Valid custom fields added:', validCustomFields.length);
         } else {
-          console.warn('⚠️ No valid custom fields found, skipping custom fields');
+          logger.warn('⚠️ No valid custom fields found, skipping custom fields');
         }
       }
 
@@ -417,7 +419,7 @@ class GoogleSheetsService {
         }
         formattedEventData.payment_amount = paymentAmount;
 
-        console.log('📊 Payment info processed:', {
+        logger.log('📊 Payment info processed:', {
           originalRequiresPayment: eventData.requires_payment,
           convertedRequiresPayment: requiresPayment,
           originalPaymentAmount: eventData.payment_amount,
@@ -425,13 +427,13 @@ class GoogleSheetsService {
         });
       }
 
-      console.log('📊 Formatted Event Data for Backend:', JSON.stringify(formattedEventData, null, 2));
+      logger.log('📊 Formatted Event Data for Backend:', JSON.stringify(formattedEventData, null, 2));
 
       // Validate and clean registrations data
       const cleanedRegistrations = registrations.map((reg, index) => {
         // Ensure required fields are present
         if (!reg.participant_name || !reg.participant_email) {
-          console.error(`❌ Registration ${index + 1} missing required fields:`, {
+          logger.error(`❌ Registration ${index + 1} missing required fields:`, {
             name: reg.participant_name,
             email: reg.participant_email
           });
@@ -462,7 +464,7 @@ class GoogleSheetsService {
         return cleanedReg;
       });
 
-      console.log('📊 Cleaned registrations count:', cleanedRegistrations.length);
+      logger.log('📊 Cleaned registrations count:', cleanedRegistrations.length);
 
       // Create the Google Sheet
       const result = await this.createEventSheet(formattedEventData, cleanedRegistrations);
@@ -492,16 +494,16 @@ class GoogleSheetsService {
       // Store the Google Sheets link in the event data
       try {
         await this.storeSheetLinkInEvent(eventId, exportResult);
-        console.log('Google Sheets link stored in event successfully');
+        logger.log('Google Sheets link stored in event successfully');
       } catch (storeError) {
-        console.warn('Failed to store Google Sheets link in event:', storeError.message);
+        logger.warn('Failed to store Google Sheets link in event:', storeError.message);
         // Don't fail the export if storing fails
       }
 
       return exportResult;
 
     } catch (error) {
-      console.error('Error exporting to Google Sheets:', error);
+      logger.error('Error exporting to Google Sheets:', error);
       return {
         success: false,
         error: error.message,

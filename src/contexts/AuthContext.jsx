@@ -11,6 +11,7 @@ import {
 import { ref, get, set, update } from 'firebase/database';
 import { auth, database, forceSignOutAndRedirect } from '../lib/firebase';
 
+import logger from '../utils/logger';
 // Create the authentication context
 const AuthContext = createContext();
 
@@ -30,25 +31,25 @@ export const AuthProvider = ({ children }) => {
 
   // Check for current session on mount and set up auth state listener
   useEffect(() => {
-    console.log('Setting up Firebase auth state listener');
+    logger.log('Setting up Firebase auth state listener');
 
     // Check if there was an intentional logout
     const wasLoggedOut = localStorage.getItem('nits-event-logout') === 'true';
     if (wasLoggedOut) {
-      console.log('Detected previous logout, clearing flag');
+      logger.log('Detected previous logout, clearing flag');
       localStorage.removeItem('nits-event-logout');
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        console.log('User is signed in:', currentUser.uid);
+        logger.log('User is signed in:', currentUser.uid);
         setUser(currentUser);
         setSessionStatus('active');
 
         // Check user roles
         await checkUserRoles(currentUser.uid);
       } else {
-        console.log('No user is signed in');
+        logger.log('No user is signed in');
         setUser(null);
         setClub(null);
         setIsAdmin(false);
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }) => {
         const adminSnapshot = await get(adminRef);
 
         if (adminSnapshot.exists()) {
-          console.log('User is an admin');
+          logger.log('User is an admin');
           setIsAdmin(true);
           return;
         }
@@ -76,14 +77,14 @@ export const AuthProvider = ({ children }) => {
         const clubSnapshot = await get(clubRef);
 
         if (clubSnapshot.exists()) {
-          console.log('User is a club');
+          logger.log('User is a club');
           setClub({
             id: userId,
             ...clubSnapshot.val()
           });
         }
       } catch (err) {
-        console.error('Error checking user roles:', err);
+        logger.error('Error checking user roles:', err);
       }
     };
 
@@ -91,14 +92,14 @@ export const AuthProvider = ({ children }) => {
     const handleStorageChange = (event) => {
       // Firebase handles this automatically, but we'll keep the listener for custom logic
       if (event.key === 'firebase:authUser') {
-        console.log('Auth storage changed in another tab');
+        logger.log('Auth storage changed in another tab');
 
         // If auth was removed in another tab but we still have a user here
         if (!event.newValue && user) {
-          console.log('Auth token removed in another tab, signing out in this tab');
+          logger.log('Auth token removed in another tab, signing out in this tab');
           forceSignOutAndRedirect();
         } else if (event.newValue && !user) {
-          console.log('Auth token added in another tab, refreshing page to sync state');
+          logger.log('Auth token added in another tab, refreshing page to sync state');
           window.location.reload();
         }
       }
@@ -108,12 +109,12 @@ export const AuthProvider = ({ children }) => {
 
     // Add online/offline event listeners
     const handleOffline = () => {
-      console.log('Device went offline');
+      logger.log('Device went offline');
       setSessionStatus('offline');
     };
 
     const handleOnline = async () => {
-      console.log('Device came online, checking session');
+      logger.log('Device came online, checking session');
       if (auth.currentUser) {
         setSessionStatus('active');
       }
@@ -176,7 +177,7 @@ export const AuthProvider = ({ children }) => {
         club: clubData
       };
     } catch (err) {
-      console.error('Error signing in:', err);
+      logger.error('Error signing in:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -202,7 +203,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (err) {
-      console.error('Error signing out:', err);
+      logger.error('Error signing out:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -246,7 +247,7 @@ export const AuthProvider = ({ children }) => {
         }
       };
     } catch (err) {
-      console.error('Error creating club account:', err);
+      logger.error('Error creating club account:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -263,16 +264,16 @@ export const AuthProvider = ({ children }) => {
       // In Firebase, we don't need to manually refresh the session
       // But we'll check if the user is still authenticated
       if (auth.currentUser) {
-        console.log('User is still authenticated');
+        logger.log('User is still authenticated');
         setSessionStatus('active');
         return { success: true, valid: true };
       } else {
-        console.log('No valid session found');
+        logger.log('No valid session found');
         setSessionStatus('invalid');
         return { success: false, valid: false };
       }
     } catch (err) {
-      console.error('Error refreshing session:', err);
+      logger.error('Error refreshing session:', err);
       setError(err.message);
       setSessionStatus('error');
       return { success: false, valid: false, error: err.message };
@@ -294,13 +295,13 @@ export const AuthProvider = ({ children }) => {
         handleCodeInApp: true
       };
 
-      console.log('Sending password reset email with redirect URL:', actionCodeSettings.url);
+      logger.log('Sending password reset email with redirect URL:', actionCodeSettings.url);
 
       await firebaseSendPasswordResetEmail(auth, email, actionCodeSettings);
 
       return { success: true };
     } catch (err) {
-      console.error('Error sending password reset email:', err);
+      logger.error('Error sending password reset email:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -322,7 +323,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (err) {
-      console.error('Error updating password:', err);
+      logger.error('Error updating password:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
