@@ -14,10 +14,180 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cooldownActive, setCooldownActive] = useState(false);
   const [cooldownTime, setCooldownTime] = useState(0);
+  const [focusSupported, setFocusSupported] = useState(false);
+  const [isAutoFocusing, setIsAutoFocusing] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
   const cooldownIntervalRef = useRef(null);
+  const focusTimeoutRef = useRef(null);
+
+  // Enhanced camera constraints for better focus and quality
+  const getCameraConstraints = () => {
+    return {
+      video: {
+        facingMode: 'environment', // Use back camera on mobile
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        frameRate: { ideal: 30, min: 15 },
+        focusMode: 'continuous',
+        // Advanced constraints for better image quality
+        aspectRatio: { ideal: 16/9 },
+        resizeMode: 'crop-and-scale',
+        // Focus and exposure settings
+        exposureMode: 'continuous',
+        whiteBalanceMode: 'continuous',
+        // Image quality improvements
+        brightness: { ideal: 0 },
+        contrast: { ideal: 1 },
+        saturation: { ideal: 1 },
+        sharpness: { ideal: 1 }
+      }
+    };
+  };
+
+  // Check camera capabilities and focus support
+  const checkCameraCapabilities = async (stream) => {
+    try {
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+
+      console.log('Camera capabilities:', capabilities);
+
+      // Check if focus is supported
+      const supportsFocus = capabilities.focusMode && capabilities.focusMode.length > 0;
+      setFocusSupported(supportsFocus);
+
+      // Apply optimal settings if supported
+      const constraints = {};
+
+      if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+        constraints.focusMode = 'continuous';
+      }
+
+      if (capabilities.exposureMode && capabilities.exposureMode.includes('continuous')) {
+        constraints.exposureMode = 'continuous';
+      }
+
+      if (capabilities.whiteBalanceMode && capabilities.whiteBalanceMode.includes('continuous')) {
+        constraints.whiteBalanceMode = 'continuous';
+      }
+
+      // Apply constraints if any are available
+      if (Object.keys(constraints).length > 0) {
+        await track.applyConstraints(constraints);
+        console.log('Applied camera constraints:', constraints);
+      }
+
+      return supportsFocus;
+    } catch (err) {
+      console.warn('Could not check camera capabilities:', err);
+      return false;
+    }
+  };
+
+  // Auto-focus function
+  const performAutoFocus = async () => {
+    if (!cameraStream || isAutoFocusing) return;
+
+    try {
+      setIsAutoFocusing(true);
+      const track = cameraStream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+
+      if (capabilities.focusMode && capabilities.focusMode.includes('single-shot')) {
+        await track.applyConstraints({
+          focusMode: 'single-shot'
+        });
+
+        // Wait a moment then switch back to continuous
+        setTimeout(async () => {
+          try {
+            if (capabilities.focusMode.includes('continuous')) {
+              await track.applyConstraints({
+                focusMode: 'continuous'
+              });
+            }
+          } catch (err) {
+            console.warn('Could not switch back to continuous focus:', err);
+          }
+          setIsAutoFocusing(false);
+        }, 1000);
+      } else {
+        setIsAutoFocusing(false);
+      }
+    } catch (err) {
+      console.warn('Auto-focus failed:', err);
+      setIsAutoFocusing(false);
+    }
+  };
+
+  // Tap-to-focus functionality
+  const handleTapToFocus = async (event) => {
+    if (!cameraStream || !focusSupported) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width * 100).toFixed(2);
+    const y = ((event.clientY - rect.top) / rect.height * 100).toFixed(2);
+
+    try {
+      const track = cameraStream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+
+      if (capabilities.focusMode && capabilities.focusMode.includes('manual')) {
+        await track.applyConstraints({
+          focusMode: 'manual',
+          pointsOfInterest: [{ x: x / 100, y: y / 100 }]
+        });
+
+        // Show focus indicator
+        showFocusIndicator(event.clientX - rect.left, event.clientY - rect.top);
+
+        // Switch back to continuous after a moment
+        setTimeout(async () => {
+          try {
+            if (capabilities.focusMode.includes('continuous')) {
+              await track.applyConstraints({
+                focusMode: 'continuous'
+              });
+            }
+          } catch (err) {
+            console.warn('Could not switch back to continuous focus:', err);
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      console.warn('Tap-to-focus failed:', err);
+    }
+  };
+
+  // Show focus indicator at tap location
+  const showFocusIndicator = (x, y) => {
+    const indicator = document.createElement('div');
+    indicator.className = 'focus-indicator';
+    indicator.style.cssText = `
+      position: absolute;
+      left: ${x - 25}px;
+      top: ${y - 25}px;
+      width: 50px;
+      height: 50px;
+      border: 2px solid #00ff88;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1001;
+      animation: focusPulse 1s ease-out;
+    `;
+
+    const container = document.querySelector('.camera-container');
+    if (container) {
+      container.appendChild(indicator);
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 1000);
+    }
+  };
 
   // Start camera and scanning
   const startScanning = async () => {
@@ -25,16 +195,14 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       setError(null);
       setIsScanning(true);
 
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
+      // Request camera access with enhanced constraints
+      const constraints = getCameraConstraints();
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       setCameraStream(stream);
+
+      // Check camera capabilities and apply optimal settings
+      await checkCameraCapabilities(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -43,6 +211,16 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         // Start scanning after video loads
         videoRef.current.onloadedmetadata = () => {
           startQRDetection();
+
+          // Perform initial auto-focus after a short delay
+          setTimeout(() => {
+            performAutoFocus();
+          }, 1000);
+
+          // Set up periodic auto-focus
+          focusTimeoutRef.current = setInterval(() => {
+            performAutoFocus();
+          }, 5000); // Auto-focus every 5 seconds
         };
       }
     } catch (err) {
@@ -61,6 +239,11 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       scanIntervalRef.current = null;
     }
 
+    if (focusTimeoutRef.current) {
+      clearInterval(focusTimeoutRef.current);
+      focusTimeoutRef.current = null;
+    }
+
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
@@ -69,6 +252,10 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+
+    // Reset focus states
+    setFocusSupported(false);
+    setIsAutoFocusing(false);
   };
 
   // Start QR code detection
@@ -259,6 +446,10 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         clearInterval(scanIntervalRef.current);
         scanIntervalRef.current = null;
       }
+      if (focusTimeoutRef.current) {
+        clearInterval(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -307,6 +498,8 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   autoPlay
                   playsInline
                   muted
+                  onClick={handleTapToFocus}
+                  style={{ cursor: focusSupported ? 'crosshair' : 'default' }}
                 />
                 <canvas
                   ref={canvasRef}
@@ -316,6 +509,17 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 <div className="scan-overlay">
                   <div className="scan-frame"></div>
                   <p>Position QR code within the frame</p>
+                  {focusSupported && (
+                    <p className="tap-to-focus-hint">
+                      📍 Tap to focus
+                    </p>
+                  )}
+                  {isAutoFocusing && (
+                    <div className="auto-focus-indicator">
+                      <div className="focus-ring"></div>
+                      <p>🔍 Auto-focusing...</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -984,6 +1188,90 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             gap: 10px;
             align-items: center;
           }
+        }
+
+        /* Focus-related styles */
+        .tap-to-focus-hint {
+          position: absolute;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.7);
+          color: var(--accent, #44ffd2);
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          border: 1px solid rgba(68, 255, 210, 0.3);
+          backdrop-filter: blur(10px);
+          text-shadow: 0 0 8px rgba(68, 255, 210, 0.8);
+          animation: fadeInOut 3s ease-in-out infinite;
+        }
+
+        .auto-focus-indicator {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(0, 0, 0, 0.7);
+          color: var(--accent, #44ffd2);
+          padding: 8px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          border: 1px solid rgba(68, 255, 210, 0.3);
+          backdrop-filter: blur(10px);
+          text-shadow: 0 0 8px rgba(68, 255, 210, 0.8);
+        }
+
+        .focus-ring {
+          width: 20px;
+          height: 20px;
+          border: 2px solid var(--accent, #44ffd2);
+          border-radius: 50%;
+          border-top: 2px solid transparent;
+          animation: spin 1s linear infinite;
+          box-shadow: 0 0 10px rgba(68, 255, 210, 0.5);
+        }
+
+        @keyframes fadeInOut {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
+        }
+
+        @keyframes focusPulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 0;
+          }
+        }
+
+        /* Focus indicator for tap-to-focus */
+        .focus-indicator {
+          animation: focusPulse 1s ease-out !important;
+        }
+
+        /* Enhanced camera video styles */
+        .camera-video {
+          width: 100%;
+          height: 300px;
+          object-fit: cover;
+          border-radius: 14px;
+          transition: filter 0.3s ease;
+        }
+
+        .camera-video:active {
+          filter: brightness(1.1);
         }
 
         @media (max-width: 480px) {
