@@ -47,7 +47,13 @@ class EmailService {
 
       // Validate QR code format
       if (!qrCodeImageUrl.startsWith('data:image/')) {
-        throw new Error('Invalid QR code image format');
+        throw new Error('Invalid QR code image format - must be a valid data URL');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(participantEmail)) {
+        throw new Error('Invalid email address format');
       }
 
       // Prepare email content

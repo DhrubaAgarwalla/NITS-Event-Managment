@@ -144,6 +144,12 @@ const registrationService = {
           // Get event details for email
           const eventData = await eventService.getEventById(registrationData.event_id);
 
+          // Validate event data before proceeding
+          if (!eventData) {
+            logger.error('❌ Event data not found for ID:', registrationData.event_id);
+            throw new Error('Event not found');
+          }
+
           // Send QR code email
           logger.log('🔄 Sending QR code email...');
           logger.log('🔄 Event data for email:', {

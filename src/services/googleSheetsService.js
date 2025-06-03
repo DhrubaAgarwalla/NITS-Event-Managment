@@ -23,6 +23,15 @@ class GoogleSheetsService {
    */
   async createEventSheet(eventData, registrations, autoCreate = false) {
     try {
+      // Validate inputs
+      if (!eventData || !eventData.title) {
+        throw new Error('Invalid event data: title is required');
+      }
+
+      if (!Array.isArray(registrations)) {
+        throw new Error('Invalid registrations data: must be an array');
+      }
+
       logger.log(`Creating Google Sheet for event: ${eventData.title} (auto-create: ${autoCreate})`);
       logger.log('Request URL:', `${this.baseUrl}/sheets/create`);
 

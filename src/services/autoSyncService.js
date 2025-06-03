@@ -166,12 +166,23 @@ class AutoSyncService {
 
     this.isProcessing = true;
     const results = [];
+    const maxOperations = 50; // Prevent infinite processing
+    let operationsProcessed = 0;
 
     try {
-      while (this.syncQueue.length > 0) {
+      while (this.syncQueue.length > 0 && operationsProcessed < maxOperations) {
         const operation = this.syncQueue.shift();
+
+        // Validate operation before processing
+        if (!operation || !operation.spreadsheetId || !operation.eventData) {
+          logger.warn('⚠️ Invalid sync operation skipped:', operation);
+          operationsProcessed++;
+          continue;
+        }
+
         const result = await this.executeSyncOperation(operation);
         results.push(result);
+        operationsProcessed++;
 
         // Small delay between operations to avoid rate limiting
         if (this.syncQueue.length > 0) {
@@ -179,10 +190,16 @@ class AutoSyncService {
         }
       }
 
+      // Warn if queue was truncated
+      if (operationsProcessed >= maxOperations && this.syncQueue.length > 0) {
+        logger.warn(`⚠️ Sync queue truncated at ${maxOperations} operations. ${this.syncQueue.length} operations remaining.`);
+      }
+
       return {
         success: true,
         processed: results.length,
-        results
+        results,
+        truncated: operationsProcessed >= maxOperations
       };
 
     } catch (error) {

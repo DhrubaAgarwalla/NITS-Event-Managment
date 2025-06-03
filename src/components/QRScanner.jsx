@@ -190,9 +190,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       logger.log('Processing QR code:', qrData);
       logger.log('Expected event ID:', eventId);
 
-      // Start cooldown immediately to prevent rapid successive scans
-      startCooldown();
-
       // Mark attendance using the registration service with event ID validation
       const result = await registrationService.markAttendanceByQR(qrData, eventId);
 
@@ -204,6 +201,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           eventTitle: result.eventTitle,
           timestamp: result.timestamp
         });
+
+        // Start cooldown only after successful attendance marking
+        startCooldown();
 
         // Notify parent component
         if (onScanResult) {
@@ -244,7 +244,8 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           setScanResult({
             success: false,
             message: result.error,
-            cooldownActive: true
+            cooldownActive: true,
+            serverCooldown: true // Distinguish from client-side cooldown
           });
         } else {
           // Generic error case - set both error and scan result
@@ -331,7 +332,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     }
   };
 
-  // Prevent body scrolling when QR scanner is open
+  // Prevent body scrolling when QR scanner is open and cleanup on unmount
   useEffect(() => {
     // Store original body styles
     const originalOverflow = document.body.style.overflow;
@@ -346,30 +347,29 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     document.body.style.height = '100%';
     document.body.classList.add('qr-scanner-open');
 
-    // Cleanup function to restore scrolling
+    // Cleanup function to restore original styles and stop camera
     return () => {
+      // Restore original body styles
       document.body.style.overflow = originalOverflow;
       document.body.style.position = originalPosition;
       document.body.style.width = originalWidth;
       document.body.style.height = originalHeight;
       document.body.classList.remove('qr-scanner-open');
-    };
-  }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopScanning();
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current);
-        cooldownIntervalRef.current = null;
+      // Stop camera stream and clear intervals
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
       }
+
       if (scanIntervalRef.current) {
         clearInterval(scanIntervalRef.current);
-        scanIntervalRef.current = null;
+      }
+
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
       }
     };
-  }, []);
+  }, [cameraStream]); // Add cameraStream as dependency
 
   return (
     <div className="qr-scanner-container">
@@ -450,7 +450,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 </div>
               )}
 
-              {cooldownActive && (
+              {cooldownActive && !scanResult && (
                 <div className="cooldown-indicator">
                   <div className="cooldown-timer">{cooldownTime}</div>
                   <p>Cooldown active... Please wait {cooldownTime}s</p>
@@ -546,8 +546,12 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
               {scanResult.cooldownActive && (
                 <div className="error-details">
-                  <p><strong>⏱️ Cooldown Active:</strong></p>
-                  <p>Please wait before scanning again to prevent duplicate processing.</p>
+                  <p><strong>⏱️ {scanResult.serverCooldown ? 'Server Cooldown Active' : 'Cooldown Active'}:</strong></p>
+                  {scanResult.serverCooldown ? (
+                    <p>The server is preventing rapid scans for this registration. Please wait a moment before trying again.</p>
+                  ) : (
+                    <p>Please wait before scanning again to prevent duplicate processing.</p>
+                  )}
                   <p>This helps ensure attendance is marked correctly and prevents multiple confirmation emails.</p>
                 </div>
               )}

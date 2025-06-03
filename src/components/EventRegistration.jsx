@@ -269,6 +269,11 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
             throw new Error('Payment screenshot upload failed: No URL returned from Cloudinary');
           }
 
+          // Validate the uploaded URL
+          if (!result.url.startsWith('https://')) {
+            throw new Error('Invalid upload URL received from Cloudinary');
+          }
+
           logger.log('Payment screenshot upload successful, URL:', result.url);
           setPaymentUploadProgress(100);
           paymentScreenshotUrl = result.url;
