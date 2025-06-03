@@ -112,18 +112,48 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         inversionAttempts: "dontInvert",
       });
 
-      if (code) {
-        logger.log('QR Code detected:', code.data);
+      if (code && code.data) {
+        // Validate that this looks like a valid QR code for our system
+        if (isValidQRCodeFormat(code.data)) {
+          logger.log('Valid QR Code detected:', code.data);
 
-        // Process the detected QR code
-        await processQRCode(code.data);
+          // Process the detected QR code
+          await processQRCode(code.data);
 
-        return true; // QR code found and processed
+          return true; // QR code found and processed
+        } else {
+          // Invalid QR code format - don't process but don't show error
+          logger.log('QR Code detected but invalid format, ignoring:', code.data.substring(0, 50));
+          return false;
+        }
       }
 
       return false; // No QR code found
     } catch (error) {
       logger.error('Error detecting QR code:', error);
+      return false;
+    }
+  };
+
+  // Validate QR code format before processing
+  const isValidQRCodeFormat = (qrData) => {
+    try {
+      // Try to parse as JSON
+      const parsed = JSON.parse(qrData);
+
+      // Check if it has the expected structure for our attendance system
+      return (
+        parsed &&
+        parsed.type === 'NITS_EVENT_ATTENDANCE' &&
+        parsed.registrationId &&
+        parsed.eventId &&
+        parsed.email &&
+        parsed.timestamp &&
+        parsed.hash &&
+        parsed.version
+      );
+    } catch (error) {
+      // Not valid JSON or doesn't have expected structure
       return false;
     }
   };
@@ -183,9 +213,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         // Stop scanning after successful scan
         stopScanning();
       } else {
-        setError(result.error || 'Failed to mark attendance');
-
-        // Handle different error types
+        // Handle different error types with specific scan results
         if (result.alreadyAttended) {
           setScanResult({
             success: false,
@@ -218,11 +246,26 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             message: result.error,
             cooldownActive: true
           });
+        } else {
+          // Generic error case - set both error and scan result
+          setError(result.error || 'Failed to mark attendance');
+          setScanResult({
+            success: false,
+            message: result.error || 'Failed to mark attendance',
+            genericError: true
+          });
         }
       }
     } catch (err) {
       logger.error('Error processing QR code:', err);
+
+      // Set both error and scan result for catch block errors
       setError('Failed to process QR code. Please try again.');
+      setScanResult({
+        success: false,
+        message: 'Failed to process QR code. Please try again.',
+        processingError: true
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -251,9 +294,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       const result = await registrationService.updatePaymentStatus(registrationId, 'verified');
 
       if (result) {
-        // Clear the scan result and show success message
+        // Clear the scan result and show payment verification success message
         setScanResult({
-          success: true,
+          success: false, // Not attendance success, just payment verification success
           message: `Payment verified for ${scanResult.participantName}. You can now scan their QR code again to mark attendance.`,
           participantName: scanResult.participantName,
           paymentVerified: true
@@ -417,22 +460,27 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           )}
 
           {scanResult && (
-            <div className={`scan-result ${scanResult.success ? 'success' : 'error'}`}>
+            <div className={`scan-result ${scanResult.success || scanResult.paymentVerified ? 'success' : 'error'}`}>
               <div className="result-icon">
                 {scanResult.success ? '✅' :
+                 scanResult.paymentVerified ? '💚' :
                  scanResult.eventMismatch ? '🚫' :
                  scanResult.alreadyAttended ? '⚠️' :
                  scanResult.dataInconsistency ? '🔧' :
                  scanResult.paymentNotVerified ? '💳' :
-                 scanResult.paymentVerified ? '💚' : '❌'}
+                 scanResult.cooldownActive ? '⏱️' :
+                 scanResult.processingError ? '🔄' : '❌'}
               </div>
               <h3>
                 {scanResult.success ? 'Attendance Marked!' :
+                 scanResult.paymentVerified ? 'Payment Verified!' :
                  scanResult.eventMismatch ? 'Wrong Event QR Code' :
                  scanResult.alreadyAttended ? 'Already Attended' :
                  scanResult.dataInconsistency ? 'Data Error' :
                  scanResult.paymentNotVerified ? 'Payment Not Verified' :
-                 scanResult.paymentVerified ? 'Payment Verified!' : 'Scan Failed'}
+                 scanResult.cooldownActive ? 'Please Wait' :
+                 scanResult.processingError ? 'Processing Failed' :
+                 scanResult.genericError ? 'Processing Error' : 'Scan Failed'}
               </h3>
               <p>{scanResult.message}</p>
 
@@ -487,12 +535,20 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                       onClick={() => {
                         setScanResult(null);
                         setError(null);
-                        // Reset scanner to allow new scan
+                        startScanning();
                       }}
                     >
                       🔄 Scan QR Code Again
                     </button>
                   </div>
+                </div>
+              )}
+
+              {scanResult.cooldownActive && (
+                <div className="error-details">
+                  <p><strong>⏱️ Cooldown Active:</strong></p>
+                  <p>Please wait before scanning again to prevent duplicate processing.</p>
+                  <p>This helps ensure attendance is marked correctly and prevents multiple confirmation emails.</p>
                 </div>
               )}
 
