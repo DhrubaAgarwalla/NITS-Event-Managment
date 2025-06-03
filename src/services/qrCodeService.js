@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import { database } from '../lib/firebase';
-import { ref, update } from 'firebase/database';
+import { ref, update, get } from 'firebase/database';
 
 import logger from '../utils/logger';
 /**
@@ -190,6 +190,22 @@ class QRCodeService {
   async markAttendance(registrationId) {
     try {
       const registrationRef = ref(database, `registrations/${registrationId}`);
+
+      // Double-check attendance status before marking
+      const snapshot = await get(registrationRef);
+      if (!snapshot.exists()) {
+        throw new Error('Registration not found');
+      }
+
+      const currentData = snapshot.val();
+      if (currentData.attendance_status === 'attended') {
+        return {
+          success: false,
+          error: 'Attendance already marked for this registration',
+          alreadyAttended: true
+        };
+      }
+
       const updates = {
         attendance_status: 'attended',
         attendance_timestamp: new Date().toISOString(),

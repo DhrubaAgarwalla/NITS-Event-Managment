@@ -147,7 +147,11 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
 
   // Process scanned QR code
   const processQRCode = async (qrData) => {
-    if (isProcessing || cooldownActive) return;
+    // Enhanced cooldown check - prevent any processing during cooldown
+    if (isProcessing || cooldownActive) {
+      logger.log('QR processing blocked - cooldown active or already processing');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -155,6 +159,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     try {
       logger.log('Processing QR code:', qrData);
       logger.log('Expected event ID:', eventId);
+
+      // Start cooldown immediately to prevent rapid successive scans
+      startCooldown();
 
       // Mark attendance using the registration service with event ID validation
       const result = await registrationService.markAttendanceByQR(qrData, eventId);
@@ -172,9 +179,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
         if (onScanResult) {
           onScanResult(result);
         }
-
-        // Start cooldown timer for successful scans
-        startCooldown();
 
         // Stop scanning after successful scan
         stopScanning();
@@ -207,6 +211,12 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             paymentNotVerified: true,
             participantName: result.participantName,
             registrationId: result.registrationId
+          });
+        } else if (result.cooldownActive) {
+          setScanResult({
+            success: false,
+            message: result.error,
+            cooldownActive: true
           });
         }
       }

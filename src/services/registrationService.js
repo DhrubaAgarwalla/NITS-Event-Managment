@@ -11,6 +11,64 @@ import qrCodeService from './qrCodeService.js';
 import emailService from './emailService.js';
 
 import logger from '../utils/logger';
+
+// Server-side cooldown tracking for QR scans
+const qrScanCooldowns = new Map();
+const QR_SCAN_COOLDOWN_MS = 3000; // 3 seconds cooldown
+
+// Email tracking to prevent duplicate emails
+const emailSentTracker = new Map();
+const EMAIL_TRACKING_TIMEOUT_MS = 10000; // 10 seconds tracking window
+
+// Helper function to check and set QR scan cooldown
+const checkQRScanCooldown = (registrationId) => {
+  const now = Date.now();
+  const lastScanTime = qrScanCooldowns.get(registrationId);
+
+  if (lastScanTime && (now - lastScanTime) < QR_SCAN_COOLDOWN_MS) {
+    const remainingTime = Math.ceil((QR_SCAN_COOLDOWN_MS - (now - lastScanTime)) / 1000);
+    return {
+      allowed: false,
+      remainingTime
+    };
+  }
+
+  // Set the cooldown
+  qrScanCooldowns.set(registrationId, now);
+
+  // Clean up old entries (older than 1 minute)
+  for (const [id, time] of qrScanCooldowns.entries()) {
+    if (now - time > 60000) {
+      qrScanCooldowns.delete(id);
+    }
+  }
+
+  return { allowed: true };
+};
+
+// Helper function to check and track email sending
+const checkEmailSending = (registrationId, emailType) => {
+  const emailKey = `${registrationId}_${emailType}`;
+  const now = Date.now();
+  const lastEmailTime = emailSentTracker.get(emailKey);
+
+  if (lastEmailTime && (now - lastEmailTime) < EMAIL_TRACKING_TIMEOUT_MS) {
+    return { allowed: false };
+  }
+
+  // Set the email tracking
+  emailSentTracker.set(emailKey, now);
+
+  // Clean up old entries (older than 2 minutes)
+  for (const [key, time] of emailSentTracker.entries()) {
+    if (now - time > 120000) {
+      emailSentTracker.delete(key);
+    }
+  }
+
+  return { allowed: true };
+};
+
 // Registration-related database operations
 const registrationService = {
   // Get all registrations for an event
@@ -336,7 +394,18 @@ const registrationService = {
         };
       }
 
-      const { registrationId, eventId, email } = verification;
+      const { registrationId, eventId } = verification;
+
+      // Check server-side cooldown for this registration
+      const cooldownCheck = checkQRScanCooldown(registrationId);
+      if (!cooldownCheck.allowed) {
+        logger.log(`QR scan blocked by server-side cooldown for registration ${registrationId}. Remaining: ${cooldownCheck.remainingTime}s`);
+        return {
+          success: false,
+          error: `Please wait ${cooldownCheck.remainingTime} seconds before scanning again.`,
+          cooldownActive: true
+        };
+      }
 
       // CRITICAL SECURITY CHECK: Validate event ID matches
       if (expectedEventId && eventId !== expectedEventId) {
@@ -412,16 +481,45 @@ const registrationService = {
       if (attendanceResult.success) {
         // Use the event data we already fetched
 
-        // Send attendance confirmation email
+        // Send attendance confirmation email with duplicate prevention
         try {
-          await emailService.sendAttendanceConfirmation({
-            participantEmail: registration.participant_email,
-            participantName: registration.participant_name,
-            eventTitle: eventData.title,
-            attendanceTimestamp: attendanceResult.timestamp
-          });
+          const emailCheck = checkEmailSending(registrationId, 'attendance_confirmation');
+          if (emailCheck.allowed) {
+            logger.log(`Sending attendance confirmation email for registration ${registrationId}`);
+            await emailService.sendAttendanceConfirmation({
+              participantEmail: registration.participant_email,
+              participantName: registration.participant_name,
+              eventTitle: eventData.title,
+              attendanceTimestamp: attendanceResult.timestamp
+            });
+            logger.log(`✅ Attendance confirmation email sent for registration ${registrationId}`);
+          } else {
+            logger.log(`⚠️ Attendance confirmation email blocked by duplicate prevention for registration ${registrationId}`);
+          }
         } catch (emailError) {
           logger.warn('Failed to send attendance confirmation email:', emailError);
+        }
+
+        // Auto-sync Google Sheet with attendance update (don't wait for it to complete)
+        try {
+          logger.log('🔄 Initiating auto-sync for attendance update...');
+          const { default: autoSyncService } = await import('./autoSyncService.js');
+
+          // Run auto-sync in background (don't await)
+          autoSyncService.autoSyncRegistrations(eventId, 'attendance')
+            .then(result => {
+              if (result.success) {
+                logger.log(`✅ Google Sheet auto-synced for event ${eventId} (attendance update)`);
+              } else {
+                logger.warn(`⚠️ Google Sheet auto-sync failed for event ${eventId}: ${result.reason || result.error}`);
+              }
+            })
+            .catch(error => {
+              logger.error(`❌ Google Sheet auto-sync error for event ${eventId}:`, error);
+            });
+        } catch (error) {
+          logger.warn('⚠️ Failed to initiate Google Sheet auto-sync:', error);
+          // Don't fail attendance update if auto-sync fails
         }
 
         return {
