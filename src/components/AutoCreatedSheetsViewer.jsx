@@ -410,12 +410,19 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
       <h2 style={{
         color: 'var(--text-primary)',
         marginBottom: '10px',
-        background: 'linear-gradient(90deg, var(--primary), var(--accent))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text'
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
       }}>
-        {getTitle()}
+        <span style={{ fontSize: '1.2em' }}>📊</span>
+        <span style={{
+          background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>
+          {getTitle().replace('📊 ', '')}
+        </span>
       </h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
         View and access automatically created Google Sheets for your events.
@@ -922,14 +929,7 @@ const AutoCreatedSheetsViewer = ({ clubId }) => {
           <li><strong style={{ color: 'var(--text-primary)' }}>Sharing:</strong> You can share the sheet URL with anyone who needs access</li>
         </ul>
 
-        <p style={{
-          marginTop: '15px',
-          marginBottom: '0',
-          color: 'var(--text-secondary)',
-          fontSize: '14px'
-        }}>
-          <strong style={{ color: 'var(--primary)' }}>Note:</strong> If you don't see a sheet for an event, check the console logs for any creation errors.
-        </p>
+
       </div>
 
       {/* Mobile Help Section - Compact */}

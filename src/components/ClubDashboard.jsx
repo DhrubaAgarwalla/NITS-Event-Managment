@@ -20,10 +20,12 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'attendance', 'gallery'
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
+  const [registrationCounts, setRegistrationCounts] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -59,6 +61,50 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const [showGoogleSheetsDialog, setShowGoogleSheetsDialog] = useState(false);
   const [googleSheetsResult, setGoogleSheetsResult] = useState(null);
 
+  // Load registration counts for all events
+  const loadRegistrationCounts = async (eventsData) => {
+    if (!eventsData || eventsData.length === 0) return;
+
+    try {
+      const counts = {};
+
+      // Load registration counts for each event
+      await Promise.all(
+        eventsData.map(async (event) => {
+          try {
+            const registrationsData = await registrationService.getEventRegistrations(event.id);
+            counts[event.id] = registrationsData ? registrationsData.length : 0;
+          } catch (err) {
+            logger.error(`Error loading registrations for event ${event.id}:`, err);
+            counts[event.id] = 0;
+          }
+        })
+      );
+
+      setRegistrationCounts(counts);
+      logger.log('Registration counts loaded:', counts);
+    } catch (err) {
+      logger.error('Error loading registration counts:', err);
+    }
+  };
+
+  // Refresh registration count for a single event
+  const refreshEventRegistrationCount = async (eventId) => {
+    try {
+      const registrationsData = await registrationService.getEventRegistrations(eventId);
+      const count = registrationsData ? registrationsData.length : 0;
+
+      setRegistrationCounts(prev => ({
+        ...prev,
+        [eventId]: count
+      }));
+
+      logger.log(`Registration count refreshed for event ${eventId}: ${count}`);
+    } catch (err) {
+      logger.error(`Error refreshing registration count for event ${eventId}:`, err);
+    }
+  };
+
   // Load club events
   const loadClubEvents = async () => {
     if (!club) return;
@@ -83,6 +129,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       // Only update state if the operation wasn't canceled
       if (!isCanceled) {
         setEvents(eventsData || []);
+        // Load registration counts for all events
+        await loadRegistrationCounts(eventsData || []);
         clearTimeout(timeoutId); // Clear the timeout since we got the data
       }
     } catch (err) {
@@ -139,6 +187,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         // Only update state if the component is still mounted
         if (isMounted) {
           setEvents(eventsData || []);
+          // Load registration counts for all events
+          await loadRegistrationCounts(eventsData || []);
         }
 
         // If an event is selected, load its registrations
@@ -172,6 +222,20 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       isMounted = false;
     };
   }, [club, selectedEvent]);
+
+  // Periodically refresh registration counts to catch new registrations
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+
+    const interval = setInterval(() => {
+      // Only refresh if we're on the events tab to avoid unnecessary API calls
+      if (activeTab === 'events') {
+        loadRegistrationCounts(events);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [events, activeTab]);
 
   // Filter events based on search term and status
   const filteredEvents = events.filter(event => {
@@ -217,6 +281,11 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         setRegistrations(registrationsData || []);
         setSelectedEvent(event);
         setActiveTab('registrations');
+        // Update the registration count for this specific event
+        setRegistrationCounts(prev => ({
+          ...prev,
+          [eventId]: registrationsData ? registrationsData.length : 0
+        }));
         clearTimeout(timeoutId); // Clear the timeout since we got the data
       }
     } catch (err) {
@@ -315,6 +384,12 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
       // Add to events list
       setEvents(prevEvents => [...prevEvents, createdEvent]);
 
+      // Initialize registration count for the new event
+      setRegistrationCounts(prev => ({
+        ...prev,
+        [createdEvent.id]: 0
+      }));
+
       // Reset form and close creation panel
       setNewEvent({
         title: '',
@@ -361,6 +436,12 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
         setIsLoading(true);
         await eventService.deleteEvent(eventId);
         setEvents(events.filter(event => event.id !== eventId));
+        // Remove the registration count for the deleted event
+        setRegistrationCounts(prev => {
+          const newCounts = { ...prev };
+          delete newCounts[eventId];
+          return newCounts;
+        });
         setError(null);
       } catch (err) {
         logger.error('Error deleting event:', err);
@@ -477,7 +558,7 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
 
   // Get event registrations count
   const getRegistrationsCount = (eventId) => {
-    return registrations.filter(reg => reg.event_id === eventId).length;
+    return registrationCounts[eventId] || 0;
   };
 
   // Google Sheets dialog handlers
@@ -786,22 +867,6 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             📊 Attendance Tracking
           </button>
           <button
-            className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
-            onClick={() => setActiveTab('gallery')}
-            style={{
-              padding: '1rem 1.5rem',
-              backgroundColor: activeTab === 'gallery' ? 'var(--dark-surface)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'gallery' ? '2px solid var(--primary)' : 'none',
-              color: activeTab === 'gallery' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'gallery' ? '600' : '400',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Manage Gallery
-          </button>
-          <button
             className={`tab-button ${activeTab === 'sheets' ? 'active' : ''}`}
             onClick={() => setActiveTab('sheets')}
             style={{
@@ -816,6 +881,22 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             }}
           >
             📊 Google Sheets
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gallery')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'gallery' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'gallery' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'gallery' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'gallery' ? '600' : '400',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Manage Gallery
           </button>
         </div>
 
@@ -1069,27 +1150,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       >
                         <div>
                           <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                            {getRegistrationsCount(event.id)} / {event.max_participants || 'Unlimited'} participants
+                            {getRegistrationsCount(event.id)} registrations
                           </p>
-                          <div
-                            style={{
-                              width: '200px',
-                              height: '6px',
-                              backgroundColor: 'rgba(255,255,255,0.1)',
-                              borderRadius: '3px',
-                              overflow: 'hidden',
-                              marginTop: '0.5rem',
-                              maxWidth: '100%'
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: event.max_participants ? `${(getRegistrationsCount(event.id) / event.max_participants) * 100}%` : '0%',
-                                height: '100%',
-                                background: 'linear-gradient(to right, var(--primary), var(--secondary))'
-                              }}
-                            ></div>
-                          </div>
                         </div>
 
                         <div className="event-actions" style={{ display: 'flex', gap: '0.5rem' }}>
@@ -2442,17 +2504,17 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
           </div>
         )}
 
-        {/* Gallery Tab Content */}
-        {activeTab === 'gallery' && (
-          <div className="gallery-tab">
-            <GalleryManager />
-          </div>
-        )}
-
         {/* Google Sheets Tab Content */}
         {activeTab === 'sheets' && (
           <div className="sheets-tab">
             <AutoCreatedSheetsViewer clubId={club?.id} />
+          </div>
+        )}
+
+        {/* Gallery Tab Content */}
+        {activeTab === 'gallery' && (
+          <div className="gallery-tab">
+            <GalleryManager />
           </div>
         )}
       </div>
