@@ -223,19 +223,61 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
     };
   }, [club, selectedEvent]);
 
-  // Periodically refresh registration counts to catch new registrations
+  // Periodically refresh event data and registration counts to catch automation changes
   useEffect(() => {
-    if (!events || events.length === 0) return;
+    if (!club?.id) return;
 
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       // Only refresh if we're on the events tab to avoid unnecessary API calls
       if (activeTab === 'events') {
-        loadRegistrationCounts(events);
+        try {
+          logger.log('🔄 Periodic refresh: Checking for event updates...');
+
+          // Refresh event data to catch automation changes (like auto-closed registrations)
+          const updatedEventsData = await eventService.getClubEvents(club.id);
+
+          if (updatedEventsData) {
+            // Check if any events have changed
+            const hasChanges = events.length !== updatedEventsData.length ||
+              events.some(event => {
+                const updatedEvent = updatedEventsData.find(e => e.id === event.id);
+                return !updatedEvent ||
+                  event.registration_open !== updatedEvent.registration_open ||
+                  event.status !== updatedEvent.status ||
+                  event.updated_at !== updatedEvent.updated_at;
+              });
+
+            if (hasChanges) {
+              logger.log('📊 Event changes detected, updating dashboard...');
+              setEvents(updatedEventsData);
+
+              // Also refresh registration counts
+              await loadRegistrationCounts(updatedEventsData);
+
+              // If the selected event was updated, update it too
+              if (selectedEvent) {
+                const updatedSelectedEvent = updatedEventsData.find(e => e.id === selectedEvent.id);
+                if (updatedSelectedEvent) {
+                  setSelectedEvent(updatedSelectedEvent);
+                }
+              }
+            } else {
+              // If no event changes, just refresh registration counts
+              await loadRegistrationCounts(events);
+            }
+          }
+        } catch (error) {
+          logger.error('Error during periodic refresh:', error);
+          // Fallback to just refreshing registration counts
+          if (events && events.length > 0) {
+            await loadRegistrationCounts(events);
+          }
+        }
       }
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [events, activeTab]);
+  }, [events, activeTab, club?.id, selectedEvent]);
 
   // Filter events based on search term and status
   const filteredEvents = events.filter(event => {

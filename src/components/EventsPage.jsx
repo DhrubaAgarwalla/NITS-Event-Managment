@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
+import eventAutomationService from '../services/eventAutomationService';
 import { navigateTo } from '../utils/navigation';
 import {
   getEventStatus,
@@ -9,7 +10,9 @@ import {
   filterEventsByStatus,
   sortEventsWithFeatured,
   getEventStatusCounts,
-  formatEventDateRange
+  formatEventDateRange,
+  getRegistrationStatus,
+  getTimeRemaining
 } from '../utils/eventUtils';
 
 import logger from '../utils/logger';
@@ -30,7 +33,26 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
 
         // Fetch all events
         const eventsData = await eventService.getAllEvents();
-        setEvents(eventsData);
+
+        // Run automation tasks on the fetched events
+        if (eventsData && eventsData.length > 0) {
+          logger.log('Running event automation tasks...');
+
+          // Auto-close registrations for completed events
+          const automationResults = await eventAutomationService.autoCloseRegistrations(eventsData);
+
+          if (automationResults.length > 0) {
+            logger.log(`Auto-closed registration for ${automationResults.length} events`);
+
+            // Refresh events data if any registrations were closed
+            const updatedEventsData = await eventService.getAllEvents();
+            setEvents(updatedEventsData);
+          } else {
+            setEvents(eventsData);
+          }
+        } else {
+          setEvents(eventsData);
+        }
 
         // Fetch categories
         const categoriesData = await eventService.getCategories();
@@ -124,89 +146,120 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
         >
           {/* Filter Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-            {/* Category Filters */}
-            <div className="filter-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button
-                className={`btn ${filter === 'all' ? 'btn-primary' : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                All Categories
-              </button>
-              {/* Limit to 5 unique categories */}
-              {categories
-                .filter((category, index, self) =>
-                  // Remove duplicates by name
-                  index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
-                )
-                .slice(0, 5)
-                .map(category => (
-                  <button
-                    key={category.id}
-                    className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
-                    onClick={() => setFilter(category.name.toLowerCase())}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-            </div>
-
-            {/* Status Filter Dropdown */}
+            {/* Filter Dropdowns Row */}
             <div style={{
               display: 'flex',
+              gap: '1.5rem',
               alignItems: 'center',
-              gap: '1rem',
               flexWrap: 'wrap',
               '@media (max-width: 768px)': {
                 flexDirection: 'column',
                 alignItems: 'stretch',
-                gap: '0.5rem'
+                gap: '1rem'
               }
             }}>
-              <label style={{
-                color: 'var(--text-primary)',
-                fontWeight: '500',
-                fontSize: '0.9rem',
-                whiteSpace: 'nowrap'
-              }}>
-                Event Status:
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '2px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '8px',
+              {/* Category Filter Dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <label style={{
                   color: 'var(--text-primary)',
+                  fontWeight: '500',
                   fontSize: '0.9rem',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  minWidth: '180px',
-                  transition: 'all 0.3s ease'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--primary)';
-                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                }}
-              >
-                <option value="all" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
-                  All Events ({statusCounts.all})
-                </option>
-                <option value="upcoming" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
-                  📅 Upcoming ({statusCounts.upcoming})
-                </option>
-                <option value="ongoing" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
-                  🔴 Live ({statusCounts.ongoing})
-                </option>
-                <option value="completed" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
-                  ✅ Completed ({statusCounts.completed})
-                </option>
-              </select>
+                  whiteSpace: 'nowrap'
+                }}>
+                  Category:
+                </label>
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    minWidth: '160px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                  }}
+                >
+                  <option value="all" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                    All Categories
+                  </option>
+                  {categories
+                    .filter((category, index, self) =>
+                      // Remove duplicates by name
+                      index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
+                    )
+                    .map(category => (
+                      <option
+                        key={category.id}
+                        value={category.name.toLowerCase()}
+                        style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}
+                      >
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Status Filter Dropdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <label style={{
+                  color: 'var(--text-primary)',
+                  fontWeight: '500',
+                  fontSize: '0.9rem',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Status:
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    minWidth: '180px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                  }}
+                >
+                  <option value="all" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                    All Events ({statusCounts.all})
+                  </option>
+                  <option value="upcoming" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                    📅 Upcoming ({statusCounts.upcoming})
+                  </option>
+                  <option value="ongoing" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                    🔴 Live ({statusCounts.ongoing})
+                  </option>
+                  <option value="completed" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                    ✅ Completed ({statusCounts.completed})
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -457,6 +510,72 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                     </div>
 
                     <div className="event-content-bottom" style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+                      {/* Registration Status */}
+                      {(() => {
+                        const registrationStatus = getRegistrationStatus(event);
+                        const timeRemaining = getTimeRemaining(event);
+
+                        return (
+                          <div style={{ marginBottom: '1rem' }}>
+                            {/* Registration Status Badge */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: '0.5rem',
+                              fontSize: '0.8rem'
+                            }}>
+                              <span style={{
+                                color: registrationStatus.statusColor,
+                                fontWeight: '500'
+                              }}>
+                                {registrationStatus.statusText}
+                              </span>
+
+                              {/* Time Remaining */}
+                              {timeRemaining.text !== 'Event completed' && (
+                                <span style={{
+                                  color: timeRemaining.isUrgent ? '#f59e0b' : 'var(--text-secondary)',
+                                  fontWeight: timeRemaining.isUrgent ? '600' : '400',
+                                  fontSize: '0.75rem'
+                                }}>
+                                  {timeRemaining.isUrgent ? '⚡' : '⏰'} {timeRemaining.text}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Registration Progress Bar (if applicable) */}
+                            {event.max_participants && event.current_participants && (
+                              <div style={{ marginBottom: '0.5rem' }}>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '0.75rem',
+                                  marginBottom: '0.25rem'
+                                }}>
+                                  <span>Registrations</span>
+                                  <span>{event.current_participants}/{event.max_participants}</span>
+                                </div>
+                                <div style={{
+                                  width: '100%',
+                                  height: '4px',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                  borderRadius: '2px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    width: `${Math.min((event.current_participants / event.max_participants) * 100, 100)}%`,
+                                    height: '100%',
+                                    backgroundColor: event.current_participants >= event.max_participants ? '#ef4444' : 'var(--primary)',
+                                    transition: 'width 0.3s ease'
+                                  }} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       <button
                         onClick={() => {
                           setSelectedEventId(event.id);

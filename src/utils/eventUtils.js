@@ -134,25 +134,219 @@ export const formatEventDateRange = (startDate, endDate) => {
 
     if (start.toDateString() === end.toDateString()) {
       // Same day event
-      return start.toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
+      return start.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
       });
     } else {
       // Multi-day event
-      const startFormatted = start.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      const startFormatted = start.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       });
-      const endFormatted = end.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      const endFormatted = end.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
       });
       return `${startFormatted} - ${endFormatted}`;
     }
   } catch (err) {
     return 'Date not available';
   }
+};
+
+/**
+ * Check if event registration should be automatically closed
+ * @param {Object} event - Event object
+ * @returns {boolean} - True if registration should be closed
+ */
+export const shouldAutoCloseRegistration = (event) => {
+  if (!event.start_date || !event.end_date) {
+    return false;
+  }
+
+  const status = getEventStatus(event);
+
+  // Auto-close registration for completed events
+  if (status === 'completed') {
+    return true;
+  }
+
+  // Auto-close registration if registration deadline has passed
+  if (event.registration_deadline) {
+    const deadline = new Date(event.registration_deadline);
+    const now = new Date();
+    if (now > deadline) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
+ * Get registration status with automatic closure logic
+ * @param {Object} event - Event object
+ * @returns {Object} - Registration status info
+ */
+export const getRegistrationStatus = (event) => {
+  const shouldClose = shouldAutoCloseRegistration(event);
+  const eventStatus = getEventStatus(event);
+
+  // If event is manually closed or should be auto-closed
+  const isClosed = !event.registration_open || shouldClose;
+
+  let statusText = '';
+  let statusColor = '';
+  let canRegister = false;
+
+  if (eventStatus === 'completed') {
+    statusText = '🔒 Registration Closed (Event Completed)';
+    statusColor = '#6b7280';
+    canRegister = false;
+  } else if (event.registration_deadline && new Date() > new Date(event.registration_deadline)) {
+    statusText = '⏰ Registration Deadline Passed';
+    statusColor = '#f59e0b';
+    canRegister = false;
+  } else if (!event.registration_open) {
+    statusText = '🔒 Registration Closed';
+    statusColor = '#ef4444';
+    canRegister = false;
+  } else if (eventStatus === 'ongoing') {
+    statusText = '⚡ Late Registration (Event Started)';
+    statusColor = '#f59e0b';
+    canRegister = true;
+  } else {
+    statusText = '✅ Registration Open';
+    statusColor = '#10b981';
+    canRegister = true;
+  }
+
+  return {
+    isClosed,
+    canRegister,
+    statusText,
+    statusColor,
+    shouldAutoClose: shouldClose,
+    eventStatus
+  };
+};
+
+/**
+ * Get time remaining until event starts/ends
+ * @param {Object} event - Event object
+ * @returns {Object} - Time remaining info
+ */
+export const getTimeRemaining = (event) => {
+  if (!event.start_date || !event.end_date) {
+    return { text: 'Date not available', isUrgent: false };
+  }
+
+  const now = new Date();
+  const startDate = new Date(event.start_date);
+  const endDate = new Date(event.end_date);
+  const status = getEventStatus(event);
+
+  let targetDate, prefix, isUrgent = false;
+
+  if (status === 'upcoming') {
+    targetDate = startDate;
+    prefix = 'Starts in';
+    // Mark as urgent if less than 24 hours
+    isUrgent = (targetDate - now) < (24 * 60 * 60 * 1000);
+  } else if (status === 'ongoing') {
+    targetDate = endDate;
+    prefix = 'Ends in';
+    isUrgent = true; // Ongoing events are always urgent
+  } else {
+    return { text: 'Event completed', isUrgent: false };
+  }
+
+  const timeDiff = targetDate - now;
+
+  if (timeDiff <= 0) {
+    return { text: status === 'upcoming' ? 'Starting now' : 'Ending now', isUrgent: true };
+  }
+
+  const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+  let timeText = '';
+  if (days > 0) {
+    timeText = `${days}d ${hours}h`;
+  } else if (hours > 0) {
+    timeText = `${hours}h ${minutes}m`;
+  } else {
+    timeText = `${minutes}m`;
+  }
+
+  return {
+    text: `${prefix} ${timeText}`,
+    isUrgent,
+    days,
+    hours,
+    minutes
+  };
+};
+
+/**
+ * Check if event needs attention (for admin dashboard)
+ * @param {Object} event - Event object
+ * @returns {Array} - Array of attention items
+ */
+export const getEventAttentionItems = (event) => {
+  const attention = [];
+  const status = getEventStatus(event);
+  const registrationStatus = getRegistrationStatus(event);
+  const timeRemaining = getTimeRemaining(event);
+
+  // Registration issues
+  if (registrationStatus.shouldAutoClose && event.registration_open) {
+    attention.push({
+      type: 'warning',
+      message: 'Registration should be closed automatically',
+      action: 'auto_close_registration'
+    });
+  }
+
+  // Upcoming events without registration deadline
+  if (status === 'upcoming' && !event.registration_deadline) {
+    attention.push({
+      type: 'info',
+      message: 'No registration deadline set',
+      action: 'set_deadline'
+    });
+  }
+
+  // Events starting soon
+  if (timeRemaining.isUrgent && status === 'upcoming') {
+    attention.push({
+      type: 'urgent',
+      message: `Event starts in ${timeRemaining.days > 0 ? timeRemaining.days + 'd' : timeRemaining.hours + 'h'}`,
+      action: 'prepare_event'
+    });
+  }
+
+  // Ongoing events
+  if (status === 'ongoing') {
+    attention.push({
+      type: 'active',
+      message: 'Event is currently running',
+      action: 'monitor_event'
+    });
+  }
+
+  // Events without images
+  if (!event.image_url) {
+    attention.push({
+      type: 'info',
+      message: 'No event image uploaded',
+      action: 'add_image'
+    });
+  }
+
+  return attention;
 };
