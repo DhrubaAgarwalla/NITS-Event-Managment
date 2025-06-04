@@ -21,13 +21,11 @@ import './styles/mobile3D.css'
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
-// Suppress GSAP warnings in production
-if (import.meta.env.PROD) {
-  gsap.config({
-    nullTargetWarn: false,
-    trialWarn: false
-  });
-}
+// Suppress GSAP warnings in development and production
+gsap.config({
+  nullTargetWarn: false,
+  trialWarn: false
+});
 
 // Auth Context
 import { useAuth } from './contexts/AuthContext';

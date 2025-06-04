@@ -3,10 +3,19 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
 import { navigateTo } from '../utils/navigation';
+import {
+  getEventStatus,
+  getStatusBadge,
+  filterEventsByStatus,
+  sortEventsWithFeatured,
+  getEventStatusCounts,
+  formatEventDateRange
+} from '../utils/eventUtils';
 
 import logger from '../utils/logger';
 const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
   const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -58,40 +67,42 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
     }
   };
 
-  // Filter events based on category and search term
-  const filteredEvents = events.filter(event => {
-    // Category filter - check both category and categories for backward compatibility
-    const matchesFilter = filter === 'all' ||
-      (event.category && event.category.name && event.category.name.toLowerCase() === filter.toLowerCase()) ||
-      (event.categories && event.categories.name && event.categories.name.toLowerCase() === filter.toLowerCase());
+  // Filter events based on category, status, and search term
+  const filteredEvents = (() => {
+    let filtered = events.filter(event => {
+      // Category filter - check both category and categories for backward compatibility
+      const matchesCategory = filter === 'all' ||
+        (event.category && event.category.name && event.category.name.toLowerCase() === filter.toLowerCase()) ||
+        (event.categories && event.categories.name && event.categories.name.toLowerCase() === filter.toLowerCase());
 
-    // Search filter
-    const searchTermLower = searchTerm.toLowerCase().trim();
-    const matchesSearch = searchTermLower === '' ||
-      (event.title && event.title.toLowerCase().includes(searchTermLower)) ||
-      (event.description && event.description.toLowerCase().includes(searchTermLower)) ||
-      // Check both club and clubs for backward compatibility
-      (event.club && event.club.name && event.club.name.toLowerCase().includes(searchTermLower)) ||
-      (event.clubs && event.clubs.name && event.clubs.name.toLowerCase().includes(searchTermLower)) ||
-      // Match for tag name (for tag filtering)
-      (event.tags && Array.isArray(event.tags) && event.tags.some(tag =>
-        tag && tag.name && (
-          tag.name.toLowerCase() === searchTermLower ||
-          tag.name.toLowerCase().includes(searchTermLower)
-        )
-      ));
+      // Search filter
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      const matchesSearch = searchTermLower === '' ||
+        (event.title && event.title.toLowerCase().includes(searchTermLower)) ||
+        (event.description && event.description.toLowerCase().includes(searchTermLower)) ||
+        // Check both club and clubs for backward compatibility
+        (event.club && event.club.name && event.club.name.toLowerCase().includes(searchTermLower)) ||
+        (event.clubs && event.clubs.name && event.clubs.name.toLowerCase().includes(searchTermLower)) ||
+        // Match for tag name (for tag filtering)
+        (event.tags && Array.isArray(event.tags) && event.tags.some(tag =>
+          tag && tag.name && (
+            tag.name.toLowerCase() === searchTermLower ||
+            tag.name.toLowerCase().includes(searchTermLower)
+          )
+        ));
 
-    return matchesFilter && matchesSearch;
-  })
-  // Sort to ensure featured events appear first
-  .sort((a, b) => {
-    // Featured events first
-    if (a.is_featured && !b.is_featured) return -1;
-    if (!a.is_featured && b.is_featured) return 1;
+      return matchesCategory && matchesSearch;
+    });
 
-    // If both are featured or both are not featured, sort by start date
-    return new Date(a.start_date) - new Date(b.start_date);
-  });
+    // Apply status filter
+    filtered = filterEventsByStatus(filtered, statusFilter);
+
+    // Sort with featured events first, then by creation date (newest first)
+    return sortEventsWithFeatured(filtered);
+  })();
+
+  // Get status counts for display
+  const statusCounts = getEventStatusCounts(events);
 
   return (
     <section className="section events-page" id="events-page">
@@ -111,21 +122,23 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
           transition={{ duration: 0.6, delay: 0.2 }}
           style={{ marginBottom: '2rem' }}
         >
-          <div className="search-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          {/* Filter Controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Category Filters */}
             <div className="filter-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button
                 className={`btn ${filter === 'all' ? 'btn-primary' : ''}`}
                 onClick={() => setFilter('all')}
               >
-                All
+                All Categories
               </button>
-              {/* Limit to 6 unique categories */}
+              {/* Limit to 5 unique categories */}
               {categories
                 .filter((category, index, self) =>
                   // Remove duplicates by name
                   index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
                 )
-                .slice(0, 6)
+                .slice(0, 5)
                 .map(category => (
                   <button
                     key={category.id}
@@ -136,6 +149,69 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                   </button>
                 ))}
             </div>
+
+            {/* Status Filter Dropdown */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              '@media (max-width: 768px)': {
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                gap: '0.5rem'
+              }
+            }}>
+              <label style={{
+                color: 'var(--text-primary)',
+                fontWeight: '500',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap'
+              }}>
+                Event Status:
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  minWidth: '180px',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--primary)';
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                }}
+              >
+                <option value="all" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                  All Events ({statusCounts.all})
+                </option>
+                <option value="upcoming" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                  📅 Upcoming ({statusCounts.upcoming})
+                </option>
+                <option value="ongoing" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                  🔴 Live ({statusCounts.ongoing})
+                </option>
+                <option value="completed" style={{ backgroundColor: 'var(--dark-surface)', color: 'var(--text-primary)' }}>
+                  ✅ Completed ({statusCounts.completed})
+                </option>
+              </select>
+            </div>
+          </div>
+
+          {/* Search Container */}
+          <div className="search-container" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
 
             <div className="search-input-container" style={{ position: 'relative', minWidth: '300px' }}>
               <div className="search-icon" style={{
@@ -254,23 +330,46 @@ const EventsPage = ({ setCurrentPage, setSelectedEventId }) => {
                     justifyContent: 'space-between'
                   }}>
                     <div className="event-content-top">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="event-date">{formatEventDate(event.start_date, event.end_date)}</span>
-                        {event.is_featured && (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                            color: '#ffd700',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold'
-                          }}>
-                            ⭐ Featured
-                          </span>
-                        )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span className="event-date">{formatEventDateRange(event.start_date, event.end_date)}</span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {/* Event Status Badge */}
+                          {(() => {
+                            const status = getEventStatus(event);
+                            const statusBadge = getStatusBadge(status);
+                            return (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: statusBadge.backgroundColor,
+                                color: statusBadge.textColor,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold'
+                              }}>
+                                {statusBadge.text}
+                              </span>
+                            );
+                          })()}
+                          {/* Featured Badge */}
+                          {event.is_featured && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                              color: '#ffd700',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold'
+                            }}>
+                              ⭐ Featured
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="event-title">{event.title}</h3>
                       <p className="event-description">{event.description}</p>

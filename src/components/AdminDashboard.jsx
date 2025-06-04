@@ -8,6 +8,7 @@ import { logoutAndRedirect, navigateToHome } from '../utils/navigation';
 import AdminClubDetails from './AdminClubDetails';
 import AdminEventDetails from './AdminEventDetails';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
+import DataPipelineDashboard from './DataPipelineDashboard';
 
 import logger from '../utils/logger';
 export default function AdminDashboard({ setCurrentPage }) {
@@ -417,6 +418,21 @@ export default function AdminDashboard({ setCurrentPage }) {
             }}
           >
             📊 Google Sheets
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'pipeline' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pipeline')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'pipeline' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'pipeline' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'pipeline' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'pipeline' ? '600' : '400'
+            }}
+          >
+            🔄 Data Pipeline
           </button>
         </div>
 
@@ -1283,6 +1299,13 @@ export default function AdminDashboard({ setCurrentPage }) {
         {activeTab === 'sheets' && (
           <div className="sheets-tab">
             <AutoCreatedSheetsViewer />
+          </div>
+        )}
+
+        {/* Data Pipeline Tab */}
+        {activeTab === 'pipeline' && (
+          <div className="pipeline-tab">
+            <DataPipelineDashboard />
           </div>
         )}
       </div>
