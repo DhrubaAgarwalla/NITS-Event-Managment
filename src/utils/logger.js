@@ -1,6 +1,6 @@
 /**
  * Production-safe logging utility with configurable log levels
- * Removes console.log statements in production builds
+ * Shows console logs in development mode OR when admin is logged in
  */
 
 const isDevelopment = import.meta.env.DEV;
@@ -13,13 +13,19 @@ const LOG_LEVELS = {
   DEBUG: 3    // All logs including debug
 };
 
+// Track admin login status for production logging
+let isAdminLoggedIn = false;
+
 // Set the current log level (you can change this to reduce verbosity)
 // ERROR = minimal logging, DEBUG = maximum logging
 let CURRENT_LOG_LEVEL = isDevelopment ? LOG_LEVELS.WARN : LOG_LEVELS.ERROR;
 
+// Helper function to determine if logging should be enabled
+const shouldLog = () => isDevelopment || isAdminLoggedIn;
+
 export const logger = {
   log: (...args) => {
-    if (isDevelopment && CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
+    if (shouldLog() && CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
       console.log(...args);
     }
   },
@@ -31,26 +37,44 @@ export const logger = {
   },
 
   warn: (...args) => {
-    if (CURRENT_LOG_LEVEL >= LOG_LEVELS.WARN) {
+    if (shouldLog() && CURRENT_LOG_LEVEL >= LOG_LEVELS.WARN) {
       console.warn(...args);
     }
   },
 
   info: (...args) => {
-    if (isDevelopment && CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
+    if (shouldLog() && CURRENT_LOG_LEVEL >= LOG_LEVELS.INFO) {
       console.info(...args);
     }
   },
 
   debug: (...args) => {
-    if (isDevelopment && CURRENT_LOG_LEVEL >= LOG_LEVELS.DEBUG) {
+    if (shouldLog() && CURRENT_LOG_LEVEL >= LOG_LEVELS.DEBUG) {
       console.debug(...args);
     }
   },
 
+  // Set admin login status to enable/disable logging in production
+  setAdminStatus: (isAdmin) => {
+    isAdminLoggedIn = isAdmin;
+    if (isAdmin && !isDevelopment) {
+      console.log('🔧 Admin logging enabled in production mode');
+      // Set more verbose logging for admin in production
+      CURRENT_LOG_LEVEL = LOG_LEVELS.INFO;
+      console.log('🔧 Log level set to INFO for admin debugging');
+    } else if (!isAdmin && !isDevelopment) {
+      console.log('🔧 Admin logging disabled in production mode');
+      // Reset to minimal logging when admin logs out in production
+      CURRENT_LOG_LEVEL = LOG_LEVELS.ERROR;
+    }
+  },
+
+  // Get current admin status
+  getAdminStatus: () => isAdminLoggedIn,
+
   // Utility methods to change log level at runtime
   setLogLevel: (level) => {
-    if (isDevelopment && LOG_LEVELS.hasOwnProperty(level)) {
+    if (shouldLog() && LOG_LEVELS.hasOwnProperty(level)) {
       CURRENT_LOG_LEVEL = LOG_LEVELS[level];
       console.log(`Logger level set to: ${level}`);
     }
@@ -58,7 +82,7 @@ export const logger = {
 
   // Silent mode - only show errors
   setSilent: () => {
-    if (isDevelopment) {
+    if (shouldLog()) {
       CURRENT_LOG_LEVEL = LOG_LEVELS.ERROR;
       console.log('Logger set to silent mode (errors only)');
     }
@@ -66,7 +90,7 @@ export const logger = {
 
   // Verbose mode - show all logs
   setVerbose: () => {
-    if (isDevelopment) {
+    if (shouldLog()) {
       CURRENT_LOG_LEVEL = LOG_LEVELS.DEBUG;
       console.log('Logger set to verbose mode (all logs)');
     }

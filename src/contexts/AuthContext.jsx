@@ -80,6 +80,9 @@ export const AuthProvider = ({ children }) => {
         setClub(null);
         setIsAdmin(false);
         setSessionStatus('no-session');
+
+        // Clear admin status from logger
+        logger.setAdminStatus(false);
       }
 
       setLoading(false);
@@ -158,6 +161,11 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  // Update logger admin status when isAdmin changes
+  useEffect(() => {
+    logger.setAdminStatus(isAdmin);
+  }, [isAdmin]);
+
   // Sign in function
   const signIn = async (email, password) => {
     try {
@@ -227,6 +235,9 @@ export const AuthProvider = ({ children }) => {
       setClub(null);
       setIsAdmin(false);
       setSessionStatus('signed-out');
+
+      // Clear admin status from logger
+      logger.setAdminStatus(false);
 
       return { success: true };
     } catch (err) {
