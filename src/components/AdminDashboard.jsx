@@ -9,6 +9,7 @@ import AdminClubDetails from './AdminClubDetails';
 import AdminEventDetails from './AdminEventDetails';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 import DataPipelineDashboard from './DataPipelineDashboard';
+import PerformanceMonitor from './PerformanceMonitor';
 
 import logger from '../utils/logger';
 export default function AdminDashboard({ setCurrentPage }) {
@@ -39,6 +40,7 @@ export default function AdminDashboard({ setCurrentPage }) {
   // Selected club and event for details view
   const [selectedClubId, setSelectedClubId] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -433,6 +435,21 @@ export default function AdminDashboard({ setCurrentPage }) {
             }}
           >
             🔄 Data Pipeline
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'performance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('performance')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'performance' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'performance' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'performance' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'performance' ? '600' : '400'
+            }}
+          >
+            ⚡ Performance
           </button>
         </div>
 
@@ -1308,7 +1325,45 @@ export default function AdminDashboard({ setCurrentPage }) {
             <DataPipelineDashboard />
           </div>
         )}
+
+        {/* Performance Tab */}
+        {activeTab === 'performance' && (
+          <div className="performance-tab">
+            <div style={{
+              backgroundColor: 'var(--dark-surface)',
+              padding: '2rem',
+              borderRadius: '10px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{ marginBottom: '1rem' }}>⚡ Performance Monitoring</h3>
+              <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+                Monitor app performance metrics, Core Web Vitals, and optimization opportunities
+              </p>
+              <button
+                onClick={() => setShowPerformanceMonitor(true)}
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 2rem',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Open Performance Monitor
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Performance Monitor Modal */}
+      <PerformanceMonitor
+        isVisible={showPerformanceMonitor}
+        onClose={() => setShowPerformanceMonitor(false)}
+      />
 
       {/* Detail Views */}
       {selectedClubId && (

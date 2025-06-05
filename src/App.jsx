@@ -43,18 +43,19 @@ import Footer from './components/Footer';
 import Cursor from './components/Cursor';
 import Login from './components/Login';
 import EventDetails from './components/EventDetails';
-import ClubDashboard from './components/ClubDashboard';
+import { ClubDashboard, AdminDashboard } from './components/LazyComponents';
 import ClubDetails from './components/ClubDetails';
 import EventsPage from './components/EventsPage';
 import ClubsPage from './components/ClubsPage';
-import AdminDashboard from './components/AdminDashboard';
 import AdminCheck from './components/AdminCheck';
 import ClubRequestForm from './components/ClubRequestForm';
-import EventCreationForm from './components/EventCreationForm';
+import { EventCreationForm, AutoCreatedSheetsViewer } from './components/LazyComponents';
 import ForgotPassword from './components/ForgotPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
-import AutoCreatedSheetsViewer from './components/AutoCreatedSheetsViewer';
 
+// Automation services
+import automationInitializer from './services/automationInitializer';
+import performanceService from './services/performanceService';
 
 import logger from './utils/logger';
 function App() {
@@ -174,6 +175,21 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Initialize automation system and performance monitoring
+  useEffect(() => {
+    if (!loading && !authLoading) {
+      // Initialize automation after app loads
+      automationInitializer.initialize().catch(error => {
+        logger.error('Failed to initialize automation system:', error);
+      });
+
+      // Log performance summary after app loads
+      setTimeout(() => {
+        performanceService.logPerformanceSummary();
+      }, 3000);
+    }
+  }, [loading, authLoading]);
 
   // Initialize scroll animations
   useEffect(() => {

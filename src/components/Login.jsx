@@ -44,11 +44,13 @@ export default function Login({ setCurrentPage, setIsClubLoggedIn }) {
         // Navigate to the appropriate dashboard based on user role
         navigateAfterLogin(setCurrentPage, user, isAdmin, isClub);
       } else {
+        // Use the error message from AuthContext which is already user-friendly
         setError(authError || 'Invalid email or password');
       }
     } catch (err) {
       logger.error('Login error:', err);
-      setError(err.message || 'An error occurred during login');
+      // For any unexpected errors, show a generic message
+      setError('An unexpected error occurred during login. Please try again.');
     } finally {
       setIsLoading(false);
     }

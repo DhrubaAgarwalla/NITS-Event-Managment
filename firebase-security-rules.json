@@ -44,6 +44,21 @@
         },
         "updated_at": {
           ".write": "true"
+        },
+        "status": {
+          ".write": "true"
+        },
+        "registration_open": {
+          ".write": "true"
+        },
+        "is_archived": {
+          ".write": "true"
+        },
+        "automation_last_run": {
+          ".write": "true"
+        },
+        "automation_status": {
+          ".write": "true"
         }
       }
     },
@@ -76,6 +91,17 @@
       ".read": "true",
       ".write": "true",
       ".indexOn": [".key"]
+    },
+
+    "automation_logs": {
+      ".read": "true",
+      ".write": "true",
+      ".indexOn": ["timestamp", "type", "status"]
+    },
+
+    "automation_status": {
+      ".read": "true",
+      ".write": "true"
     }
   }
 }

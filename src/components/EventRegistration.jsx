@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import registrationService from '../services/registrationService';
 import { uploadImage } from '../services/cloudinaryService';
+import imageCompressionService from '../services/imageCompressionService';
+import RegistrationSuccessModal from './RegistrationSuccessModal';
 
 import logger from '../utils/logger';
 // Event data and registrations will come from props
@@ -80,6 +82,8 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successRegistrationData, setSuccessRegistrationData] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -256,14 +260,34 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
       if (paymentScreenshot && eventData.requires_payment) {
         try {
           setPaymentUploadProgress(0);
-          logger.log('Starting payment screenshot upload to Cloudinary...');
+          logger.log('Starting payment screenshot compression and upload...');
 
+          // Compress image first
+          const compressionSettings = imageCompressionService.getOptimalSettings('payment');
+          const compressionResult = await imageCompressionService.compressImage(
+            paymentScreenshot,
+            {
+              ...compressionSettings,
+              onProgress: (progress) => {
+                // Use first 50% of progress bar for compression
+                setPaymentUploadProgress(Math.round(progress * 0.5));
+              }
+            }
+          );
+
+          logger.log('Payment screenshot compression completed:', {
+            originalSize: imageCompressionService.formatFileSize(compressionResult.originalSize),
+            compressedSize: imageCompressionService.formatFileSize(compressionResult.compressedSize),
+            reduction: `${compressionResult.compressionRatio}%`
+          });
+
+          // Upload compressed image
           const updateProgress = (progress) => {
-            logger.log(`Payment screenshot upload progress: ${progress}%`);
-            setPaymentUploadProgress(progress);
+            // Use second 50% of progress bar for upload
+            setPaymentUploadProgress(50 + Math.round(progress * 0.5));
           };
 
-          const result = await uploadImage(paymentScreenshot, 'payment-screenshots', updateProgress);
+          const result = await uploadImage(compressionResult.compressedFile, 'payment-screenshots', updateProgress);
 
           if (!result || !result.url) {
             throw new Error('Payment screenshot upload failed: No URL returned from Cloudinary');
@@ -310,29 +334,36 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
       };
 
       // Submit registration to Supabase
-      await registrationService.registerForEvent(registrationData);
+      const result = await registrationService.registerForEvent(registrationData);
 
       setIsSubmitting(false);
-      setIsSuccess(true);
+
+      // Prepare success data for modal
+      const successData = {
+        email: formData.email,
+        registrationId: result?.id || 'Generated after confirmation',
+        participantName: formData.name,
+        eventTitle: eventData.title
+      };
+
+      setSuccessRegistrationData(successData);
+      setShowSuccessModal(true);
 
       // Reset form after successful submission
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          rollNumber: '',
-          department: '',
-          year: '',
-          team: getDefaultParticipationType(),
-          custom_fields: {}
-        });
-        setTeamMembers(initializeTeamMembers());
-        setPaymentScreenshot(null);
-        setPaymentScreenshotPreview(null);
-        setPaymentUploadProgress(0);
-        setIsSuccess(false);
-      }, 3000);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        rollNumber: '',
+        department: '',
+        year: '',
+        team: getDefaultParticipationType(),
+        custom_fields: {}
+      });
+      setTeamMembers(initializeTeamMembers());
+      setPaymentScreenshot(null);
+      setPaymentScreenshotPreview(null);
+      setPaymentUploadProgress(0);
     } catch (err) {
       logger.error('Error registering for event:', err);
       setError(err.message || 'Failed to register for event. Please try again.');
@@ -436,24 +467,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
               </motion.div>
             )}
 
-            {isSuccess && (
-              <motion.div
-                className="success-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  padding: '1.5rem',
-                  backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                  borderLeft: '4px solid #00ff33',
-                  marginBottom: '1.5rem',
-                  color: '#00ff33',
-                  textAlign: 'center'
-                }}
-              >
-                <h3 style={{ color: '#00ff33', marginTop: 0, marginBottom: '0.5rem' }}>Registration Successful!</h3>
-                <p style={{ margin: 0 }}>Thank you for registering for {eventData.title}. You will receive a confirmation email shortly.</p>
-              </motion.div>
-            )}
+
 
             {/* Internal Registration Form - Only show if registration method is internal AND registration is open */}
             {eventData.registration_method === 'internal' &&
@@ -1436,6 +1450,14 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Registration Success Modal */}
+      <RegistrationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        registrationData={successRegistrationData}
+        eventData={eventData}
+      />
     </section>
   );
 };

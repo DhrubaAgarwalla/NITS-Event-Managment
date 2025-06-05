@@ -2,15 +2,22 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import eventService from '../services/eventService';
 import eventAutomationService from '../services/eventAutomationService';
+import backgroundAutomationService from '../services/backgroundAutomationService';
+import automationScheduler from '../services/automationScheduler';
+import automationUtils from '../utils/automationUtils';
 import { getEventAttentionItems } from '../utils/eventUtils';
 import logger from '../utils/logger';
 
 const EventAutomationDashboard = () => {
   const [events, setEvents] = useState([]);
   const [automationSummary, setAutomationSummary] = useState(null);
+  const [detailedAnalysis, setDetailedAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [runningAutomation, setRunningAutomation] = useState(false);
   const [lastAutomationRun, setLastAutomationRun] = useState(null);
+  const [backgroundServiceStatus, setBackgroundServiceStatus] = useState(null);
+  const [schedulerStats, setSchedulerStats] = useState(null);
+  const [automationLogs, setAutomationLogs] = useState([]);
 
   // Fetch events and generate automation summary
   useEffect(() => {
@@ -19,10 +26,10 @@ const EventAutomationDashboard = () => {
         setLoading(true);
         const eventsData = await eventService.getAllEvents();
         setEvents(eventsData || []);
-        
+
         const summary = eventAutomationService.getAutomationSummary(eventsData || []);
         setAutomationSummary(summary);
-        
+
         logger.log('Automation dashboard data loaded');
       } catch (error) {
         logger.error('Error loading automation dashboard:', error);
@@ -39,20 +46,20 @@ const EventAutomationDashboard = () => {
     try {
       setRunningAutomation(true);
       logger.log('Running all automation tasks...');
-      
+
       const results = await eventAutomationService.runAllAutomations(events);
       setLastAutomationRun({
         timestamp: new Date().toISOString(),
         results
       });
-      
+
       // Refresh data after automation
       const updatedEvents = await eventService.getAllEvents();
       setEvents(updatedEvents || []);
-      
+
       const summary = eventAutomationService.getAutomationSummary(updatedEvents || []);
       setAutomationSummary(summary);
-      
+
       logger.log('Automation completed successfully', results);
     } catch (error) {
       logger.error('Error running automation:', error);
@@ -190,7 +197,7 @@ const EventAutomationDashboard = () => {
           marginBottom: '2rem'
         }}>
           <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Automation Controls</h3>
-          
+
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={runAutomation}
@@ -208,7 +215,7 @@ const EventAutomationDashboard = () => {
             >
               {runningAutomation ? '🔄 Running...' : '🚀 Run All Automations'}
             </button>
-            
+
             {lastAutomationRun && (
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 Last run: {new Date(lastAutomationRun.timestamp).toLocaleString()}
@@ -226,7 +233,7 @@ const EventAutomationDashboard = () => {
             border: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
             <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Last Automation Results</h3>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Registrations Closed</p>
@@ -234,21 +241,21 @@ const EventAutomationDashboard = () => {
                   {lastAutomationRun.results.registrationsClosed.length}
                 </p>
               </div>
-              
+
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Statuses Updated</p>
                 <p style={{ color: '#f59e0b', fontWeight: 'bold' }}>
                   {lastAutomationRun.results.statusesUpdated.length}
                 </p>
               </div>
-              
+
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Notifications Sent</p>
                 <p style={{ color: '#3b82f6', fontWeight: 'bold' }}>
                   {lastAutomationRun.results.notifications.length}
                 </p>
               </div>
-              
+
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Events Archived</p>
                 <p style={{ color: '#6b7280', fontWeight: 'bold' }}>

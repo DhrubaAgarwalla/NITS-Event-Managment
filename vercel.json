@@ -24,5 +24,11 @@
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
+  "crons": [
+    {
+      "path": "/api/automation/trigger",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "env": {}
 }

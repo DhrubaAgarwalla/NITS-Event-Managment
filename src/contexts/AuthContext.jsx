@@ -12,6 +12,32 @@ import { ref, get, set, update } from 'firebase/database';
 import { auth, database, forceSignOutAndRedirect } from '../lib/firebase';
 
 import logger from '../utils/logger';
+
+// Helper function to convert Firebase auth errors to user-friendly messages
+const getAuthErrorMessage = (error) => {
+  switch (error.code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-email':
+      return 'Invalid email or password. Please check your credentials and try again.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
+    case 'auth/too-many-requests':
+      return 'Too many failed login attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection and try again.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/weak-password':
+      return 'Password is too weak. Please choose a stronger password.';
+    case 'auth/operation-not-allowed':
+      return 'This operation is not allowed. Please contact support.';
+    default:
+      return error.message || 'An unexpected error occurred. Please try again.';
+  }
+};
+
 // Create the authentication context
 const AuthContext = createContext();
 
@@ -178,8 +204,9 @@ export const AuthProvider = ({ children }) => {
       };
     } catch (err) {
       logger.error('Error signing in:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const userFriendlyError = getAuthErrorMessage(err);
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
     } finally {
       setLoading(false);
     }
@@ -248,8 +275,9 @@ export const AuthProvider = ({ children }) => {
       };
     } catch (err) {
       logger.error('Error creating club account:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const userFriendlyError = getAuthErrorMessage(err);
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
     } finally {
       setLoading(false);
     }
@@ -302,8 +330,9 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (err) {
       logger.error('Error sending password reset email:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const userFriendlyError = getAuthErrorMessage(err);
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
     } finally {
       setLoading(false);
     }
@@ -324,8 +353,9 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (err) {
       logger.error('Error updating password:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const userFriendlyError = getAuthErrorMessage(err);
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
     } finally {
       setLoading(false);
     }
