@@ -12,39 +12,12 @@ import emailService from './emailService.js';
 
 import logger from '../utils/logger';
 
-// Server-side cooldown tracking for QR scans
-const qrScanCooldowns = new Map();
-const QR_SCAN_COOLDOWN_MS = 3000; // 3 seconds cooldown
-
 // Email tracking to prevent duplicate emails
 const emailSentTracker = new Map();
 const EMAIL_TRACKING_TIMEOUT_MS = 10000; // 10 seconds tracking window
 
-// Helper function to check and set QR scan cooldown
-const checkQRScanCooldown = (registrationId) => {
-  const now = Date.now();
-  const lastScanTime = qrScanCooldowns.get(registrationId);
-
-  if (lastScanTime && (now - lastScanTime) < QR_SCAN_COOLDOWN_MS) {
-    const remainingTime = Math.ceil((QR_SCAN_COOLDOWN_MS - (now - lastScanTime)) / 1000);
-    return {
-      allowed: false,
-      remainingTime
-    };
-  }
-
-  // Set the cooldown
-  qrScanCooldowns.set(registrationId, now);
-
-  // Clean up old entries (older than 1 minute)
-  for (const [id, time] of qrScanCooldowns.entries()) {
-    if (now - time > 60000) {
-      qrScanCooldowns.delete(id);
-    }
-  }
-
-  return { allowed: true };
-};
+// Removed QR scan cooldown mechanism to improve user experience
+// QR codes can now be scanned immediately without artificial delays
 
 // Helper function to check and track email sending
 const checkEmailSending = (registrationId, emailType) => {
@@ -402,17 +375,6 @@ const registrationService = {
 
       const { registrationId, eventId } = verification;
 
-      // Check server-side cooldown for this registration
-      const cooldownCheck = checkQRScanCooldown(registrationId);
-      if (!cooldownCheck.allowed) {
-        logger.log(`QR scan blocked by server-side cooldown for registration ${registrationId}. Remaining: ${cooldownCheck.remainingTime}s`);
-        return {
-          success: false,
-          error: `Please wait ${cooldownCheck.remainingTime} seconds before scanning again.`,
-          cooldownActive: true
-        };
-      }
-
       // CRITICAL SECURITY CHECK: Validate event ID matches
       if (expectedEventId && eventId !== expectedEventId) {
         logger.warn(`QR code event mismatch: Expected ${expectedEventId}, got ${eventId}`);
@@ -450,8 +412,9 @@ const registrationService = {
       if (registration.attendance_status === 'attended') {
         return {
           success: false,
-          error: 'Attendance already marked for this registration',
-          alreadyAttended: true
+          error: `Attendance already marked for ${registration.participant_name || 'this participant'}`,
+          alreadyAttended: true,
+          participantName: registration.participant_name || 'Participant'
         };
       }
 

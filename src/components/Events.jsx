@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { format } from 'date-fns';
 import eventService from '../services/eventService';
+import { ensureCategories, verifyCategoryIntegrity } from '../utils/ensureCategories';
 import { navigateTo } from '../utils/navigation';
 
 import logger from '../utils/logger';
@@ -47,9 +48,19 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
         const limitedEvents = combinedEvents.slice(0, 12);
         setEvents(limitedEvents);
 
-        // Fetch categories
+        // Debug: Log event categories
+        logger.log('Events loaded with categories:');
+        limitedEvents.forEach(event => {
+          logger.log(`  - ${event.title}: category_id=${event.category_id}, category=${event.category?.name}, categories=${event.categories?.name}`);
+        });
+
+        // Fetch categories and verify integrity
         const categoriesData = await eventService.getCategories();
+        logger.log('Categories fetched:', categoriesData);
         setCategories(categoriesData);
+
+        // Verify category integrity for debugging
+        await verifyCategoryIntegrity();
 
         setError(null);
       } catch (err) {
@@ -88,6 +99,15 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
     const passesCategory = filter === 'all' ||
       (event.category && event.category.name && event.category.name.toLowerCase() === filter.toLowerCase()) ||
       (event.categories && event.categories.name && event.categories.name.toLowerCase() === filter.toLowerCase());
+
+    // Debug logging for category filtering
+    if (filter !== 'all') {
+      logger.log(`Event: ${event.title}`);
+      logger.log(`  - event.category:`, event.category);
+      logger.log(`  - event.categories:`, event.categories);
+      logger.log(`  - event.category_id:`, event.category_id);
+      logger.log(`  - Filter: ${filter}, Passes: ${passesCategory}`);
+    }
 
     // Then apply tag filter if it exists
     const passesTag = !tagFilter ||
@@ -217,20 +237,30 @@ const Events = ({ setCurrentPage, setSelectedEventId }) => {
           </button>
           {/* Limit to 6 unique categories */}
           {categories
-            .filter((category, index, self) =>
+            .filter((category, index, self) => {
               // Remove duplicates by name
-              index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase())
-            )
+              const isUnique = index === self.findIndex(c => c.name.toLowerCase() === category.name.toLowerCase());
+              if (!isUnique) {
+                logger.log(`Filtering out duplicate category: ${category.name}`);
+              }
+              return isUnique;
+            })
             .slice(0, 6)
-            .map(category => (
-              <button
-                key={category.id}
-                className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
-                onClick={() => setFilter(category.name.toLowerCase())}
-              >
-                {category.name}
-              </button>
-            ))}
+            .map(category => {
+              logger.log(`Rendering category button: ${category.name} (ID: ${category.id})`);
+              return (
+                <button
+                  key={category.id}
+                  className={`btn ${filter === category.name.toLowerCase() ? 'btn-primary' : ''}`}
+                  onClick={() => {
+                    logger.log(`Category filter clicked: ${category.name.toLowerCase()}`);
+                    setFilter(category.name.toLowerCase());
+                  }}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
         </motion.div>
 
         {loading ? (

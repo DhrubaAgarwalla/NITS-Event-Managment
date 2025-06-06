@@ -1,6 +1,7 @@
 import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from 'firebase/database';
 import { database } from '../lib/firebase';
 import { uploadImage } from '../lib/cloudinary';
+import { ensureCategories } from '../utils/ensureCategories';
 import logger from '../utils/logger';
 
 // Event-related database operations
@@ -9,27 +10,23 @@ const eventService = {
   getCategories: async () => {
     try {
       logger.log('Getting all categories from Firebase');
-      const categoriesRef = ref(database, 'categories');
-      const snapshot = await get(categoriesRef);
 
-      if (!snapshot.exists()) {
-        logger.log('No categories found');
-        return [];
-      }
+      // Use ensureCategories to guarantee categories exist
+      const categories = await ensureCategories();
 
-      const categories = [];
-      snapshot.forEach((childSnapshot) => {
-        categories.push({
-          id: childSnapshot.key,
-          ...childSnapshot.val()
-        });
-      });
-
-      logger.log(`Found ${categories.length} categories`);
+      logger.log(`Found ${categories.length} categories:`, categories.map(c => c.name));
       return categories;
     } catch (error) {
       logger.error('Error getting categories:', error);
-      throw error;
+
+      // Return fallback categories if everything fails
+      return [
+        { id: 'technical', name: 'Technical', color: '#3498db' },
+        { id: 'cultural', name: 'Cultural', color: '#e74c3c' },
+        { id: 'sports', name: 'Sports', color: '#2ecc71' },
+        { id: 'academic', name: 'Academic', color: '#f39c12' },
+        { id: 'workshop', name: 'Workshop', color: '#9b59b6' }
+      ];
     }
   },
 

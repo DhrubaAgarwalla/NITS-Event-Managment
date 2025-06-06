@@ -13,12 +13,9 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
   const [error, setError] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cooldownActive, setCooldownActive] = useState(false);
-  const [cooldownTime, setCooldownTime] = useState(0);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
-  const cooldownIntervalRef = useRef(null);
 
   // Start camera and scanning
   const startScanning = async () => {
@@ -158,28 +155,13 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
     }
   };
 
-  // Start cooldown timer
-  const startCooldown = () => {
-    setCooldownActive(true);
-    setCooldownTime(2);
 
-    cooldownIntervalRef.current = setInterval(() => {
-      setCooldownTime(prev => {
-        if (prev <= 1) {
-          setCooldownActive(false);
-          clearInterval(cooldownIntervalRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
 
   // Process scanned QR code
   const processQRCode = async (qrData) => {
-    // Enhanced cooldown check - prevent any processing during cooldown
-    if (isProcessing || cooldownActive) {
-      logger.log('QR processing blocked - cooldown active or already processing');
+    // Only prevent processing if already processing (remove cooldown check)
+    if (isProcessing) {
+      logger.log('QR processing blocked - already processing');
       return;
     }
 
@@ -202,9 +184,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           timestamp: result.timestamp
         });
 
-        // Start cooldown only after successful attendance marking
-        startCooldown();
-
         // Notify parent component
         if (onScanResult) {
           onScanResult(result);
@@ -218,7 +197,8 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
           setScanResult({
             success: false,
             message: result.error,
-            alreadyAttended: true
+            alreadyAttended: true,
+            participantName: result.participantName
           });
         } else if (result.eventMismatch) {
           setScanResult({
@@ -239,13 +219,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
             paymentNotVerified: true,
             participantName: result.participantName,
             registrationId: result.registrationId
-          });
-        } else if (result.cooldownActive) {
-          setScanResult({
-            success: false,
-            message: result.error,
-            cooldownActive: true,
-            serverCooldown: true // Distinguish from client-side cooldown
           });
         } else {
           // Generic error case - set both error and scan result
@@ -364,10 +337,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
       if (scanIntervalRef.current) {
         clearInterval(scanIntervalRef.current);
       }
-
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current);
-      }
     };
   }, [cameraStream]); // Add cameraStream as dependency
 
@@ -450,12 +419,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 </div>
               )}
 
-              {cooldownActive && !scanResult && (
-                <div className="cooldown-indicator">
-                  <div className="cooldown-timer">{cooldownTime}</div>
-                  <p>Cooldown active... Please wait {cooldownTime}s</p>
-                </div>
-              )}
+
             </div>
           )}
 
@@ -468,7 +432,6 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                  scanResult.alreadyAttended ? '⚠️' :
                  scanResult.dataInconsistency ? '🔧' :
                  scanResult.paymentNotVerified ? '💳' :
-                 scanResult.cooldownActive ? '⏱️' :
                  scanResult.processingError ? '🔄' : '❌'}
               </div>
               <h3>
@@ -478,7 +441,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                  scanResult.alreadyAttended ? 'Already Attended' :
                  scanResult.dataInconsistency ? 'Data Error' :
                  scanResult.paymentNotVerified ? 'Payment Not Verified' :
-                 scanResult.cooldownActive ? 'Please Wait' :
+
                  scanResult.processingError ? 'Processing Failed' :
                  scanResult.genericError ? 'Processing Error' : 'Scan Failed'}
               </h3>
@@ -489,6 +452,13 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                   <p><strong>Participant:</strong> {scanResult.participantName}</p>
                   <p><strong>Event:</strong> {scanResult.eventTitle}</p>
                   <p><strong>Time:</strong> {new Date(scanResult.timestamp).toLocaleString()}</p>
+                </div>
+              )}
+
+              {scanResult.alreadyAttended && (
+                <div className="error-details">
+                  <p><strong>⚠️ {scanResult.participantName || 'This participant'} has already been marked as attended.</strong></p>
+                  <p>If this is an error, please check the attendance records or contact support.</p>
                 </div>
               )}
 
@@ -544,17 +514,7 @@ const QRScanner = ({ eventId, onScanResult, onClose }) => {
                 </div>
               )}
 
-              {scanResult.cooldownActive && (
-                <div className="error-details">
-                  <p><strong>⏱️ {scanResult.serverCooldown ? 'Server Cooldown Active' : 'Cooldown Active'}:</strong></p>
-                  {scanResult.serverCooldown ? (
-                    <p>The server is preventing rapid scans for this registration. Please wait a moment before trying again.</p>
-                  ) : (
-                    <p>Please wait before scanning again to prevent duplicate processing.</p>
-                  )}
-                  <p>This helps ensure attendance is marked correctly and prevents multiple confirmation emails.</p>
-                </div>
-              )}
+
 
               <div className="result-actions">
                 <button
