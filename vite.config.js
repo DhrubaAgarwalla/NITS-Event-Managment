@@ -63,14 +63,9 @@ export default defineConfig({
   define: {
     'process.env': {}
   },
-  // Resolve configuration to handle problematic packages
-  resolve: {
-    alias: {
-      // Handle victory-vendor resolution issues
-      'victory-vendor/lib': 'victory-vendor/es'
-    }
-  },
   optimizeDeps: {
-    include: ['recharts', 'victory-vendor']
+    include: ['recharts'],
+    exclude: ['victory-vendor'],
+    force: true
   }
 })
