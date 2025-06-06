@@ -9,42 +9,24 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Vendor chunks for node_modules
-          if (id.includes('node_modules')) {
-            // React ecosystem
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
+        manualChunks: {
+          // Core React chunks
+          'react-vendor': ['react', 'react-dom'],
 
-            // Animation libraries
-            if (id.includes('framer-motion') || id.includes('gsap') || id.includes('@studio-freight/lenis')) {
-              return 'animation-vendor';
-            }
+          // Animation libraries
+          'animation-vendor': ['framer-motion', 'gsap', '@studio-freight/lenis'],
 
-            // Three.js ecosystem
-            if (id.includes('three') || id.includes('@react-three')) {
-              return 'three-vendor';
-            }
+          // Three.js ecosystem
+          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
 
-            // Firebase
-            if (id.includes('firebase')) {
-              return 'firebase-vendor';
-            }
+          // Firebase
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/database', 'firebase/analytics'],
 
-            // Charts and data visualization
-            if (id.includes('recharts') || id.includes('victory-vendor')) {
-              return 'charts-vendor';
-            }
+          // Charts and data visualization
+          'charts-vendor': ['recharts'],
 
-            // Utility libraries
-            if (id.includes('date-fns') || id.includes('qrcode') || id.includes('jspdf') || id.includes('xlsx')) {
-              return 'utils-vendor';
-            }
-
-            // Other vendor libraries
-            return 'vendor';
-          }
+          // Utility libraries
+          'utils-vendor': ['date-fns', 'qrcode', 'jspdf', 'xlsx']
         }
       }
     },
@@ -52,7 +34,8 @@ export default defineConfig({
     // Enable compression with esbuild (faster and built-in)
     minify: 'esbuild',
     esbuild: {
-      drop: ['console', 'debugger']
+      // Don't drop console logs to help with debugging
+      drop: ['debugger']
     }
   },
   server: {
@@ -63,8 +46,14 @@ export default defineConfig({
   define: {
     'process.env': {}
   },
+  resolve: {
+    alias: {
+      // Ensure proper module resolution
+      '@': '/src'
+    }
+  },
   optimizeDeps: {
-    include: ['recharts'],
+    include: ['recharts', 'react', 'react-dom', 'framer-motion'],
     exclude: ['victory-vendor'],
     force: true
   }

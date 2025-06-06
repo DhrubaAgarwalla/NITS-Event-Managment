@@ -179,14 +179,24 @@ function App() {
   // Initialize automation system and performance monitoring
   useEffect(() => {
     if (!loading && !authLoading) {
-      // Initialize automation after app loads
-      automationInitializer.initialize().catch(error => {
-        logger.error('Failed to initialize automation system:', error);
-      });
+      // Initialize automation after app loads with better error handling
+      setTimeout(() => {
+        try {
+          automationInitializer.initialize().catch(error => {
+            console.warn('Automation system initialization failed (non-critical):', error);
+          });
+        } catch (error) {
+          console.warn('Automation system initialization error (non-critical):', error);
+        }
+      }, 1000);
 
       // Log performance summary after app loads
       setTimeout(() => {
-        performanceService.logPerformanceSummary();
+        try {
+          performanceService.logPerformanceSummary();
+        } catch (error) {
+          console.warn('Performance service error (non-critical):', error);
+        }
       }, 3000);
     }
   }, [loading, authLoading]);
