@@ -49,13 +49,10 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000,
-    // Enable compression
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
+    // Enable compression with esbuild (faster and built-in)
+    minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger']
     }
   },
   server: {
