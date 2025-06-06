@@ -133,15 +133,15 @@ const Hero = ({ setCurrentPage }) => {
       <div className="container">
         <motion.div
           className="hero-content"
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 1, y: 0 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0, delay: 0 }}
         >
           <motion.h1
             className="hero-title"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 1, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0, delay: 0 }}
           >
             Discover & Join <br />
             NIT Silchar Events
@@ -149,9 +149,9 @@ const Hero = ({ setCurrentPage }) => {
 
           <motion.p
             className="hero-subtitle"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 1, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0, delay: 0 }}
           >
             Your gateway to all technical, cultural, and traditional events happening at NIT Silchar.
             Register, participate, and stay updated with all campus activities.
@@ -159,9 +159,9 @@ const Hero = ({ setCurrentPage }) => {
 
           <motion.div
             className="hero-cta"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
             <button
               onClick={() => setCurrentPage('events-page')}

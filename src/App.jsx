@@ -52,6 +52,7 @@ import ClubRequestForm from './components/ClubRequestForm';
 import { EventCreationForm, AutoCreatedSheetsViewer } from './components/LazyComponents';
 import ForgotPassword from './components/ForgotPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
+import PerformanceBoost from './components/PerformanceBoost';
 
 // Automation services
 import automationInitializer from './services/automationInitializer';
@@ -274,6 +275,7 @@ function App() {
           </motion.div>
         ) : (
           <div className="app">
+            <PerformanceBoost />
             <Cursor />
             <Mobile3DEffects />
             <Navbar setCurrentPage={setCurrentPage} isClubLoggedIn={isClubLoggedIn} currentPage={currentPage} />

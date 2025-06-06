@@ -34,36 +34,42 @@ const CollageBackground = () => {
     return `https://res.cloudinary.com/${cloudName}/image/upload/${transformation}/${publicId}`;
   };
 
-  // Preload critical images
+  // Preload critical images with faster strategy
   useEffect(() => {
     const preloadImages = async () => {
       logger.log('Starting collage images preload...');
 
-      // Preload first 3 images (most visible) in medium quality
-      const criticalImages = COLLAGE_IMAGES.slice(0, 3);
+      // Show immediately, then preload in background
+      setIsVisible(true);
+
+      // Preload only the first 2 most visible images in small quality first
+      const criticalImages = COLLAGE_IMAGES.slice(0, 2);
       const preloadPromises = criticalImages.map(publicId => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const img = new Image();
           img.onload = () => {
             setImagesLoaded(prev => prev + 1);
             resolve();
           };
-          img.onerror = reject;
-          img.src = getOptimizedCollageUrl(publicId, 'medium');
+          img.onerror = () => resolve(); // Don't fail on error
+          img.src = getOptimizedCollageUrl(publicId, 'small'); // Use small size for faster loading
         });
       });
 
       try {
         await Promise.all(preloadPromises);
         logger.log('Critical collage images preloaded');
-        setIsVisible(true);
       } catch (error) {
         logger.error('Error preloading collage images:', error);
-        setIsVisible(true); // Show anyway
       }
     };
 
-    preloadImages();
+    // Use requestIdleCallback for non-blocking preload
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(preloadImages);
+    } else {
+      setTimeout(preloadImages, 100);
+    }
   }, []);
 
   useEffect(() => {
@@ -113,10 +119,11 @@ const CollageBackground = () => {
       if (collageContainer && isVisible) {
         collageContainer.style.opacity = '0';
 
-        setTimeout(() => {
-          collageContainer.style.transition = 'opacity 1.5s ease';
+        // Immediate fade-in for better LCP
+        requestAnimationFrame(() => {
+          collageContainer.style.transition = 'opacity 0.8s ease';
           collageContainer.style.opacity = '0.45'; // Match the CSS opacity value
-        }, 100); // Faster fade-in since images are preloaded
+        });
       }
 
       return () => {
@@ -128,7 +135,7 @@ const CollageBackground = () => {
   return (
     <div className="collage-background">
       <div className="collage-overlay"></div>
-      <div className="collage-container" style={{ opacity: isVisible ? undefined : 0 }}>
+      <div className="collage-container" style={{ opacity: 0.45 }}>
         {COLLAGE_IMAGES.map((publicId, index) => (
           <div
             key={publicId}

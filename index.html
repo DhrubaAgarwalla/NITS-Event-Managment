@@ -4,7 +4,132 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Preconnect to Google Fonts for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Preconnect to Cloudinary for faster image loading -->
+    <link rel="preconnect" href="https://res.cloudinary.com">
+
+    <!-- DNS prefetch for other domains -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+
+    <!-- Preload critical fonts with high priority and optimized display -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Poppins:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" fetchpriority="high">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Poppins:wght@400;500&display=swap"></noscript>
+
+    <!-- Preload critical Cloudinary images -->
+    <link rel="preload" href="https://res.cloudinary.com/dmsvblrzv/image/upload/q_auto:low,f_auto,w_400,h_300,c_fill/collage-background/collage-1" as="image" fetchpriority="low">
+    <link rel="preload" href="https://res.cloudinary.com/dmsvblrzv/image/upload/q_auto:low,f_auto,w_400,h_300,c_fill/collage-background/collage-2" as="image" fetchpriority="low">
+
+    <!-- Load Material Icons with lowest priority (defer completely) -->
+    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"></noscript>
+
+    <!-- Optimize critical rendering path -->
+    <script>
+      // Critical performance optimizations
+      (function() {
+        // Force immediate font display
+        if ('fonts' in document) {
+          document.fonts.ready.then(function() {
+            document.documentElement.classList.add('fonts-loaded');
+          });
+        }
+
+        // Defer non-critical resources
+        window.addEventListener('load', function() {
+          // Load Material Icons after page load
+          setTimeout(function() {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+            document.head.appendChild(link);
+          }, 100);
+
+          // Preload remaining collage images
+          setTimeout(function() {
+            var images = [
+              'https://res.cloudinary.com/dmsvblrzv/image/upload/q_auto:low,f_auto,w_400,h_300,c_fill/collage-background/collage-3',
+              'https://res.cloudinary.com/dmsvblrzv/image/upload/q_auto:low,f_auto,w_400,h_300,c_fill/collage-background/collage-4'
+            ];
+            images.forEach(function(src) {
+              var img = new Image();
+              img.src = src;
+            });
+          }, 200);
+        });
+      })();
+    </script>
+
+    <!-- Critical CSS for hero section -->
+    <style>
+      /* Critical styles for immediate rendering */
+      body {
+        margin: 0;
+        background-color: #050505;
+        color: rgba(255, 255, 255, 0.87);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+      .hero {
+        position: relative;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+      }
+      .hero-content {
+        max-width: 800px;
+        z-index: 1;
+        padding: 0 2rem;
+      }
+      .hero-title {
+        font-size: clamp(3rem, 8vw, 6rem);
+        background: linear-gradient(to right, #6e44ff, #ff44e3);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+        line-height: 1.1;
+        font-display: swap;
+        text-rendering: optimizeSpeed;
+        will-change: auto;
+        contain: layout style;
+      }
+      .hero-subtitle {
+        font-size: clamp(1.2rem, 2vw, 1.8rem);
+        margin-bottom: 2.5rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-family: 'Poppins', system-ui, sans-serif;
+        line-height: 1.6;
+        font-display: swap;
+        text-rendering: optimizeSpeed;
+        contain: layout style;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      /* Force immediate visibility for LCP element */
+      .hero-subtitle {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+
+      /* Optimize rendering performance */
+      .hero-content * {
+        will-change: auto;
+        backface-visibility: hidden;
+        perspective: 1000px;
+      }
+    </style>
+
     <title>Event Manager - NIT Silchar</title>
   </head>
   <body>

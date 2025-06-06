@@ -4,6 +4,10 @@ import './index.css'
 import './styles/mobile.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
+import lcpOptimizer from './utils/lcpOptimizer'
+
+// Initialize LCP optimization
+lcpOptimizer.init();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
