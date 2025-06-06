@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logger from '../utils/logger';
 
-const RegistrationSuccessModal = ({ 
-  isOpen, 
-  onClose, 
-  registrationData, 
-  eventData 
+const RegistrationSuccessModal = ({
+  isOpen,
+  onClose,
+  registrationData,
+  eventData
 }) => {
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -82,11 +82,11 @@ const RegistrationSuccessModal = ({
             initial={{ scale: 0.8, opacity: 0, y: 50 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 50 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 300, 
+            transition={{
+              type: "spring",
+              stiffness: 300,
               damping: 30,
-              duration: 0.5 
+              duration: 0.5
             }}
             style={{
               backgroundColor: 'var(--dark-surface)',
@@ -145,27 +145,66 @@ const RegistrationSuccessModal = ({
                 border: '1px solid rgba(255, 255, 255, 0.1)'
               }}
             >
-              <h3 style={{ 
-                color: 'var(--text-primary)', 
+              <h3 style={{
+                color: 'var(--text-primary)',
                 marginBottom: '1rem',
                 fontSize: '1.3rem'
               }}>
                 🎉 {eventData.title}
               </h3>
-              
+
               <div style={{ textAlign: 'left', color: 'var(--text-secondary)' }}>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
                   <strong style={{ color: 'var(--primary)' }}>📧 Email:</strong> {registrationData.email}
                 </p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
-                  <strong style={{ color: 'var(--primary)' }}>📅 Event Date:</strong> {eventData.date}
-                </p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
-                  <strong style={{ color: 'var(--primary)' }}>⏰ Time:</strong> {eventData.time}
-                </p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
-                  <strong style={{ color: 'var(--primary)' }}>📍 Venue:</strong> {eventData.venue}
-                </p>
+
+                {/* Only show event date if it exists and is valid */}
+                {eventData.start_date && (
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
+                    <strong style={{ color: 'var(--primary)' }}>📅 Event Date:</strong> {
+                      (() => {
+                        try {
+                          const startDate = new Date(eventData.start_date);
+                          const endDate = eventData.end_date ? new Date(eventData.end_date) : null;
+
+                          if (endDate && startDate.toDateString() !== endDate.toDateString()) {
+                            // Multi-day event
+                            return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+                          } else {
+                            // Single day event
+                            return startDate.toLocaleDateString();
+                          }
+                        } catch (error) {
+                          return 'Date not available';
+                        }
+                      })()
+                    }
+                  </p>
+                )}
+
+                {/* Only show time if it exists */}
+                {eventData.start_date && (
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
+                    <strong style={{ color: 'var(--primary)' }}>⏰ Time:</strong> {
+                      (() => {
+                        try {
+                          const startDate = new Date(eventData.start_date);
+                          return startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } catch (error) {
+                          return 'Time not available';
+                        }
+                      })()
+                    }
+                  </p>
+                )}
+
+                {/* Only show venue if it exists */}
+                {eventData.location && (
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
+                    <strong style={{ color: 'var(--primary)' }}>📍 Venue:</strong> {eventData.location}
+                  </p>
+                )}
+
                 {registrationData.registrationId && (
                   <p style={{ margin: '0.5rem 0', fontSize: '0.95rem' }}>
                     <strong style={{ color: 'var(--primary)' }}>🆔 Registration ID:</strong> {registrationData.registrationId}
@@ -187,15 +226,15 @@ const RegistrationSuccessModal = ({
                 border: '1px solid rgba(0, 255, 51, 0.3)'
               }}
             >
-              <h4 style={{ 
-                color: '#00ff33', 
+              <h4 style={{
+                color: '#00ff33',
                 marginBottom: '1rem',
                 fontSize: '1.1rem'
               }}>
                 📋 What's Next?
               </h4>
-              <ul style={{ 
-                textAlign: 'left', 
+              <ul style={{
+                textAlign: 'left',
                 color: 'var(--text-secondary)',
                 listStyle: 'none',
                 padding: 0,
