@@ -71,7 +71,7 @@ The automation system includes Vercel cron jobs for automatic execution:
 # Deploy to Vercel
 vercel --prod
 
-# The cron job will automatically trigger every 5 minutes
+# The cron job will automatically trigger daily at 8 AM
 ```
 
 ### 4. **Test the System**
@@ -87,7 +87,7 @@ npm run test:automation
 ### Automatic Operation
 
 1. **Browser-Based Automation**: Runs automatically when users visit the site
-2. **Vercel Cron Jobs**: Runs every 5 minutes via `/api/automation/trigger`
+2. **Vercel Cron Jobs**: Runs daily at 8 AM via `/api/automation/trigger`
 3. **Background Service**: Continuous monitoring and execution
 4. **Smart Scheduling**: Different tasks run at different intervals
 
@@ -95,7 +95,7 @@ npm run test:automation
 
 | Task | Frequency | Description |
 |------|-----------|-------------|
-| Core Automation | Every 5 minutes | Registration closure, status updates |
+| Core Automation | Daily at 8 AM | Registration closure, status updates |
 | Comprehensive Check | Every hour | Full validation and cleanup |
 | Daily Maintenance | 2 AM IST | Archival and maintenance |
 | Weekly Analytics | 3 AM Sunday | Analytics and reporting |

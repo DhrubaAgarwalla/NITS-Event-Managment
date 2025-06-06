@@ -139,7 +139,7 @@ import AutomationStatusIndicator from './components/AutomationStatusIndicator';
 
 | Task | Frequency | Description |
 |------|-----------|-------------|
-| Background Automation | Every 5 minutes | Core automation tasks |
+| Background Automation | Daily at 8 AM | Core automation tasks |
 | Hourly Check | Every hour | Comprehensive validation |
 | Daily Maintenance | 2 AM daily | Cleanup and archival |
 | Weekly Analytics | 3 AM Sunday | Analytics updates |
@@ -174,7 +174,7 @@ Add to `vercel.json`:
   "crons": [
     {
       "path": "/api/automation/trigger",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }

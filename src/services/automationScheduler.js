@@ -43,12 +43,13 @@ class AutomationScheduler {
    * Set up default automation schedules
    */
   async setupDefaultSchedules() {
-    // Continuous background automation (every 5 minutes)
+    // Daily background automation (every day at 8 AM)
     this.addSchedule('background_automation', {
-      type: 'interval',
-      interval: 5 * 60 * 1000, // 5 minutes
+      type: 'cron',
+      schedule: '0 8 * * *', // 8 AM daily
+      timezone: this.timezone,
       enabled: true,
-      description: 'Continuous background automation for events'
+      description: 'Daily background automation for events'
     });
 
     // Hourly comprehensive check (every hour)
@@ -218,7 +219,7 @@ class AutomationScheduler {
   shouldRunCronSchedule(schedule, now) {
     // This is a simplified cron implementation
     // For production, consider using a proper cron library like node-cron
-    
+
     if (!schedule.lastRun) {
       return true; // First run
     }
@@ -233,7 +234,7 @@ class AutomationScheduler {
 
     // Simple daily check (2 AM)
     if (schedule.schedule === '0 2 * * *') {
-      return now.getHours() === 2 && now.getMinutes() < 5 && 
+      return now.getHours() === 2 && now.getMinutes() < 5 &&
              (now.getDate() !== lastRun.getDate() || now.getMonth() !== lastRun.getMonth());
     }
 
@@ -251,10 +252,10 @@ class AutomationScheduler {
    */
   async runDailyMaintenance() {
     logger.log('🧹 Running daily maintenance tasks...');
-    
+
     // Force a comprehensive automation run
     await backgroundAutomationService.forceRun();
-    
+
     // Additional maintenance tasks can be added here
     logger.log('✅ Daily maintenance completed');
   }
@@ -264,10 +265,10 @@ class AutomationScheduler {
    */
   async runWeeklyAnalytics() {
     logger.log('📊 Running weekly analytics tasks...');
-    
+
     // Force a comprehensive automation run
     await backgroundAutomationService.forceRun();
-    
+
     // Additional analytics tasks can be added here
     logger.log('✅ Weekly analytics completed');
   }
@@ -277,7 +278,7 @@ class AutomationScheduler {
    */
   getStats() {
     const schedules = Array.from(this.schedules.values());
-    
+
     return {
       totalSchedules: schedules.length,
       enabledSchedules: schedules.filter(s => s.enabled).length,
@@ -293,11 +294,11 @@ class AutomationScheduler {
    */
   async shutdown() {
     logger.log('🛑 Shutting down Automation Scheduler...');
-    
+
     await backgroundAutomationService.stop();
     this.schedules.clear();
     this.isInitialized = false;
-    
+
     logger.log('✅ Automation Scheduler shutdown complete');
   }
 }

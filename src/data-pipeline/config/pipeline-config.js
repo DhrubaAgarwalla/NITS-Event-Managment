@@ -133,7 +133,7 @@ export const PIPELINE_CONFIG = {
   scheduling: {
     timezone: 'Asia/Kolkata',
     jobs: {
-      dataIngestion: '*/5 * * * *', // Every 5 minutes
+      dataIngestion: '0 8 * * *', // Daily at 8 AM
       dataProcessing: '*/10 * * * *', // Every 10 minutes
       featureEngineering: '0 */1 * * *', // Every hour
       modelTraining: '0 2 * * 0', // Weekly
@@ -165,25 +165,25 @@ export const PIPELINE_CONFIG = {
 // Environment-specific overrides
 export const getConfig = (environment = 'development') => {
   const config = { ...PIPELINE_CONFIG };
-  
+
   switch (environment) {
     case 'production':
       config.storage.dataLake.provider = 'aws-s3';
       config.storage.dataWarehouse.provider = 'postgresql';
       config.monitoring.alerts.channels = ['email', 'slack', 'pagerduty'];
       break;
-      
+
     case 'staging':
       config.processing.validation.strictMode = false;
       config.ml.deployment.environment = 'staging';
       break;
-      
+
     case 'development':
       config.sources.firebase.batchSize = 100;
       config.monitoring.alerts.channels = ['console'];
       break;
   }
-  
+
   return config;
 };
 
@@ -197,13 +197,13 @@ export const validateConfig = (config) => {
     'monitoring',
     'scheduling'
   ];
-  
+
   for (const key of required) {
     if (!config[key]) {
       throw new Error(`Missing required configuration: ${key}`);
     }
   }
-  
+
   return true;
 };
 
