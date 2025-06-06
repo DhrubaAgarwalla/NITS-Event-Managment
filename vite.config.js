@@ -13,20 +13,25 @@ export default defineConfig({
           // Core React chunks
           'react-vendor': ['react', 'react-dom'],
 
-          // Animation libraries
-          'animation-vendor': ['framer-motion', 'gsap', '@studio-freight/lenis'],
+          // Animation libraries (split for better caching)
+          'framer-motion': ['framer-motion'],
+          'gsap-vendor': ['gsap', '@studio-freight/lenis'],
 
           // Three.js ecosystem
           'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
 
-          // Firebase
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/database', 'firebase/analytics'],
+          // Firebase (split by functionality)
+          'firebase-core': ['firebase/app'],
+          'firebase-auth': ['firebase/auth', 'firebase/database'],
+          'firebase-analytics': ['firebase/analytics'],
 
           // Charts and data visualization
           'charts-vendor': ['recharts'],
 
-          // Utility libraries
-          'utils-vendor': ['date-fns', 'qrcode', 'jspdf', 'xlsx']
+          // Utility libraries (split by size)
+          'pdf-vendor': ['jspdf'],
+          'excel-vendor': ['xlsx'],
+          'utils-small': ['date-fns', 'qrcode']
         }
       }
     },
@@ -34,8 +39,8 @@ export default defineConfig({
     // Enable compression with esbuild (faster and built-in)
     minify: 'esbuild',
     esbuild: {
-      // Don't drop console logs to help with debugging
-      drop: ['debugger']
+      // Drop console logs in production for smaller bundle
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : ['debugger']
     }
   },
   server: {
