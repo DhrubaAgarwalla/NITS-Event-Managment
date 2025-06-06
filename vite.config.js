@@ -9,39 +9,42 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React chunks
-          'react-vendor': ['react', 'react-dom'],
-          'react-router': ['react-router-dom'],
+        manualChunks: (id) => {
+          // Vendor chunks for node_modules
+          if (id.includes('node_modules')) {
+            // React ecosystem
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
 
-          // Animation and UI chunks
-          'animation-vendor': ['framer-motion', 'gsap', '@studio-freight/lenis'],
-          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
+            // Animation libraries
+            if (id.includes('framer-motion') || id.includes('gsap') || id.includes('@studio-freight/lenis')) {
+              return 'animation-vendor';
+            }
 
-          // Firebase chunks
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/database', 'firebase/analytics'],
+            // Three.js ecosystem
+            if (id.includes('three') || id.includes('@react-three')) {
+              return 'three-vendor';
+            }
 
-          // Utility chunks
-          'utils-vendor': ['date-fns', 'qrcode', 'jspdf', 'xlsx'],
-          'image-vendor': ['react-lazy-load-image-component'],
+            // Firebase
+            if (id.includes('firebase')) {
+              return 'firebase-vendor';
+            }
 
-          // Chart and data visualization
-          'charts-vendor': ['victory-vendor'],
+            // Charts and data visualization
+            if (id.includes('recharts') || id.includes('victory-vendor')) {
+              return 'charts-vendor';
+            }
 
-          // Large components that can be lazy loaded
-          'admin-components': [
-            './src/components/AdminDashboard.jsx',
-            './src/components/AdminEventEditor.jsx',
-            './src/components/AdminClubEditor.jsx'
-          ],
-          'dashboard-components': [
-            './src/components/ClubDashboard.jsx',
-            './src/components/DataPipelineDashboard.jsx'
-          ],
-          'scanner-components': [
-            './src/components/QRScanner.jsx',
-            './src/components/AttendanceManagement.jsx'
-          ]
+            // Utility libraries
+            if (id.includes('date-fns') || id.includes('qrcode') || id.includes('jspdf') || id.includes('xlsx')) {
+              return 'utils-vendor';
+            }
+
+            // Other vendor libraries
+            return 'vendor';
+          }
         }
       }
     },
@@ -62,5 +65,15 @@ export default defineConfig({
   // Ensure environment variables are properly handled
   define: {
     'process.env': {}
+  },
+  // Resolve configuration to handle problematic packages
+  resolve: {
+    alias: {
+      // Handle victory-vendor resolution issues
+      'victory-vendor/lib': 'victory-vendor/es'
+    }
+  },
+  optimizeDeps: {
+    include: ['recharts', 'victory-vendor']
   }
 })
