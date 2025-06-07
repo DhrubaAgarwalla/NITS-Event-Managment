@@ -171,8 +171,7 @@ const ClubBankDetails = ({ clubId, onClose }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create Razorpay account');
+        throw new Error('Failed to create Razorpay account');
       }
 
       const result = await response.json();
@@ -187,29 +186,7 @@ const ClubBankDetails = ({ clubId, onClose }) => {
 
     } catch (error) {
       logger.error('Error creating Razorpay account:', error);
-      setError(error.message || 'Failed to create Razorpay account. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    try {
-      setError('');
-      setSaving(true);
-
-      const response = await fetch('/api/razorpay?action=test-connection');
-      const result = await response.json();
-
-      if (response.ok) {
-        setSuccess('✅ Razorpay connection successful! Ready to create accounts.');
-      } else {
-        setError(`❌ Connection failed: ${result.error}`);
-      }
-
-    } catch (error) {
-      logger.error('Error testing Razorpay connection:', error);
-      setError('❌ Failed to test connection. Please check your internet connection.');
+      setError('Failed to create Razorpay account. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -802,43 +779,23 @@ const ClubBankDetails = ({ clubId, onClose }) => {
                   Enable direct payments to your bank account by creating a Razorpay linked account.
                 </p>
 
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={handleTestConnection}
-                    disabled={saving}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: '#3498db',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      opacity: saving ? 0.6 : 1
-                    }}
-                  >
-                    Test Connection
-                  </button>
-
-                  <button
-                    onClick={handleCreateRazorpayAccount}
-                    disabled={saving}
-                    style={{
-                      padding: '1rem 2rem',
-                      backgroundColor: '#f39c12',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      opacity: saving ? 0.6 : 1
-                    }}
-                  >
-                    {saving ? 'Creating Account...' : 'Create Razorpay Account'}
-                  </button>
-                </div>
+                <button
+                  onClick={handleCreateRazorpayAccount}
+                  disabled={saving}
+                  style={{
+                    padding: '1rem 2rem',
+                    backgroundColor: '#f39c12',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    opacity: saving ? 0.6 : 1
+                  }}
+                >
+                  {saving ? 'Creating Account...' : 'Create Razorpay Account'}
+                </button>
               </div>
 
               <div style={{

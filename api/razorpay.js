@@ -34,8 +34,6 @@ export default async function handler(req, res) {
         return await createLinkedAccount(req, res);
       case 'club-account-status':
         return await getClubAccountStatus(req, res);
-      case 'test-connection':
-        return await testConnection(req, res);
       default:
         return res.status(404).json({ error: 'Action not found' });
     }
@@ -192,54 +190,38 @@ async function createLinkedAccount(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const { club_id, bank_details } = req.body;
+  const { club_id, bank_details } = req.body;
 
-    if (!club_id || !bank_details) {
-      return res.status(400).json({ error: 'Club ID and bank details are required' });
-    }
+  if (!club_id || !bank_details) {
+    return res.status(400).json({ error: 'Club ID and bank details are required' });
+  }
 
-    console.log('Creating linked account for club:', club_id);
-    console.log('Bank details:', bank_details);
-
-    // Validate required fields
-    const requiredFields = ['contact_email', 'contact_phone', 'account_holder_name', 'contact_name', 'address_line1', 'city', 'state', 'pincode'];
-    const missingFields = requiredFields.filter(field => !bank_details[field]);
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: `Missing required fields: ${missingFields.join(', ')}`
-      });
-    }
-
-    // Create linked account
-    const accountData = {
-      email: bank_details.contact_email,
-      phone: bank_details.contact_phone,
-      type: 'route',
-      reference_id: club_id,
-      legal_business_name: bank_details.account_holder_name,
-      business_type: bank_details.business_type || 'educational',
-      contact_name: bank_details.contact_name,
-      profile: {
-        category: 'education',
-        subcategory: 'college',
-        addresses: {
-          registered: {
-            street1: bank_details.address_line1,
-            street2: bank_details.address_line2 || '',
-            city: bank_details.city,
-            state: bank_details.state,
-            postal_code: bank_details.pincode,
-            country: 'IN'
-          }
+  // Create linked account
+  const accountData = {
+    email: bank_details.contact_email,
+    phone: bank_details.contact_phone,
+    type: 'route',
+    reference_id: club_id,
+    legal_business_name: bank_details.account_holder_name,
+    business_type: bank_details.business_type || 'educational',
+    contact_name: bank_details.contact_name,
+    profile: {
+      category: 'education',
+      subcategory: 'college',
+      addresses: {
+        registered: {
+          street1: bank_details.address_line1,
+          street2: bank_details.address_line2 || '',
+          city: bank_details.city,
+          state: bank_details.state,
+          postal_code: bank_details.pincode,
+          country: 'IN'
         }
       }
-    };
+    }
+  };
 
-    console.log('Account data to send to Razorpay:', accountData);
-    const account = await razorpay.accounts.create(accountData);
-    console.log('Razorpay account created:', account);
+  const account = await razorpay.accounts.create(accountData);
 
   // Add bank account
   const bankAccountData = {
@@ -277,14 +259,6 @@ async function createLinkedAccount(req, res) {
     bank_account_id: bankAccount.id,
     status: account.status
   });
-
-  } catch (error) {
-    console.error('Error creating linked account:', error);
-    return res.status(500).json({
-      error: 'Failed to create Razorpay account',
-      details: error.message
-    });
-  }
 }
 
 // Get Club Account Status
@@ -343,37 +317,6 @@ async function getClubAccountStatus(req, res) {
       razorpay_account_status: 'error',
       verification_status: bankDetails.verification_status || 'pending',
       error: 'Could not fetch account status'
-    });
-  }
-}
-
-// Test Connection
-async function testConnection(req, res) {
-  try {
-    // Check if credentials are available
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({
-        error: 'Razorpay credentials not configured',
-        has_key_id: !!process.env.RAZORPAY_KEY_ID,
-        has_key_secret: !!process.env.RAZORPAY_KEY_SECRET
-      });
-    }
-
-    // Try to fetch a simple resource to test connection
-    const orders = await razorpay.orders.all({ count: 1 });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Razorpay connection successful',
-      key_id: process.env.RAZORPAY_KEY_ID.substring(0, 8) + '...',
-      test_result: 'OK'
-    });
-  } catch (error) {
-    console.error('Razorpay connection test failed:', error);
-    return res.status(500).json({
-      error: 'Razorpay connection failed',
-      details: error.message,
-      has_credentials: !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
     });
   }
 }
