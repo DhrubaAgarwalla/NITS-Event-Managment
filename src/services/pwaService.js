@@ -10,7 +10,7 @@ class PWAService {
     this.isInstalled = false;
     this.isStandalone = false;
     this.installPromptShown = false;
-    
+
     this.init();
   }
 
@@ -22,16 +22,16 @@ class PWAService {
 
     // Check if app is already installed
     this.checkInstallStatus();
-    
+
     // Register service worker
     this.registerServiceWorker();
-    
+
     // Listen for install prompt
     this.setupInstallPrompt();
-    
+
     // Setup offline detection
     this.setupOfflineDetection();
-    
+
     logger.log('PWA Service initialized');
   }
 
@@ -42,11 +42,11 @@ class PWAService {
     // Check if running in standalone mode (installed)
     this.isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                        window.navigator.standalone === true;
-    
+
     // Check if already installed (various methods)
     this.isInstalled = this.isStandalone ||
                        localStorage.getItem('pwa-installed') === 'true';
-    
+
     logger.log(`PWA Status - Installed: ${this.isInstalled}, Standalone: ${this.isStandalone}`);
   }
 
@@ -69,7 +69,7 @@ class PWAService {
       // Handle updates
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
-        
+
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             // New version available
@@ -90,13 +90,13 @@ class PWAService {
     // Listen for beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (event) => {
       logger.log('PWA install prompt available');
-      
+
       // Prevent the default prompt
       event.preventDefault();
-      
+
       // Store the event for later use
       this.deferredPrompt = event;
-      
+
       // Show custom install prompt after a delay (only on mobile)
       if (this.isMobile() && !this.isInstalled && !this.installPromptShown) {
         setTimeout(() => {
@@ -112,6 +112,15 @@ class PWAService {
       localStorage.setItem('pwa-installed', 'true');
       this.hideInstallPrompt();
     });
+
+    // Fallback: Show install prompt even without beforeinstallprompt
+    // This helps with browsers that don't always fire the event
+    setTimeout(() => {
+      if (this.isMobile() && !this.isInstalled && !this.installPromptShown && !this.deferredPrompt) {
+        logger.log('Showing fallback install prompt');
+        this.showFallbackInstallPrompt();
+      }
+    }, 5000); // Show after 5 seconds if no beforeinstallprompt
   }
 
   /**
@@ -123,6 +132,61 @@ class PWAService {
   }
 
   /**
+   * Show fallback install prompt (when beforeinstallprompt doesn't fire)
+   */
+  showFallbackInstallPrompt() {
+    if (this.installPromptShown || this.isInstalled) {
+      return;
+    }
+
+    this.installPromptShown = true;
+
+    // Create fallback install prompt
+    const promptContainer = document.createElement('div');
+    promptContainer.id = 'pwa-install-prompt';
+    promptContainer.innerHTML = `
+      <div class="pwa-prompt-overlay">
+        <div class="pwa-prompt-content">
+          <div class="pwa-prompt-header">
+            <div class="pwa-prompt-icon">📱</div>
+            <h3>Install NITS Events</h3>
+            <button class="pwa-prompt-close" onclick="window.pwaService.hideInstallPrompt()">×</button>
+          </div>
+          <div class="pwa-prompt-body">
+            <p>Add this app to your home screen for:</p>
+            <ul>
+              <li>✅ Faster access</li>
+              <li>✅ Offline browsing</li>
+              <li>✅ Full-screen experience</li>
+              <li>✅ Quick launch</li>
+            </ul>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 1rem;">
+              Tap your browser's menu and select "Add to Home Screen" or "Install App"
+            </p>
+          </div>
+          <div class="pwa-prompt-actions">
+            <button class="pwa-prompt-install" onclick="window.pwaService.showInstallInstructions()">
+              Show Instructions
+            </button>
+            <button class="pwa-prompt-later" onclick="window.pwaService.hideInstallPrompt()">
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add styles (same as before)
+    const styles = document.createElement('style');
+    styles.textContent = this.getPromptStyles();
+
+    document.head.appendChild(styles);
+    document.body.appendChild(promptContainer);
+
+    logger.log('PWA fallback install prompt shown');
+  }
+
+  /**
    * Show custom install prompt
    */
   showInstallPrompt() {
@@ -131,7 +195,7 @@ class PWAService {
     }
 
     this.installPromptShown = true;
-    
+
     // Create custom install prompt
     const promptContainer = document.createElement('div');
     promptContainer.id = 'pwa-install-prompt';
@@ -166,7 +230,19 @@ class PWAService {
 
     // Add styles
     const styles = document.createElement('style');
-    styles.textContent = `
+    styles.textContent = this.getPromptStyles();
+
+    document.head.appendChild(styles);
+    document.body.appendChild(promptContainer);
+
+    logger.log('PWA install prompt shown');
+  }
+
+  /**
+   * Get prompt styles
+   */
+  getPromptStyles() {
+    return `
       .pwa-prompt-overlay {
         position: fixed;
         top: 0;
@@ -181,7 +257,7 @@ class PWAService {
         padding: 1rem;
         backdrop-filter: blur(5px);
       }
-      
+
       .pwa-prompt-content {
         background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
         border-radius: 20px;
@@ -191,18 +267,18 @@ class PWAService {
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
-      
+
       .pwa-prompt-header {
         padding: 1.5rem 1.5rem 0;
         text-align: center;
         position: relative;
       }
-      
+
       .pwa-prompt-icon {
         font-size: 3rem;
         margin-bottom: 0.5rem;
       }
-      
+
       .pwa-prompt-header h3 {
         margin: 0;
         font-size: 1.5rem;
@@ -212,7 +288,7 @@ class PWAService {
         background-clip: text;
         color: transparent;
       }
-      
+
       .pwa-prompt-close {
         position: absolute;
         top: 1rem;
@@ -230,39 +306,39 @@ class PWAService {
         justify-content: center;
         transition: all 0.2s ease;
       }
-      
+
       .pwa-prompt-close:hover {
         background: rgba(255, 255, 255, 0.1);
         color: white;
       }
-      
+
       .pwa-prompt-body {
         padding: 1rem 1.5rem;
       }
-      
+
       .pwa-prompt-body p {
         margin: 0 0 1rem;
         color: rgba(255, 255, 255, 0.8);
       }
-      
+
       .pwa-prompt-body ul {
         margin: 0;
         padding: 0;
         list-style: none;
       }
-      
+
       .pwa-prompt-body li {
         margin-bottom: 0.5rem;
         color: rgba(255, 255, 255, 0.7);
         font-size: 0.9rem;
       }
-      
+
       .pwa-prompt-actions {
         padding: 0 1.5rem 1.5rem;
         display: flex;
         gap: 1rem;
       }
-      
+
       .pwa-prompt-install {
         flex: 1;
         background: linear-gradient(135deg, #6e44ff, #ff44e3);
@@ -274,11 +350,11 @@ class PWAService {
         cursor: pointer;
         transition: transform 0.2s ease;
       }
-      
+
       .pwa-prompt-install:hover {
         transform: translateY(-2px);
       }
-      
+
       .pwa-prompt-later {
         flex: 1;
         background: rgba(255, 255, 255, 0.1);
@@ -290,17 +366,74 @@ class PWAService {
         cursor: pointer;
         transition: all 0.2s ease;
       }
-      
+
       .pwa-prompt-later:hover {
         background: rgba(255, 255, 255, 0.15);
         color: white;
       }
     `;
+  }
 
-    document.head.appendChild(styles);
-    document.body.appendChild(promptContainer);
+  /**
+   * Show install instructions
+   */
+  showInstallInstructions() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
 
-    logger.log('PWA install prompt shown');
+    let instructions = '';
+
+    if (isIOS) {
+      instructions = `
+        <h4>📱 iOS Instructions:</h4>
+        <ol>
+          <li>Tap the Share button <span style="font-size: 1.2em;">⬆️</span></li>
+          <li>Scroll down and tap "Add to Home Screen"</li>
+          <li>Tap "Add" to confirm</li>
+        </ol>
+      `;
+    } else if (isAndroid) {
+      instructions = `
+        <h4>📱 Android Instructions:</h4>
+        <ol>
+          <li>Tap the menu button <span style="font-size: 1.2em;">⋮</span></li>
+          <li>Select "Add to Home screen" or "Install app"</li>
+          <li>Tap "Add" or "Install" to confirm</li>
+        </ol>
+      `;
+    } else {
+      instructions = `
+        <h4>💻 Desktop Instructions:</h4>
+        <ol>
+          <li>Look for the install icon in your address bar</li>
+          <li>Or use browser menu → "Install app"</li>
+          <li>Click "Install" to confirm</li>
+        </ol>
+      `;
+    }
+
+    // Update the prompt content
+    const promptContent = document.querySelector('.pwa-prompt-content');
+    if (promptContent) {
+      promptContent.innerHTML = `
+        <div class="pwa-prompt-header">
+          <div class="pwa-prompt-icon">📱</div>
+          <h3>Install Instructions</h3>
+          <button class="pwa-prompt-close" onclick="window.pwaService.hideInstallPrompt()">×</button>
+        </div>
+        <div class="pwa-prompt-body">
+          ${instructions}
+          <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 1rem;">
+            Once installed, you can launch the app from your home screen!
+          </p>
+        </div>
+        <div class="pwa-prompt-actions">
+          <button class="pwa-prompt-later" onclick="window.pwaService.hideInstallPrompt()" style="width: 100%;">
+            Got it!
+          </button>
+        </div>
+      `;
+    }
   }
 
   /**
@@ -311,10 +444,10 @@ class PWAService {
     if (prompt) {
       prompt.remove();
     }
-    
+
     // Don't show again for this session
     sessionStorage.setItem('pwa-prompt-dismissed', 'true');
-    
+
     logger.log('PWA install prompt hidden');
   }
 
@@ -330,21 +463,21 @@ class PWAService {
     try {
       // Show the install prompt
       this.deferredPrompt.prompt();
-      
+
       // Wait for user response
       const { outcome } = await this.deferredPrompt.userChoice;
-      
+
       logger.log(`PWA install outcome: ${outcome}`);
-      
+
       if (outcome === 'accepted') {
         this.isInstalled = true;
         localStorage.setItem('pwa-installed', 'true');
       }
-      
+
       // Clear the prompt
       this.deferredPrompt = null;
       this.hideInstallPrompt();
-      
+
     } catch (error) {
       logger.error('PWA install failed:', error);
     }
@@ -385,16 +518,16 @@ class PWAService {
       font-weight: 600;
       z-index: 9999;
       transition: all 0.3s ease;
-      ${status === 'online' 
-        ? 'background: linear-gradient(135deg, #44ff44, #00cc00);' 
+      ${status === 'online'
+        ? 'background: linear-gradient(135deg, #44ff44, #00cc00);'
         : 'background: linear-gradient(135deg, #ff4444, #cc0000);'
       }
     `;
-    
+
     statusEl.textContent = status === 'online' ? '🟢 Back Online' : '🔴 Offline';
-    
+
     document.body.appendChild(statusEl);
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
       if (statusEl.parentNode) {
@@ -423,7 +556,7 @@ class PWAService {
       z-index: 9999;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     `;
-    
+
     updateEl.innerHTML = `
       <span>🚀 New version available!</span>
       <button onclick="window.location.reload()" style="
@@ -436,7 +569,7 @@ class PWAService {
         font-weight: 600;
       ">Update</button>
     `;
-    
+
     document.body.appendChild(updateEl);
   }
 

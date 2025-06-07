@@ -23,7 +23,7 @@ const CACHE_PATTERNS = [
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
-  
+
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
@@ -43,7 +43,7 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('Service Worker: Activating...');
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip Firebase and API requests (always go to network)
-  if (url.hostname.includes('firebase') || 
+  if (url.hostname.includes('firebase') ||
       url.hostname.includes('googleapis') ||
       url.pathname.startsWith('/api/')) {
     return;
@@ -97,14 +97,14 @@ self.addEventListener('fetch', (event) => {
             }
 
             // Check if we should cache this resource
-            const shouldCache = CACHE_PATTERNS.some(pattern => 
+            const shouldCache = CACHE_PATTERNS.some(pattern =>
               pattern.test(request.url)
             );
 
             if (shouldCache) {
               // Clone the response before caching
               const responseToCache = response.clone();
-              
+
               caches.open(DYNAMIC_CACHE)
                 .then((cache) => {
                   cache.put(request, responseToCache);
@@ -118,7 +118,7 @@ self.addEventListener('fetch', (event) => {
             if (request.destination === 'document') {
               return caches.match('/offline.html');
             }
-            
+
             // For other requests, return a basic offline response
             return new Response('Offline', {
               status: 503,
@@ -132,7 +132,7 @@ self.addEventListener('fetch', (event) => {
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
   console.log('Service Worker: Background sync triggered', event.tag);
-  
+
   if (event.tag === 'background-sync') {
     event.waitUntil(
       // Handle offline actions when back online
@@ -144,7 +144,7 @@ self.addEventListener('sync', (event) => {
 // Push notifications
 self.addEventListener('push', (event) => {
   console.log('Service Worker: Push notification received');
-  
+
   const options = {
     body: event.data ? event.data.text() : 'New event notification',
     icon: '/icons/icon-192x192.png',
@@ -176,7 +176,7 @@ self.addEventListener('push', (event) => {
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   console.log('Service Worker: Notification clicked');
-  
+
   event.notification.close();
 
   if (event.action === 'explore') {
@@ -199,10 +199,10 @@ async function handleBackgroundSync() {
   try {
     // Handle any offline actions stored in IndexedDB
     console.log('Service Worker: Handling background sync');
-    
+
     // This would typically sync offline registrations, etc.
     // For now, just log that sync is working
-    
+
     return Promise.resolve();
   } catch (error) {
     console.error('Service Worker: Background sync failed', error);
@@ -213,8 +213,9 @@ async function handleBackgroundSync() {
 // Message handler for communication with main thread
 self.addEventListener('message', (event) => {
   console.log('Service Worker: Message received', event.data);
-  
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
+
