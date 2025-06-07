@@ -13,7 +13,7 @@ class RazorpayService {
     try {
       logger.log('Creating Razorpay order:', orderData);
 
-      const response = await fetch(`${this.baseUrl}/razorpay?action=create-order`, {
+      const response = await fetch(`${this.baseUrl}/razorpay/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ class RazorpayService {
         paymentId: paymentData.razorpay_payment_id
       });
 
-      const response = await fetch(`${this.baseUrl}/razorpay?action=verify-payment`, {
+      const response = await fetch(`${this.baseUrl}/razorpay/verify-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,7 +263,7 @@ class RazorpayService {
         });
       }
 
-      const response = await fetch(`${this.baseUrl}/razorpay?action=create-order`, {
+      const response = await fetch(`${this.baseUrl}/razorpay/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -290,7 +290,7 @@ class RazorpayService {
    */
   async getClubAccountStatus(clubId) {
     try {
-      const response = await fetch(`${this.baseUrl}/razorpay?action=club-account-status&club_id=${clubId}`);
+      const response = await fetch(`${this.baseUrl}/razorpay/club-account-status?club_id=${clubId}`);
 
       if (!response.ok) {
         throw new Error('Failed to get club account status');
@@ -310,7 +310,7 @@ class RazorpayService {
     try {
       logger.log('Creating linked account for club:', clubId);
 
-      const response = await fetch(`${this.baseUrl}/razorpay?action=create-linked-account`, {
+      const response = await fetch(`${this.baseUrl}/razorpay/create-linked-account`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
