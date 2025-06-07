@@ -276,6 +276,81 @@ const clubService = {
       logger.error('Error getting club events:', error);
       throw error;
     }
+  },
+
+  // Get club bank details
+  getClubBankDetails: async (clubId) => {
+    try {
+      logger.log(`Getting bank details for club: ${clubId}`);
+      const bankDetailsRef = ref(database, `club_bank_details/${clubId}`);
+      const snapshot = await get(bankDetailsRef);
+
+      if (snapshot.exists()) {
+        return snapshot.val();
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Error getting club bank details:', error);
+      throw error;
+    }
+  },
+
+  // Update club bank details
+  updateClubBankDetails: async (clubId, bankDetails) => {
+    try {
+      logger.log(`Updating bank details for club: ${clubId}`);
+      const bankDetailsRef = ref(database, `club_bank_details/${clubId}`);
+
+      const updatedDetails = {
+        ...bankDetails,
+        club_id: clubId,
+        updated_at: new Date().toISOString()
+      };
+
+      await set(bankDetailsRef, updatedDetails);
+      logger.log('Bank details updated successfully');
+
+      return updatedDetails;
+    } catch (error) {
+      logger.error('Error updating club bank details:', error);
+      throw error;
+    }
+  },
+
+  // Delete club bank details
+  deleteClubBankDetails: async (clubId) => {
+    try {
+      logger.log(`Deleting bank details for club: ${clubId}`);
+      const bankDetailsRef = ref(database, `club_bank_details/${clubId}`);
+      await remove(bankDetailsRef);
+      logger.log('Bank details deleted successfully');
+    } catch (error) {
+      logger.error('Error deleting club bank details:', error);
+      throw error;
+    }
+  },
+
+  // Get all clubs with bank details
+  getClubsWithBankDetails: async () => {
+    try {
+      logger.log('Getting all clubs with bank details');
+      const [clubs, bankDetails] = await Promise.all([
+        clubService.getAllClubs(),
+        get(ref(database, 'club_bank_details'))
+      ]);
+
+      const bankDetailsData = bankDetails.exists() ? bankDetails.val() : {};
+
+      return clubs.map(club => ({
+        ...club,
+        bank_details: bankDetailsData[club.id] || null,
+        has_bank_details: !!bankDetailsData[club.id]
+      }));
+    } catch (error) {
+      logger.error('Error getting clubs with bank details:', error);
+      throw error;
+    }
   }
 };
 

@@ -10,6 +10,8 @@ import AdminEventDetails from './AdminEventDetails';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 import DataPipelineDashboard from './DataPipelineDashboard';
 import PerformanceMonitor from './PerformanceMonitor';
+import PaymentAnalytics from './PaymentAnalytics';
+import PaymentStatusCard from './PaymentStatusCard';
 
 import logger from '../utils/logger';
 export default function AdminDashboard({ setCurrentPage }) {
@@ -18,6 +20,7 @@ export default function AdminDashboard({ setCurrentPage }) {
   const [clubRequests, setClubRequests] = useState([]);
   const [clubs, setClubs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [paymentRegistrations, setPaymentRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -76,6 +79,28 @@ export default function AdminDashboard({ setCurrentPage }) {
             setEvents([]);
             setError('Failed to load events. Please try again later.');
           }
+        } else if (activeTab === 'payments') {
+          try {
+            // Load all registrations with payment information
+            const allRegistrations = [];
+            const eventsList = await adminService.getAllEvents();
+
+            for (const event of eventsList) {
+              if (event.requires_payment) {
+                const registrations = await adminService.getEventRegistrations(event.id);
+                const registrationsWithPayment = registrations.filter(reg =>
+                  reg.payment_method && reg.payment_amount
+                );
+                allRegistrations.push(...registrationsWithPayment);
+              }
+            }
+
+            setPaymentRegistrations(allRegistrations);
+          } catch (paymentsErr) {
+            logger.error('Error loading payment data:', paymentsErr);
+            setPaymentRegistrations([]);
+            setError('Failed to load payment data. Please try again later.');
+          }
         }
       } catch (err) {
         logger.error(`General error loading ${activeTab}:`, err);
@@ -95,6 +120,19 @@ export default function AdminDashboard({ setCurrentPage }) {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Handle payment status update
+  const handlePaymentStatusUpdate = (registrationId, newStatus) => {
+    setPaymentRegistrations(prev =>
+      prev.map(reg =>
+        reg.id === registrationId
+          ? { ...reg, payment_status: newStatus }
+          : reg
+      )
+    );
+    setSuccess(`Payment status updated to ${newStatus}`);
+    setTimeout(() => setSuccess(''), 3000);
   };
 
   // Handle club creation
@@ -405,6 +443,21 @@ export default function AdminDashboard({ setCurrentPage }) {
             }}
           >
             Manage Events
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('payments')}
+            style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: activeTab === 'payments' ? 'var(--dark-surface)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'payments' ? '2px solid var(--primary)' : 'none',
+              color: activeTab === 'payments' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'payments' ? '600' : '400'
+            }}
+          >
+            💰 Payments
           </button>
           <button
             className={`tab-button ${activeTab === 'sheets' ? 'active' : ''}`}
@@ -1307,6 +1360,63 @@ export default function AdminDashboard({ setCurrentPage }) {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payments Tab */}
+        {activeTab === 'payments' && (
+          <div className="payments-tab">
+            <h3 style={{ marginBottom: '2rem', color: 'var(--text-primary)' }}>Payment Management</h3>
+
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Loading payment data...</p>
+              </div>
+            ) : paymentRegistrations.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem',
+                backgroundColor: 'var(--dark-surface)',
+                borderRadius: '10px'
+              }}>
+                <h4 style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>No Payment Data</h4>
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  No events with payment requirements found, or no registrations with payment information.
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Payment Analytics */}
+                <PaymentAnalytics registrations={paymentRegistrations} />
+
+                {/* Payment Status Cards */}
+                <div style={{ marginTop: '2rem' }}>
+                  <h4 style={{
+                    marginBottom: '1rem',
+                    color: 'var(--text-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <span>📋</span> Payment Status Management
+                  </h4>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {paymentRegistrations.map(registration => (
+                      <PaymentStatusCard
+                        key={registration.id}
+                        registration={registration}
+                        onStatusUpdate={handlePaymentStatusUpdate}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

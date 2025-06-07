@@ -191,6 +191,37 @@ The `tags` collection stores event tags.
 
 The `event_tags` collection implements the many-to-many relationship between events and tags.
 
+### Club Bank Details
+
+```
+/club_bank_details/{club_id}
+  - account_holder_name: string
+  - account_number: string
+  - ifsc_code: string
+  - bank_name: string
+  - branch_name: string
+  - account_type: string ('savings', 'current')
+  - upi_id: string
+  - contact_name: string
+  - contact_email: string
+  - contact_phone: string
+  - business_type: string
+  - address_line1: string
+  - address_line2: string
+  - city: string
+  - state: string
+  - pincode: string
+  - razorpay_account_id: string
+  - razorpay_bank_account_id: string
+  - verification_status: string ('pending', 'under_review', 'verified', 'rejected')
+  - razorpay_status: string
+  - razorpay_created_at: ISO date string
+  - created_at: ISO date string
+  - updated_at: ISO date string
+```
+
+The `club_bank_details` collection stores bank account information for clubs to enable direct payment processing through Razorpay Route.
+
 ## Differences from Supabase Schema
 
 1. **IDs**: Firebase uses auto-generated string IDs instead of UUIDs.

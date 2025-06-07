@@ -4,6 +4,7 @@ import registrationService from '../services/registrationService';
 import { uploadImage } from '../services/cloudinaryService';
 import imageCompressionService from '../services/imageCompressionService';
 import RegistrationSuccessModal from './RegistrationSuccessModal';
+import RazorpayPayment from './RazorpayPayment';
 
 import logger from '../utils/logger';
 // Event data and registrations will come from props
@@ -42,6 +43,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
   });
 
   // Payment-related state
+  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' or 'razorpay'
   const [paymentScreenshot, setPaymentScreenshot] = useState(null);
   const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState(null);
   const [paymentUploadProgress, setPaymentUploadProgress] = useState(0);
@@ -187,6 +189,42 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
     }
   };
 
+  // Handle Razorpay payment success
+  const handleRazorpaySuccess = (paymentData) => {
+    logger.log('Razorpay payment successful:', paymentData);
+
+    // Prepare success data for modal
+    const successData = {
+      email: formData.email,
+      registrationId: paymentData.registration_id,
+      participantName: formData.name,
+      eventTitle: eventData.title
+    };
+
+    setSuccessRegistrationData(successData);
+    setShowSuccessModal(true);
+
+    // Reset form after successful payment
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      rollNumber: '',
+      department: '',
+      year: '',
+      team: getDefaultParticipationType(),
+      custom_fields: {}
+    });
+    setTeamMembers(initializeTeamMembers());
+    setPaymentMethod('upi');
+  };
+
+  // Handle Razorpay payment error
+  const handleRazorpayError = (error) => {
+    logger.error('Razorpay payment failed:', error);
+    setError(error.message || 'Payment failed. Please try again.');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -236,9 +274,9 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         }
       }
 
-      // Validate payment if required
-      if (eventData.requires_payment && !paymentScreenshot) {
-        setError('Payment screenshot is required for this event. Please upload your payment proof.');
+      // Validate payment if required (only for UPI method)
+      if (eventData.requires_payment && paymentMethod === 'upi' && !paymentScreenshot) {
+        setError('Payment screenshot is required for UPI payment. Please upload your payment proof.');
         setIsSubmitting(false);
         return;
       }
@@ -255,9 +293,9 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
         return;
       }
 
-      // Upload payment screenshot if provided
+      // Upload payment screenshot if provided (only for UPI payments)
       let paymentScreenshotUrl = null;
-      if (paymentScreenshot && eventData.requires_payment) {
+      if (paymentScreenshot && eventData.requires_payment && paymentMethod === 'upi') {
         try {
           setPaymentUploadProgress(0);
           logger.log('Starting payment screenshot compression and upload...');
@@ -328,6 +366,7 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
           custom_fields: formData.custom_fields || {}
         },
         // Payment information
+        payment_method: eventData.requires_payment ? paymentMethod : null,
         payment_screenshot_url: paymentScreenshotUrl,
         payment_status: eventData.requires_payment ? 'pending' : null,
         payment_amount: eventData.requires_payment ? eventData.payment_amount : null
@@ -1220,199 +1259,293 @@ const EventRegistration = ({ eventData, registrations = [] }) => {
 
               {/* Payment Information Section */}
               {eventData.requires_payment && (
-                <motion.div
-                  className="payment-section"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{
-                    marginBottom: '2rem',
-                    padding: '1.5rem',
-                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                    borderLeft: '4px solid #ffc107',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <h3 style={{
-                    margin: '0 0 1rem',
-                    fontSize: '1.3rem',
-                    color: '#ffc107',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <span>💳</span> Payment Required
-                  </h3>
+                <div style={{ marginBottom: '2rem' }}>
+                  {/* Payment Method Selection */}
+                  <motion.div
+                    className="payment-method-selection"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    style={{
+                      padding: '1.5rem',
+                      backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                      borderLeft: '4px solid #ffc107',
+                      borderRadius: '8px',
+                      marginBottom: '1rem'
+                    }}
+                  >
+                    <h3 style={{
+                      margin: '0 0 1rem',
+                      fontSize: '1.3rem',
+                      color: '#ffc107',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span>💳</span> Choose Payment Method
+                    </h3>
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                      <strong>Registration Fee: ₹{eventData.payment_amount}</strong>
-                    </p>
-                    {eventData.payment_upi_id && (
-                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                        UPI ID: <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{eventData.payment_upi_id}</span>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <p style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                        <strong>Registration Fee: ₹{eventData.payment_amount}</strong>
                       </p>
-                    )}
-                    <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                      {eventData.payment_instructions || 'Please complete the payment and upload the screenshot as proof.'}
-                    </p>
-                  </div>
-
-                  {/* QR Code Display */}
-                  {eventData.payment_qr_code && (
-                    <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                        Scan QR Code to Pay:
-                      </p>
-                      <img
-                        src={eventData.payment_qr_code}
-                        alt="Payment QR Code"
-                        style={{
-                          maxWidth: '200px',
-                          height: 'auto',
-                          border: '2px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
-                          backgroundColor: 'white',
-                          padding: '0.5rem'
-                        }}
-                      />
                     </div>
-                  )}
 
-                  {/* Payment Screenshot Upload */}
-                  <div>
-                    <label
-                      htmlFor="payment_screenshot"
+                    {/* Payment Method Tabs */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      padding: '0.25rem'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('upi')}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem 1rem',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: paymentMethod === 'upi' ? '#ffc107' : 'transparent',
+                          color: paymentMethod === 'upi' ? '#000' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          fontSize: '0.9rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        📱 UPI Payment
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('razorpay')}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem 1rem',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: paymentMethod === 'razorpay' ? '#ffc107' : 'transparent',
+                          color: paymentMethod === 'razorpay' ? '#000' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          fontSize: '0.9rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        💳 Payment Gateway
+                      </button>
+                    </div>
+                  </motion.div>
+
+                  {/* UPI Payment Section */}
+                  {paymentMethod === 'upi' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
                       style={{
-                        display: 'block',
-                        marginBottom: '0.5rem',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-secondary)'
+                        padding: '1.5rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        marginBottom: '1rem'
                       }}
                     >
-                      Payment Screenshot <span style={{ color: '#ffc107' }}>*</span>
-                    </label>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                      Upload a screenshot of your payment confirmation. Accepted formats: JPG, PNG (Max 5MB)
-                    </p>
-                    <input
-                      type="file"
-                      id="payment_screenshot"
-                      name="payment_screenshot"
-                      accept="image/*"
-                      onChange={handlePaymentScreenshotChange}
-                      required={eventData.requires_payment}
-                      style={{
-                        width: '100%',
-                        padding: '0.8rem 1rem',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '4px',
+                      <h4 style={{
+                        margin: '0 0 1rem',
                         color: 'var(--text-primary)',
-                        fontSize: '1rem'
-                      }}
-                    />
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span>📱</span> UPI Payment
+                      </h4>
 
-                    {/* Payment Screenshot Preview */}
-                    {paymentScreenshotPreview && (
-                      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                          Payment Screenshot Preview:
-                        </p>
-                        <img
-                          src={paymentScreenshotPreview}
-                          alt="Payment Screenshot Preview"
+                      {eventData.payment_upi_id && (
+                        <div style={{ marginBottom: '1rem' }}>
+                          <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            UPI ID: <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{eventData.payment_upi_id}</span>
+                          </p>
+                        </div>
+                      )}
+
+                      <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        {eventData.payment_instructions || 'Please complete the payment and upload the screenshot as proof.'}
+                      </p>
+
+                      {/* QR Code Display */}
+                      {eventData.payment_qr_code && (
+                        <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                          <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            Scan QR Code to Pay:
+                          </p>
+                          <img
+                            src={eventData.payment_qr_code}
+                            alt="Payment QR Code"
+                            style={{
+                              maxWidth: '200px',
+                              height: 'auto',
+                              border: '2px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '8px',
+                              backgroundColor: 'white',
+                              padding: '0.5rem'
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Payment Screenshot Upload */}
+                      <div>
+                        <label
+                          htmlFor="payment_screenshot"
                           style={{
-                            maxWidth: '300px',
-                            height: 'auto',
-                            border: '2px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '8px'
+                            display: 'block',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
+                          Payment Screenshot <span style={{ color: '#ffc107' }}>*</span>
+                        </label>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                          Upload a screenshot of your payment confirmation. Accepted formats: JPG, PNG (Max 5MB)
+                        </p>
+                        <input
+                          type="file"
+                          id="payment_screenshot"
+                          name="payment_screenshot"
+                          accept="image/*"
+                          onChange={handlePaymentScreenshotChange}
+                          required={eventData.requires_payment && paymentMethod === 'upi'}
+                          style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: 'var(--text-primary)',
+                            fontSize: '1rem'
                           }}
                         />
-                      </div>
-                    )}
 
-                    {/* Upload Progress */}
-                    {paymentUploadProgress > 0 && (
-                      <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107' }}>
-                            {paymentUploadProgress === 100 ? 'Upload Complete!' : `Uploading Payment Screenshot: ${paymentUploadProgress}%`}
-                          </p>
-                          {paymentUploadProgress === 100 && (
-                            <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
-                          )}
-                        </div>
-                        <div style={{
-                          width: '100%',
-                          height: '8px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: '4px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            width: `${paymentUploadProgress}%`,
-                            height: '100%',
-                            backgroundColor: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107',
-                            transition: 'width 0.3s ease'
-                          }}></div>
-                        </div>
+                        {/* Payment Screenshot Preview */}
+                        {paymentScreenshotPreview && (
+                          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                              Payment Screenshot Preview:
+                            </p>
+                            <img
+                              src={paymentScreenshotPreview}
+                              alt="Payment Screenshot Preview"
+                              style={{
+                                maxWidth: '300px',
+                                height: 'auto',
+                                border: '2px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px'
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Upload Progress */}
+                        {paymentUploadProgress > 0 && (
+                          <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                              <p style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107' }}>
+                                {paymentUploadProgress === 100 ? 'Upload Complete!' : `Uploading Payment Screenshot: ${paymentUploadProgress}%`}
+                              </p>
+                              {paymentUploadProgress === 100 && (
+                                <span style={{ color: '#2ecc71', fontSize: '1.2rem' }}>✓</span>
+                              )}
+                            </div>
+                            <div style={{
+                              width: '100%',
+                              height: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                              borderRadius: '4px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${paymentUploadProgress}%`,
+                                height: '100%',
+                                backgroundColor: paymentUploadProgress === 100 ? '#2ecc71' : '#ffc107',
+                                transition: 'width 0.3s ease'
+                              }}></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
+                    </motion.div>
+                  )}
+
+                  {/* Razorpay Payment Section */}
+                  {paymentMethod === 'razorpay' && (
+                    <RazorpayPayment
+                      eventData={eventData}
+                      registrationData={formData}
+                      onPaymentSuccess={handleRazorpaySuccess}
+                      onPaymentError={handleRazorpayError}
+                      isProcessing={isSubmitting}
+                      setIsProcessing={setIsSubmitting}
+                    />
+                  )}
+                </div>
               )}
 
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{
-                  width: '100%',
-                  padding: '1.2rem',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)',
-                  border: 'none',
-                  cursor: isSubmitting ? 'wait' : 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(110, 68, 255, 0.3)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                disabled={isSubmitting}
-                onMouseOver={(e) => {
-                  if (!isSubmitting) {
-                    e.target.style.transform = 'translateY(-3px)';
-                    e.target.style.boxShadow = '0 8px 20px rgba(110, 68, 255, 0.4)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (!isSubmitting) {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(110, 68, 255, 0.3)';
-                  }
-                }}
-              >
-                {isSubmitting ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    <span style={{
-                      display: 'inline-block',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: '3px solid rgba(255,255,255,0.3)',
-                      borderTopColor: 'white',
-                      animation: 'spin 1s linear infinite'
-                    }}></span>
-                    Submitting...
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>📝</span> Register for Event
-                  </div>
-                )}
-              </button>
+              {/* Submit Button - Only show for non-payment events or UPI payment method */}
+              {(!eventData.requires_payment || paymentMethod === 'upi') && (
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '1.2rem',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)',
+                    border: 'none',
+                    cursor: isSubmitting ? 'wait' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 15px rgba(110, 68, 255, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  disabled={isSubmitting}
+                  onMouseOver={(e) => {
+                    if (!isSubmitting) {
+                      e.target.style.transform = 'translateY(-3px)';
+                      e.target.style.boxShadow = '0 8px 20px rgba(110, 68, 255, 0.4)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isSubmitting) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(110, 68, 255, 0.3)';
+                    }
+                  }}
+                >
+                  {isSubmitting ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: '3px solid rgba(255,255,255,0.3)',
+                        borderTopColor: 'white',
+                        animation: 'spin 1s linear infinite'
+                      }}></span>
+                      Submitting...
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>📝</span> Register for Event
+                    </div>
+                  )}
+                </button>
+              )}
 
               <style jsx>{`
                 @keyframes spin {
