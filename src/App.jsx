@@ -49,7 +49,6 @@ import EventsPage from './components/EventsPage';
 import ClubsPage from './components/ClubsPage';
 import AdminCheck from './components/AdminCheck';
 import ClubRequestForm from './components/ClubRequestForm';
-import PWADiagnostic from './components/PWADiagnostic';
 import { EventCreationForm, AutoCreatedSheetsViewer } from './components/LazyComponents';
 import ForgotPassword from './components/ForgotPassword';
 import Mobile3DEffects from './components/Mobile3DEffects';
@@ -309,9 +308,6 @@ function App() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* PWA Diagnostic Tool (only in development) */}
-      {import.meta.env.DEV && <PWADiagnostic />}
     </>
   );
 }
