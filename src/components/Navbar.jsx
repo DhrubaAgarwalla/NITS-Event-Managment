@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { navigateToHome, logoutAndRedirect } from '../utils/navigation';
+import PWAInstallButton from './PWAInstallButton';
 
 import logger from '../utils/logger';
 const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }) => {
@@ -95,6 +96,7 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
                 <a href="#clubs" className={`navbar-link ${currentPage === 'clubs-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); }}>Clubs</a>
                 <a href="#about" className={`navbar-link ${currentPage === 'about' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('about'); }}>About</a>
                 <a href="#request" className={`navbar-link ${currentPage === 'club-request' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); }}>Request Club</a>
+                <PWAInstallButton variant="minimal" size="small" />
                 <a href="#login" className="btn" onClick={(e) => { e.preventDefault(); setCurrentPage('login'); }}>Login</a>
               </>
             )}
@@ -146,6 +148,9 @@ const Navbar = ({ setCurrentPage, isClubLoggedIn = false, currentPage = 'home' }
               <a href="#clubs" className={`mobile-menu-link ${currentPage === 'clubs-page' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('clubs-page'); toggleMobileMenu(); }}>Clubs</a>
               <a href="#about" className={`mobile-menu-link ${currentPage === 'about' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('about'); toggleMobileMenu(); }}>About</a>
               <a href="#request" className={`mobile-menu-link ${currentPage === 'club-request' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setCurrentPage('club-request'); toggleMobileMenu(); }}>Request Club</a>
+              <div style={{ padding: '0.5rem 0' }}>
+                <PWAInstallButton variant="secondary" size="medium" />
+              </div>
               <a href="#login" className="btn btn-primary" onClick={(e) => { e.preventDefault(); setCurrentPage('login'); toggleMobileMenu(); }}>Login</a>
             </>
           )}

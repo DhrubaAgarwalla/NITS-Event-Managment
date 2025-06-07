@@ -6,6 +6,9 @@ import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 import lcpOptimizer from './utils/lcpOptimizer'
 
+// Initialize PWA service
+import './services/pwaService.js'
+
 // Initialize LCP optimization
 lcpOptimizer.init();
 
