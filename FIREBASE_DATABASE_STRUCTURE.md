@@ -68,11 +68,64 @@ The `categories` collection stores event categories.
   - participation_type: string ('individual', 'team', 'both')
   - min_participants: number
   - additional_info: object
+  - chat_enabled: boolean (default: true)
+  - info_board_enabled: boolean (default: true)
   - created_at: ISO date string
   - updated_at: ISO date string
 ```
 
 The `events` collection stores event information.
+
+### Event Live Updates (Information Board)
+
+```
+/event_live_updates/{event_id}/{update_id}
+  - message: string
+  - type: string ('info', 'announcement', 'schedule', 'important')
+  - posted_by: string (club admin uid)
+  - posted_by_name: string (club admin name)
+  - timestamp: ISO date string
+  - is_pinned: boolean (default: false)
+  - created_at: ISO date string
+```
+
+The `event_live_updates` collection stores real-time updates posted by club admins during events.
+
+### Event Chat Messages (Anonymous Chat)
+
+```
+/event_chat/{event_id}/{message_id}
+  - message: string
+  - nickname: string (anonymous nickname like "TechNinja")
+  - user_hash: string (anonymous identifier for consistency)
+  - timestamp: ISO date string
+  - message_type: string ('text', 'reaction', 'system')
+  - reactions: object
+    - thumbs_up: number
+    - heart: number
+    - laugh: number
+    - thinking: number
+  - is_moderated: boolean (default: false)
+  - reported_count: number (default: 0)
+  - created_at: ISO date string
+```
+
+The `event_chat` collection stores anonymous chat messages for each event.
+
+### Anonymous User Sessions
+
+```
+/anonymous_sessions/{event_id}/{session_id}
+  - user_hash: string (consistent anonymous identifier)
+  - nickname: string (generated nickname)
+  - avatar_seed: string (for consistent avatar generation)
+  - last_active: ISO date string
+  - message_count: number
+  - is_muted: boolean (default: false)
+  - created_at: ISO date string
+```
+
+The `anonymous_sessions` collection manages anonymous user identities per event.
 
 ### Registrations
 

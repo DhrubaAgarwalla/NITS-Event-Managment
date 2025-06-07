@@ -102,6 +102,39 @@
     "automation_status": {
       ".read": "true",
       ".write": "true"
+    },
+
+    "event_live_updates": {
+      ".read": "true",
+      ".indexOn": ["timestamp", "type", "is_pinned"],
+      "$event_id": {
+        ".write": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
+        "$update_id": {
+          ".write": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())"
+        }
+      }
+    },
+
+    "event_chat": {
+      ".read": "true",
+      ".indexOn": ["timestamp", "user_hash", "is_moderated"],
+      "$event_id": {
+        ".write": "true",
+        "$message_id": {
+          ".write": "true"
+        }
+      }
+    },
+
+    "anonymous_sessions": {
+      ".read": "true",
+      ".write": "true",
+      ".indexOn": ["last_active", "is_muted"],
+      "$event_id": {
+        "$session_id": {
+          ".write": "true"
+        }
+      }
     }
   }
 }

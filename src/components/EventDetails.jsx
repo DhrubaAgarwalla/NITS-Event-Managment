@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import EventRegistration from './EventRegistration';
+import InformationBoard from './InformationBoard';
+import EventChat from './EventChat';
 import eventService from '../services/eventService';
 import registrationService from '../services/registrationService';
+import { useAuth } from '../contexts/AuthContext';
 import QRCode from 'qrcode';
 import logger from '../utils/logger';
 import './MobileTabs.css';
@@ -17,6 +20,10 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
   const [activeTab, setActiveTab] = useState('about');
   const [activeMobileTab, setActiveMobileTab] = useState('about');
   const [isMobileView, setIsMobileView] = useState(false);
+  const { user, isAdmin, club } = useAuth();
+
+  // Check if current user is club admin for this event
+  const isClubAdmin = club && event && club.id === event.club_id;
 
   // Set initial mobile view state after component mounts to avoid hydration issues
   useEffect(() => {
@@ -965,6 +972,18 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
             >
               Details
             </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'updates' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('updates')}
+            >
+              📢 Updates
+            </button>
+            <button
+              className={`mobile-tab ${activeMobileTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveMobileTab('chat')}
+            >
+              💬 Chat
+            </button>
           </div>
         )}
 
@@ -1336,6 +1355,27 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 </div>
               </div>
             </div>
+
+            {/* Updates Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'updates' ? 'active' : ''}`}>
+              <div className="tab-content-updates">
+                <InformationBoard
+                  eventId={eventId}
+                  isClubAdmin={isClubAdmin}
+                  clubId={event?.club_id}
+                />
+              </div>
+            </div>
+
+            {/* Chat Tab Content */}
+            <div className={`mobile-tab-content ${activeMobileTab === 'chat' ? 'active' : ''}`}>
+              <div className="tab-content-chat">
+                <EventChat
+                  eventId={eventId}
+                  isClubAdmin={isClubAdmin}
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1397,6 +1437,36 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 }}
               >
                 Register
+              </button>
+              <button
+                className={`event-tab tab-button ${activeTab === 'updates' ? 'active' : ''}`}
+                onClick={() => setActiveTab('updates')}
+                style={{
+                  padding: '1rem 1.5rem',
+                  backgroundColor: activeTab === 'updates' ? 'var(--dark-surface)' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'updates' ? '2px solid var(--primary)' : 'none',
+                  color: activeTab === 'updates' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === 'updates' ? '600' : '400'
+                }}
+              >
+                📢 Live Updates
+              </button>
+              <button
+                className={`event-tab tab-button ${activeTab === 'chat' ? 'active' : ''}`}
+                onClick={() => setActiveTab('chat')}
+                style={{
+                  padding: '1rem 1.5rem',
+                  backgroundColor: activeTab === 'chat' ? 'var(--dark-surface)' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'chat' ? '2px solid var(--primary)' : 'none',
+                  color: activeTab === 'chat' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === 'chat' ? '600' : '400'
+                }}
+              >
+                💬 Chat
               </button>
             </div>
 
@@ -1645,6 +1715,35 @@ const EventDetails = ({ setCurrentPage, eventId }) => {
                 className="register-tab"
               >
                 <EventRegistration eventData={event} registrations={registrations} />
+              </motion.div>
+            )}
+
+            {activeTab === 'updates' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="updates-tab"
+              >
+                <InformationBoard
+                  eventId={eventId}
+                  isClubAdmin={isClubAdmin}
+                  clubId={event?.club_id}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'chat' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="chat-tab"
+              >
+                <EventChat
+                  eventId={eventId}
+                  isClubAdmin={isClubAdmin}
+                />
               </motion.div>
             )}
           </div>

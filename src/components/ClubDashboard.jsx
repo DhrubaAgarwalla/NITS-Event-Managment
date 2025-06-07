@@ -15,6 +15,129 @@ import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
 import logger from '../utils/logger';
+
+// Mobile Action Dropdown Component
+const MobileActionDropdown = ({ event, onViewEvent, onStartEvent, onCompleteEvent, onToggleRegistration, onViewRegistrations }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const actions = [
+    {
+      label: '📢 View & Post Updates',
+      onClick: onViewEvent,
+      primary: true
+    },
+    ...(event.status === 'upcoming' ? [{
+      label: 'Start Event',
+      onClick: () => onStartEvent(event.id, 'ongoing')
+    }] : []),
+    ...(event.status === 'ongoing' ? [{
+      label: 'Complete Event',
+      onClick: () => onCompleteEvent(event.id, 'completed')
+    }] : []),
+    {
+      label: event.registration_open === false ? 'Open Registration' : 'Close Registration',
+      onClick: () => onToggleRegistration(event.id, event.registration_open !== false),
+      color: event.registration_open === false ? '#44ff44' : '#ff4444'
+    },
+    {
+      label: 'View Registrations',
+      onClick: () => onViewRegistrations(event.id)
+    }
+  ];
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          backgroundColor: 'var(--primary)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '0.6rem 1rem',
+          cursor: 'pointer',
+          fontSize: '0.85rem',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          width: '100%'
+        }}
+      >
+        Actions
+        <span style={{
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s ease',
+          fontSize: '0.7rem'
+        }}>
+          ▼
+        </span>
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 998
+            }}
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: 'var(--dark-surface)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              zIndex: 999,
+              marginBottom: '0.25rem'
+            }}
+          >
+            {actions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  action.onClick();
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.8rem',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: action.color || (action.primary ? 'var(--primary)' : 'var(--text-primary)'),
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: '0.8rem',
+                  fontWeight: action.primary ? '600' : '400',
+                  borderBottom: index < actions.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const { club, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('events'); // 'events', 'registrations', 'attendance', 'gallery'
@@ -779,9 +902,43 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             marginBottom: '2rem',
             backgroundColor: 'var(--dark-surface)',
             padding: '1.5rem',
-            borderRadius: '10px'
+            borderRadius: '10px',
+            flexWrap: 'wrap',
+            gap: '1rem'
           }}
         >
+
+          {/* Add responsive styles */}
+          <style jsx>{`
+            @media (max-width: 768px) {
+              .dashboard-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                text-align: center;
+              }
+
+              .dashboard-header-content {
+                justify-content: center !important;
+                margin-bottom: 1rem;
+              }
+
+              .dashboard-header-actions {
+                justify-content: center !important;
+                flex-wrap: wrap !important;
+                gap: 0.5rem !important;
+              }
+
+              .event-actions {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+              }
+
+              .event-actions button {
+                width: 100% !important;
+                justify-content: center !important;
+              }
+            }
+          `}</style>
           <div className="dashboard-header-content" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div
               style={{
@@ -1050,6 +1207,87 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       boxShadow: '0 10px 20px rgba(0, 0, 0, 0.2)'
                     }}
                   >
+                    {/* Add responsive styles for mobile */}
+                    <style jsx>{`
+                      @media (max-width: 768px) {
+                        .event-item {
+                          flex-direction: column !important;
+                          margin-bottom: 0.5rem !important;
+                          border-radius: 8px !important;
+                        }
+                        .event-image {
+                          width: 100% !important;
+                          min-width: unset !important;
+                          height: 100px !important;
+                        }
+                        .event-content {
+                          padding: 0.6rem !important;
+                        }
+                        .event-title {
+                          font-size: 1rem !important;
+                          margin-bottom: 0.2rem !important;
+                        }
+                        .event-description {
+                          font-size: 0.8rem !important;
+                          margin-bottom: 0.4rem !important;
+                          line-height: 1.2 !important;
+                          display: -webkit-box !important;
+                          -webkit-line-clamp: 2 !important;
+                          -webkit-box-orient: vertical !important;
+                          overflow: hidden !important;
+                        }
+                        .event-tags {
+                          flex-wrap: wrap !important;
+                          gap: 0.2rem !important;
+                          margin-bottom: 0.4rem !important;
+                        }
+                        .event-tag {
+                          padding: 0.1rem 0.3rem !important;
+                          font-size: 0.6rem !important;
+                          margin-bottom: 0 !important;
+                          margin-right: 0 !important;
+                        }
+                        .event-header {
+                          flex-direction: column !important;
+                          align-items: flex-start !important;
+                          gap: 0.3rem !important;
+                          margin-top: 0.5rem !important;
+                        }
+                        .event-status-mobile {
+                          align-self: flex-start !important;
+                          margin-right: 0 !important;
+                          padding: 0.1rem 0.3rem !important;
+                          font-size: 0.6rem !important;
+                        }
+                        .event-footer {
+                          flex-direction: column !important;
+                          align-items: stretch !important;
+                          gap: 0.5rem !important;
+                          margin-top: 0.5rem !important;
+                          padding-top: 0.5rem !important;
+                        }
+                        .desktop-actions {
+                          display: none !important;
+                        }
+                        .mobile-actions {
+                          display: flex !important;
+                          justify-content: center !important;
+                        }
+                        .event-date-location {
+                          font-size: 0.75rem !important;
+                          margin-bottom: 0.3rem !important;
+                        }
+                        .registration-count {
+                          font-size: 0.75rem !important;
+                          text-align: center !important;
+                        }
+                      }
+                      @media (min-width: 769px) {
+                        .mobile-actions {
+                          display: none !important;
+                        }
+                      }
+                    `}</style>
                     <div
                       className="event-image"
                       style={{
@@ -1107,72 +1345,78 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                       </div>
 
                       <div className="event-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '1.5rem' }}>
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <h3 className="event-title" style={{ marginTop: 0, marginBottom: '0.5rem' }}>{event.title}</h3>
-                          <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)' }}>
+                          <p className="event-date-location" style={{ margin: '0 0 1rem', color: 'var(--text-secondary)' }}>
                             {formatDate(event.start_date, 'MMM d, yyyy')} - {formatDate(event.end_date, 'MMM d, yyyy')} • {event.location || 'No location specified'}
                           </p>
-                          <p className="event-description" style={{ margin: '0 0 1.5rem' }}>{event.description || 'No description provided'}</p>
+                          <p className="event-description" style={{ margin: '0 0 1rem' }}>{event.description || 'No description provided'}</p>
 
-                          {event.category && (
+                          {/* Optimized tags section */}
+                          <div className="event-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            {event.category && (
+                              <span
+                                className="event-tag"
+                                style={{
+                                  padding: '0.25rem 0.6rem',
+                                  borderRadius: '12px',
+                                  fontSize: '0.75rem',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                  color: event.categories?.color || 'var(--text-secondary)',
+                                  display: 'inline-block',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {event.categories?.name || 'Uncategorized'}
+                              </span>
+                            )}
+
                             <span
+                              className="event-tag"
                               style={{
-                                padding: '0.3rem 0.8rem',
-                                borderRadius: '20px',
-                                fontSize: '0.8rem',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
                                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                color: event.categories?.color || 'var(--text-secondary)',
-                                marginRight: '0.5rem',
+                                color: 'var(--text-secondary)',
                                 display: 'inline-block',
-                                marginBottom: '0.5rem'
+                                whiteSpace: 'nowrap'
                               }}
                             >
-                              {event.categories?.name || 'Uncategorized'}
+                              {event.registration_method === 'internal' ? 'Internal' :
+                               event.registration_method === 'external' ? 'External' : 'Both'}
                             </span>
-                          )}
 
-                          <span
-                            style={{
-                              padding: '0.3rem 0.8rem',
-                              borderRadius: '20px',
-                              fontSize: '0.8rem',
-                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                              color: 'var(--text-secondary)',
-                              display: 'inline-block',
-                              marginBottom: '0.5rem'
-                            }}
-                          >
-                            {event.registration_method === 'internal' ? 'Internal Registration' :
-                             event.registration_method === 'external' ? 'External Form' : 'Both'}
-                          </span>
-
-                          <span
-                            style={{
-                              padding: '0.3rem 0.8rem',
-                              borderRadius: '20px',
-                              fontSize: '0.8rem',
-                              backgroundColor: event.registration_open === false ? 'rgba(255, 68, 68, 0.1)' : 'rgba(68, 255, 68, 0.1)',
-                              color: event.registration_open === false ? '#ff4444' : '#44ff44',
-                              display: 'inline-block',
-                              marginBottom: '0.5rem',
-                              marginLeft: '0.5rem'
-                            }}
-                          >
-                            {event.registration_open === false ? 'Registration Closed' : 'Registration Open'}
-                          </span>
+                            <span
+                              className="event-tag"
+                              style={{
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
+                                backgroundColor: event.registration_open === false ? 'rgba(255, 68, 68, 0.1)' : 'rgba(68, 255, 68, 0.1)',
+                                color: event.registration_open === false ? '#ff4444' : '#44ff44',
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {event.registration_open === false ? 'Reg Closed' : 'Reg Open'}
+                            </span>
+                          </div>
                         </div>
                         <span
+                          className="event-status-mobile"
                           style={{
-                            padding: '0.3rem 0.8rem',
-                            borderRadius: '20px',
-                            fontSize: '0.8rem',
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
                             backgroundColor: event.status === 'upcoming' ? 'rgba(110, 68, 255, 0.2)' :
                                             event.status === 'ongoing' ? 'rgba(68, 255, 210, 0.2)' :
                                             'rgba(255, 68, 227, 0.2)',
                             color: event.status === 'upcoming' ? 'var(--primary)' :
                                    event.status === 'ongoing' ? 'var(--accent)' :
                                    'var(--secondary)',
-                            marginRight: '3rem'
+                            marginRight: '3rem',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
@@ -1191,12 +1435,32 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                         }}
                       >
                         <div>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                          <p className="registration-count" style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                             {getRegistrationsCount(event.id)} registrations
                           </p>
                         </div>
 
-                        <div className="event-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                        {/* Desktop Actions */}
+                        <div className="event-actions desktop-actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {/* Primary Action - View Event */}
+                          <button
+                            className="btn"
+                            onClick={() => {
+                              // Navigate to event details page where club can post live updates
+                              window.open(`/event/${event.id}`, '_blank');
+                            }}
+                            style={{
+                              backgroundColor: 'rgba(110, 68, 255, 0.2)',
+                              color: 'var(--primary)',
+                              border: '1px solid var(--primary)',
+                              fontWeight: '600'
+                            }}
+                            title="View event page and post live updates"
+                          >
+                            📢 View Event & Post Updates
+                          </button>
+
+                          {/* Status Management */}
                           {event.status === 'upcoming' && (
                             <button
                               className="btn"
@@ -1213,6 +1477,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                               Complete Event
                             </button>
                           )}
+
+                          {/* Registration Management */}
                           <button
                             className={`btn ${event.registration_open === false ? 'btn-danger' : 'btn-success'}`}
                             onClick={() => handleToggleRegistration(event.id, event.registration_open !== false)}
@@ -1224,6 +1490,8 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           >
                             {event.registration_open === false ? 'Open Registration' : 'Close Registration'}
                           </button>
+
+                          {/* View Registrations */}
                           <button
                             className="btn btn-primary"
                             onClick={() => {
@@ -1232,6 +1500,18 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
                           >
                             View Registrations
                           </button>
+                        </div>
+
+                        {/* Mobile Actions - Dropdown */}
+                        <div className="mobile-actions" style={{ display: 'none' }}>
+                          <MobileActionDropdown
+                            event={event}
+                            onViewEvent={() => window.open(`/event/${event.id}`, '_blank')}
+                            onStartEvent={handleUpdateStatus}
+                            onCompleteEvent={handleUpdateStatus}
+                            onToggleRegistration={handleToggleRegistration}
+                            onViewRegistrations={loadEventRegistrations}
+                          />
                         </div>
                       </div>
                     </div>
