@@ -198,33 +198,18 @@ const ClubBankDetails = ({ clubId, onClose }) => {
       setError('');
       setSaving(true);
 
-      logger.log('Testing Razorpay connection...');
       const response = await fetch('/api/razorpay?action=test-connection');
-
-      logger.log('Response status:', response.status);
-      logger.log('Response headers:', response.headers);
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        logger.error('Non-JSON response received:', textResponse.substring(0, 200));
-        setError('❌ API endpoint not found. Please check deployment.');
-        return;
-      }
-
       const result = await response.json();
-      logger.log('API response:', result);
 
       if (response.ok) {
         setSuccess('✅ Razorpay connection successful! Ready to create accounts.');
       } else {
-        setError(`❌ Connection failed: ${result.error || 'Unknown error'}`);
+        setError(`❌ Connection failed: ${result.error}`);
       }
 
     } catch (error) {
       logger.error('Error testing Razorpay connection:', error);
-      setError(`❌ Failed to test connection: ${error.message}`);
+      setError('❌ Failed to test connection. Please check your internet connection.');
     } finally {
       setSaving(false);
     }
