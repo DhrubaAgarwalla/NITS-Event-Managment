@@ -1,7 +1,7 @@
 // Consolidated Razorpay API endpoints
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import { ref, get, set, push } from 'firebase/database';
+import { ref, get, set, push, update } from 'firebase/database';
 import { database } from '../src/lib/firebase-admin.js';
 
 // Initialize Razorpay
@@ -233,9 +233,16 @@ async function createLinkedAccount(req, res) {
 
   const bankAccount = await razorpay.accounts.addBankAccount(account.id, bankAccountData);
 
-  // Update Firebase
+  // Update Firebase - merge with existing bank details
   const bankDetailsRef = ref(database, `club_bank_details/${club_id}`);
+
+  // Get existing bank details first
+  const existingSnapshot = await get(bankDetailsRef);
+  const existingData = existingSnapshot.exists() ? existingSnapshot.val() : {};
+
   const updateData = {
+    ...existingData,
+    ...bank_details,
     razorpay_account_id: account.id,
     razorpay_bank_account_id: bankAccount.id,
     verification_status: 'under_review',
