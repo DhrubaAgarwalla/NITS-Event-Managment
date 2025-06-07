@@ -68,18 +68,12 @@ const ClubBankDetails = ({ clubId, onClose }) => {
     }));
   };
 
-  const validateBankDetails = (includeContactDetails = false) => {
+  const validateBankDetails = () => {
     const required = ['account_holder_name', 'account_number', 'ifsc_code', 'bank_name'];
-
-    // Add contact and address fields for Razorpay setup
-    if (includeContactDetails) {
-      required.push('contact_name', 'contact_email', 'contact_phone', 'address_line1', 'city', 'state', 'pincode');
-    }
-
     const missing = required.filter(field => !bankDetails[field]);
 
     if (missing.length > 0) {
-      setError(`Please fill in: ${missing.join(', ').replace(/_/g, ' ')}`);
+      setError(`Please fill in: ${missing.join(', ')}`);
       return false;
     }
 
@@ -94,24 +88,6 @@ const ClubBankDetails = ({ clubId, onClose }) => {
     if (bankDetails.account_number.length < 9 || bankDetails.account_number.length > 18) {
       setError('Account number should be between 9-18 digits');
       return false;
-    }
-
-    // Validate email format if contact details are required
-    if (includeContactDetails && bankDetails.contact_email) {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(bankDetails.contact_email)) {
-        setError('Invalid email format');
-        return false;
-      }
-    }
-
-    // Validate phone number if contact details are required
-    if (includeContactDetails && bankDetails.contact_phone) {
-      const phonePattern = /^[+]?[0-9\s\-()]{10,15}$/;
-      if (!phonePattern.test(bankDetails.contact_phone)) {
-        setError('Invalid phone number format');
-        return false;
-      }
     }
 
     return true;
@@ -130,7 +106,6 @@ const ClubBankDetails = ({ clubId, onClose }) => {
 
       const updatedDetails = {
         ...bankDetails,
-        verification_status: bankDetails.razorpay_account_id ? bankDetails.verification_status : 'details_completed',
         updated_at: new Date().toISOString(),
         created_at: bankDetails.created_at || new Date().toISOString()
       };
@@ -156,12 +131,12 @@ const ClubBankDetails = ({ clubId, onClose }) => {
       setError('');
       setSaving(true);
 
-      if (!validateBankDetails(true)) {
+      if (!validateBankDetails()) {
         return;
       }
 
       // This would call Razorpay Route API to create linked account
-      const response = await fetch('/api/razorpay?action=create-linked-account', {
+      const response = await fetch('/api/razorpay/create-linked-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -257,24 +232,20 @@ const ClubBankDetails = ({ clubId, onClose }) => {
           backgroundColor:
             bankDetails.verification_status === 'verified' ? 'rgba(46, 204, 113, 0.1)' :
             bankDetails.verification_status === 'under_review' ? 'rgba(243, 156, 18, 0.1)' :
-            bankDetails.verification_status === 'details_completed' ? 'rgba(52, 152, 219, 0.1)' :
             'rgba(231, 76, 60, 0.1)',
           border: `1px solid ${
             bankDetails.verification_status === 'verified' ? '#2ecc71' :
             bankDetails.verification_status === 'under_review' ? '#f39c12' :
-            bankDetails.verification_status === 'details_completed' ? '#3498db' :
             '#e74c3c'
           }`,
           color:
             bankDetails.verification_status === 'verified' ? '#2ecc71' :
             bankDetails.verification_status === 'under_review' ? '#f39c12' :
-            bankDetails.verification_status === 'details_completed' ? '#3498db' :
             '#e74c3c'
         }}>
           <strong>Status: </strong>
           {bankDetails.verification_status === 'verified' && '✅ Verified - Ready for direct payments'}
           {bankDetails.verification_status === 'under_review' && '🔄 Under Review - Verification in progress'}
-          {bankDetails.verification_status === 'details_completed' && '📋 Details Completed - Ready for Razorpay setup'}
           {bankDetails.verification_status === 'pending' && '⏳ Pending - Please complete bank details'}
           {bankDetails.verification_status === 'rejected' && '❌ Rejected - Please contact support'}
         </div>
@@ -450,28 +421,6 @@ const ClubBankDetails = ({ clubId, onClose }) => {
 
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Branch Name
-            </label>
-            <input
-              type="text"
-              name="branch_name"
-              value={bankDetails.branch_name}
-              onChange={handleInputChange}
-              placeholder="e.g., Main Branch, City Center"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
               UPI ID (Optional)
             </label>
             <input
@@ -514,309 +463,6 @@ const ClubBankDetails = ({ clubId, onClose }) => {
               <option value="current">Current</option>
             </select>
           </div>
-        </div>
-      )}
-
-      {/* Contact & Address Tab */}
-      {activeTab === 'contact' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Contact Person Name *
-            </label>
-            <input
-              type="text"
-              name="contact_name"
-              value={bankDetails.contact_name}
-              onChange={handleInputChange}
-              placeholder="Treasurer/Finance Head"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Contact Email *
-            </label>
-            <input
-              type="email"
-              name="contact_email"
-              value={bankDetails.contact_email}
-              onChange={handleInputChange}
-              placeholder="treasurer@club.com"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Contact Phone *
-            </label>
-            <input
-              type="tel"
-              name="contact_phone"
-              value={bankDetails.contact_phone}
-              onChange={handleInputChange}
-              placeholder="+91 9876543210"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Business Type
-            </label>
-            <select
-              name="business_type"
-              value={bankDetails.business_type}
-              onChange={handleInputChange}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            >
-              <option value="educational">Educational</option>
-              <option value="non_profit">Non-Profit</option>
-              <option value="society">Society</option>
-            </select>
-          </div>
-
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Address Line 1 *
-            </label>
-            <input
-              type="text"
-              name="address_line1"
-              value={bankDetails.address_line1}
-              onChange={handleInputChange}
-              placeholder="Building, Street"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              Address Line 2
-            </label>
-            <input
-              type="text"
-              name="address_line2"
-              value={bankDetails.address_line2}
-              onChange={handleInputChange}
-              placeholder="Area, Landmark"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              City *
-            </label>
-            <input
-              type="text"
-              name="city"
-              value={bankDetails.city}
-              onChange={handleInputChange}
-              placeholder="Silchar"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              State *
-            </label>
-            <input
-              type="text"
-              name="state"
-              value={bankDetails.state}
-              onChange={handleInputChange}
-              placeholder="Assam"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-              PIN Code *
-            </label>
-            <input
-              type="text"
-              name="pincode"
-              value={bankDetails.pincode}
-              onChange={handleInputChange}
-              placeholder="788010"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '4px',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Razorpay Setup Tab */}
-      {activeTab === 'razorpay' && (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          {bankDetails.razorpay_account_id ? (
-            <div>
-              <div style={{
-                padding: '2rem',
-                backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                border: '1px solid #2ecc71',
-                borderRadius: '8px',
-                marginBottom: '2rem'
-              }}>
-                <h3 style={{ color: '#2ecc71', marginBottom: '1rem' }}>
-                  ✅ Razorpay Account Created
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                  Account ID: {bankDetails.razorpay_account_id}
-                </p>
-                <p style={{ color: 'var(--text-secondary)' }}>
-                  Status: {bankDetails.verification_status || 'Under Review'}
-                </p>
-              </div>
-
-              <div style={{
-                padding: '1.5rem',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                border: '1px solid #3498db',
-                borderRadius: '8px',
-                textAlign: 'left'
-              }}>
-                <h4 style={{ color: '#3498db', marginBottom: '1rem' }}>
-                  🎉 Direct Payments Enabled!
-                </h4>
-                <ul style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  <li>✅ Event payments will go directly to your bank account</li>
-                  <li>✅ Money appears within 24 hours</li>
-                  <li>✅ No manual transfers needed</li>
-                  <li>✅ Real-time payment notifications</li>
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{
-                padding: '2rem',
-                backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                border: '1px solid #f39c12',
-                borderRadius: '8px',
-                marginBottom: '2rem'
-              }}>
-                <h3 style={{ color: '#f39c12', marginBottom: '1rem' }}>
-                  🏦 Create Razorpay Account
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                  Enable direct payments to your bank account by creating a Razorpay linked account.
-                </p>
-
-                <button
-                  onClick={handleCreateRazorpayAccount}
-                  disabled={saving}
-                  style={{
-                    padding: '1rem 2rem',
-                    backgroundColor: '#f39c12',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    opacity: saving ? 0.6 : 1
-                  }}
-                >
-                  {saving ? 'Creating Account...' : 'Create Razorpay Account'}
-                </button>
-              </div>
-
-              <div style={{
-                padding: '1.5rem',
-                backgroundColor: 'rgba(155, 89, 182, 0.1)',
-                border: '1px solid #9b59b6',
-                borderRadius: '8px',
-                textAlign: 'left'
-              }}>
-                <h4 style={{ color: '#9b59b6', marginBottom: '1rem' }}>
-                  📋 Requirements:
-                </h4>
-                <ul style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  <li>✅ Complete bank details (above)</li>
-                  <li>✅ Valid contact information</li>
-                  <li>✅ Verification may take 1-2 business days</li>
-                  <li>✅ Account will be activated automatically</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
