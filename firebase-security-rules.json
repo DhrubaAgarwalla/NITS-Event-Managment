@@ -135,15 +135,6 @@
           ".write": "true"
         }
       }
-    },
-
-    "club_bank_details": {
-      ".read": "auth != null && (root.child('clubs').child(auth.uid).exists() || root.child('admins').child(auth.uid).exists())",
-      ".indexOn": ["verification_status", "created_at", "updated_at"],
-      "$club_id": {
-        ".read": "auth != null && (auth.uid == $club_id || root.child('admins').child(auth.uid).exists())",
-        ".write": "auth != null && (auth.uid == $club_id || root.child('admins').child(auth.uid).exists())"
-      }
     }
   }
 }

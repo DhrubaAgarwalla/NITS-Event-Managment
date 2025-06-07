@@ -12,7 +12,6 @@ import GalleryManager from './GalleryManager';
 import CustomSelect from './CustomSelect';
 import MultiSelect from './MultiSelect';
 import GoogleSheetsSuccessDialog from './GoogleSheetsSuccessDialog';
-import ClubBankDetails from './ClubBankDetails';
 import AutoCreatedSheetsViewer from './AutoCreatedSheetsViewer';
 
 import logger from '../utils/logger';
@@ -184,7 +183,6 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
   const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [showGoogleSheetsDialog, setShowGoogleSheetsDialog] = useState(false);
   const [googleSheetsResult, setGoogleSheetsResult] = useState(null);
-  const [showBankDetails, setShowBankDetails] = useState(false);
 
   // Load registration counts for all events
   const loadRegistrationCounts = async (eventsData) => {
@@ -971,26 +969,6 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
             </div>
           </div>
           <div className="dashboard-header-actions" style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              className="btn"
-              onClick={() => setShowBankDetails(true)}
-              style={{
-                backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                color: '#2ecc71',
-                padding: '0.5rem 1.5rem',
-                borderRadius: '4px',
-                border: '1px solid rgba(46, 204, 113, 0.3)',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                justifyContent: 'center'
-              }}
-            >
-              <span>🏦</span> Bank Details
-            </button>
             <button
               className="btn"
               onClick={() => setIsEditingProfile(true)}
@@ -2921,25 +2899,6 @@ const ClubDashboard = ({ setCurrentPage, setIsClubLoggedIn }) => {
           onCopyLink={handleCopyLink}
           onShareWhatsApp={handleShareWhatsApp}
         />
-      )}
-
-      {/* Bank Details Modal */}
-      {showBankDetails && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => {
-            if (e.target.className === 'modal-overlay') {
-              setShowBankDetails(false);
-            }
-          }}
-        >
-          <div className="modal-content" style={{ maxWidth: '900px' }}>
-            <ClubBankDetails
-              clubId={club?.id}
-              onClose={() => setShowBankDetails(false)}
-            />
-          </div>
-        </div>
       )}
     </div>
   );

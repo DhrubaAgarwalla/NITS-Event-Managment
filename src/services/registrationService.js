@@ -294,10 +294,7 @@ const registrationService = {
 
         // Check payment verification if payment is required
         if (eventData.requires_payment) {
-          const isPaymentValid = registration.payment_status === 'verified' ||
-                                 registration.payment_status === 'captured';
-
-          if (!registration.payment_status || !isPaymentValid) {
+          if (!registration.payment_status || registration.payment_status !== 'verified') {
             return {
               success: false,
               error: 'Payment verification required. Please ensure payment is verified before marking attendance.',
@@ -436,10 +433,7 @@ const registrationService = {
 
       // Check payment verification if payment is required
       if (eventData.requires_payment) {
-        const isPaymentValid = registration.payment_status === 'verified' ||
-                               registration.payment_status === 'captured';
-
-        if (!registration.payment_status || !isPaymentValid) {
+        if (!registration.payment_status || registration.payment_status !== 'verified') {
           return {
             success: false,
             error: 'Payment verification required. Please ensure your payment is verified before marking attendance.',
@@ -818,7 +812,7 @@ const registrationService = {
       });
 
       if (hasPaymentInfo) {
-        headers.push('Payment Method', 'Payment Status', 'Payment Amount', 'Payment ID', 'Payment Screenshot');
+        headers.push('Payment Status', 'Payment Amount', 'Payment Screenshot');
       }
 
       headers.push('Notes');
@@ -903,10 +897,8 @@ const registrationService = {
 
         if (hasPaymentInfo) {
           rowData.push(
-            reg.payment_method ? reg.payment_method.toUpperCase() : 'N/A',
             reg.payment_status ? reg.payment_status.charAt(0).toUpperCase() + reg.payment_status.slice(1) : 'N/A',
             reg.payment_amount ? `₹${reg.payment_amount}` : 'N/A',
-            reg.payment_id || 'N/A',
             reg.payment_screenshot_url || 'N/A'
           );
         }
@@ -979,10 +971,8 @@ const registrationService = {
 
       if (hasPaymentInfo) {
         columns.push(
-          { key: 'paymentMethod', width: 15 },
           { key: 'paymentStatus', width: 15 },
           { key: 'paymentAmount', width: 15 },
-          { key: 'paymentId', width: 25 },
           { key: 'paymentScreenshot', width: 40 }
         );
       }
@@ -1962,7 +1952,7 @@ const registrationService = {
         });
 
         if (hasPaymentInfo) {
-          tableHeaders.push('Payment Method', 'Payment Status', 'Payment Amount');
+          tableHeaders.push('Payment Status', 'Payment Amount');
         }
         // Only add Team Members column if there are actual team registrations
         if (hasTeamRegistrations) {
@@ -1992,7 +1982,6 @@ const registrationService = {
             // Find the original registration to get payment info
             const originalReg = registrations.find(r => r.participant_email === reg['Email']);
             row.push(
-              originalReg?.payment_method ? originalReg.payment_method.toUpperCase() : 'N/A',
               originalReg?.payment_status ? originalReg.payment_status.charAt(0).toUpperCase() + originalReg.payment_status.slice(1) : 'N/A',
               originalReg?.payment_amount ? `₹${originalReg.payment_amount}` : 'N/A'
             );
@@ -2036,7 +2025,7 @@ const registrationService = {
             // Base columns: Name, Email, Phone, Student ID, Department, Year, Type, Reg Status, Attendance, Attended At
             const baseColumns = 10;
             const customFieldsCount = customFields.length;
-            const paymentColumns = hasPaymentInfo ? 3 : 0;
+            const paymentColumns = hasPaymentInfo ? 2 : 0;
             const teamColumns = hasTeamRegistrations ? 1 : 0;
             const totalColumns = baseColumns + customFieldsCount + paymentColumns + teamColumns;
 
@@ -2102,8 +2091,7 @@ const registrationService = {
 
             // Add payment columns if present
             if (hasPaymentInfo) {
-              const paymentWidth = totalColumns > 12 ? 10 : 12;
-              styles[columnIndex++] = { cellWidth: paymentWidth }; // Payment Method
+              const paymentWidth = totalColumns > 12 ? 12 : 15;
               styles[columnIndex++] = { cellWidth: paymentWidth }; // Payment Status
               styles[columnIndex++] = { cellWidth: paymentWidth }; // Payment Amount
             }
