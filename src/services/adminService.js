@@ -161,6 +161,21 @@ const adminService = {
         updated_at: new Date().toISOString()
       });
 
+      // Send approval email with login credentials
+      try {
+        await adminService.sendClubApprovalEmail({
+          clubName: finalClubData.name,
+          contactPerson: requestData.contact_person,
+          email: finalEmail,
+          password: password
+        });
+        logger.log('Club approval email sent successfully');
+      } catch (emailError) {
+        logger.error('Failed to send club approval email:', emailError);
+        // Don't throw error here - account creation was successful
+        // Email failure shouldn't prevent the approval process
+      }
+
       logger.log('Club request approved and account created successfully');
 
       return result;
@@ -187,6 +202,51 @@ const adminService = {
       return true;
     } catch (error) {
       logger.error('Error rejecting club request:', error);
+      throw error;
+    }
+  },
+
+  // Send club approval email with login credentials
+  sendClubApprovalEmail: async (emailData) => {
+    try {
+      const { clubName, contactPerson, email, password } = emailData;
+
+      logger.log(`Sending club approval email to: ${email}`);
+
+      const backendUrl = import.meta.env.VITE_SHEETS_BACKEND_URL || 'https://google-sheets-backend-five.vercel.app';
+
+      // Generate password reset link
+      const frontendUrl = window.location.origin;
+      const passwordResetLink = `${frontendUrl}?forgot-password=true`;
+
+      const response = await fetch(`${backendUrl}/api/v1/send-club-approval`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clubName,
+          contactPerson,
+          email,
+          password,
+          passwordResetLink
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send email');
+      }
+
+      const result = await response.json();
+      logger.log('Club approval email sent successfully:', result.messageId);
+
+      return {
+        success: true,
+        messageId: result.messageId
+      };
+    } catch (error) {
+      logger.error('Error sending club approval email:', error);
       throw error;
     }
   },

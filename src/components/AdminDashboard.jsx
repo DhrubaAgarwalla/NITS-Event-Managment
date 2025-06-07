@@ -188,7 +188,7 @@ export default function AdminDashboard({ setCurrentPage }) {
         // Use the password from the result if available, otherwise use the generated one
         const displayPassword = result.tempPassword || tempPassword;
 
-        setSuccess(`Club account created successfully for ${selectedRequest.club_name}. Temporary password: ${displayPassword}`);
+        setSuccess(`Club account created successfully for ${selectedRequest.club_name}. Temporary password: ${displayPassword}. A confirmation email with login credentials has been sent to ${selectedRequest.contact_email}.`);
 
         // Refresh requests list
         try {
@@ -621,7 +621,7 @@ export default function AdminDashboard({ setCurrentPage }) {
                     )}
                     <div>
                       <p>Are you sure you want to approve the request from <strong>{selectedRequest.club_name}</strong>?</p>
-                      <p>This will create a new club account with the following details:</p>
+                      <p>This will create a new club account and send a confirmation email with login credentials to <strong>{selectedRequest.contact_email}</strong>.</p>
                     </div>
                   </div>
 
@@ -633,6 +633,24 @@ export default function AdminDashboard({ setCurrentPage }) {
                       <li><strong>Logo:</strong> Included (will be transferred to club profile)</li>
                     )}
                   </ul>
+
+                  <div style={{
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    border: '1px solid rgba(0, 123, 255, 0.3)',
+                    borderRadius: '6px',
+                    padding: '15px',
+                    marginTop: '15px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: 'var(--primary)' }}>📧 Email Notification</h4>
+                    <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>The approval email will include:</p>
+                    <ul style={{ margin: '5px 0', paddingLeft: '20px', fontSize: '0.9rem' }}>
+                      <li>Login credentials (email and temporary password)</li>
+                      <li>Direct link to the club dashboard</li>
+                      <li>Password change link for security</li>
+                      <li>Instructions for getting started</li>
+                      <li>Overview of available features</li>
+                    </ul>
+                  </div>
 
                   <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                     <button
