@@ -277,7 +277,7 @@ Detailed documentation available in repository:
 
 **Created by:** Dhruba Kr Agarwalla (Scholar ID: 2411100)
 **Institution:** National Institute of Technology Silchar
-**Development Period:** 2024
+**Development Period:** 2025
 
 ### **Technical Achievements**
 - 🔄 Real-time data pipeline with live processing
